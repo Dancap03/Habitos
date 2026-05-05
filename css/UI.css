@@ -1,31 +1,36 @@
 /* =========================================
     ESTRUCTURA PRINCIPAL Y LAYOUT - CORREGIDO
    ========================================= */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background: #080808;
+    overflow: hidden; /* Evita que la página entera rebote */
+}
+
 .app { 
-    height: 100dvh; /* Cambiado de 100vh a 100dvh */
-    width: 100vw; 
+    height: 100%;
+    width: 100%;
     display: flex; 
     flex-direction: column; 
     max-width: 600px; 
     margin: 0 auto; 
-    background: var(--bg1); 
+    background: #080808; 
     position: relative;
-    overflow: hidden; /* Evita rebotes extraños fuera de la app */
 }
 
+/* ÁREA DE CONTENIDO (SCROLL) */
 .scroll { 
     flex: 1; 
     overflow-y: auto; 
-    /* Aumentamos el padding inferior a 120px o 140px para que el último botón 
-       quede bien arriba de la barra de navegación */
-    padding: 10px 20px 140px; 
+    /* 160px de margen abajo garantiza que la última tarjeta suba del todo */
+    padding: 10px 20px 160px !important; 
     display: flex; 
     flex-direction: column; 
     gap: 16px; 
-    /* Mejora el scroll en dispositivos iOS */
     -webkit-overflow-scrolling: touch; 
 }
-
 /* =========================================
    CABECERA Y TARJETAS (CARDS)
    ========================================= */
@@ -129,13 +134,43 @@ select.form-input {
     transform: translateX(-50%); 
     width: 100%; 
     max-width: 600px;
-    background: rgba(18, 18, 18, 0.95); /* Un poco más sólida */
-    backdrop-filter: blur(10px); 
-    border-top: 1px solid var(--line); 
+    background: #0c0c0c !important; /* Color sólido real */
+    border-top: 1px solid rgba(255,255,255,0.1); 
     display: flex; 
     justify-content: space-around; 
-    padding: 10px 10px 25px; /* 25px de padding abajo para el área segura de los móviles */
-    z-index: 100; 
+    padding: 10px 0 30px !important; /* Más espacio abajo para el dedo */
+    z-index: 9999; 
+}
+
+/* BOTONES DEL MENÚ (LIMPIEZA TOTAL) */
+.nav-btn { 
+    all: unset; /* Borra CUALQUIER estilo previo (incluidos los cuadros blancos) */
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center;
+    gap: 4px; 
+    cursor: pointer; 
+    flex: 1;
+    color: #6e6e73; /* var(--t3) */
+    -webkit-tap-highlight-color: transparent;
+}
+
+.nav-btn svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+    fill: none;
+}
+
+.nav-btn.on { 
+    color: #e05a2b !important; /* var(--acc) */
+}
+
+.nav-label { 
+    font-size: 10px; 
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
 }
 
 /* =========================================
