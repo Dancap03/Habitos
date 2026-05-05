@@ -113,3 +113,23 @@ html, body {
 .nav-btn.on { color: var(--acc); }
 .nav-btn svg { width: 24px; height: 24px; stroke: currentColor; }
 .nav-label { font-size: 10px; font-weight: 600; }
+
+
+.modal-handle { 
+    width: 40px; 
+    height: 4px; 
+    background: var(--bg4); 
+    border-radius: 2px; 
+    margin: 0 auto 20px; 
+    position: relative;
+}
+
+/* Esto crea un área táctil invisible más grande para que sea fácil agarrarlo */
+.modal-handle::after {
+    content: '';
+    position: absolute;
+    top: -20px;
+    bottom: -20px;
+    left: -30px;
+    right: -30px;
+}
