@@ -182,7 +182,7 @@ function startWorkout(id) {
         id: uid(),
         routineId: r.id,
         name: r.name || 'Entrenamiento',
-        type: r.type || 'pesas', // Hereda el tipo para bloquear botones luego
+        type: r.type || 'pesas',
         date: today(),
         startTime: formatTime(new Date()),
         endTime: '--:--',
@@ -315,22 +315,32 @@ function toggleSet(exIdx, sIdx) {
     const s = ex.sets[sIdx];
     s.done = !s.done;
     
+    // LÓGICA DE RÉCORDS PARA PESAS (Se comprueba al marcar el check)
     if(s.done) {
         if(!S.prs) S.prs = {};
         const key = ex.name;
+        
         if (ex.type === 'pesas' && s.kg && s.reps) {
             const weight = parseFloat(s.kg);
-            if(!S.prs[key] || weight > S.prs[key].val) {
-                S.prs[key] = { type: 'pesas', val: weight, reps: parseInt(s.reps), date: today() };
+            const reps = parseInt(s.reps);
+            let isNewPR = false;
+            
+            if(!S.prs[key] || S.prs[key].type !== 'pesas') {
+                isNewPR = true;
+            } else if (weight > S.prs[key].val) {
+                // Nuevo récord si levantas más peso
+                isNewPR = true;
+            } else if (weight === S.prs[key].val && reps > S.prs[key].reps) {
+                // Nuevo récord si levantas el MISMO peso pero MÁS repeticiones
+                isNewPR = true;
+            }
+
+            if(isNewPR) {
+                S.prs[key] = { type: 'pesas', val: weight, reps: reps, date: today() };
                 showToast(`¡Nuevo PR en ${key}! 🏆`);
             }
-        } else if (ex.type === 'cardio' && s.val) {
-            const value = parseFloat(s.val);
-            if(!S.prs[key] || value > S.prs[key].val) {
-                S.prs[key] = { type: 'cardio', val: value, unit: ex.unit, date: today() };
-                showToast(`¡Nuevo Récord en ${key}! 🏆`);
-            }
         }
+        // Nota: Los récords de Cardio se calculan en FinishWorkout para tener en cuenta el tiempo total.
     }
     save(); renderActiveWorkout(); renderRecords();
 }
@@ -343,13 +353,50 @@ function finishWorkout() {
     if(!S.activeRoutine.endTime || S.activeRoutine.endTime === '--:--') S.activeRoutine.endTime = formatTime(new Date());
     let vol = 0;
     
+    // Calculamos los minutos del entreno (si da 0 o error, ponemos 1 min por defecto para evitar dividir por cero)
+    const durMins = calcDuration(S.activeRoutine.startTime, S.activeRoutine.endTime) || 1;
+    
     const savedExercises = JSON.parse(JSON.stringify(S.activeRoutine.exercises || []));
 
+    // LÓGICA DE RÉCORDS PARA CARDIO (Se comprueba al finalizar)
     savedExercises.forEach(ex => {
         if(ex.type === 'pesas') { 
             (ex.sets || []).forEach(s => { 
                 if((s.done || (s.kg && s.reps)) && s.kg && s.reps) vol += parseFloat(s.kg) * parseInt(s.reps); 
             }); 
+        } else if (ex.type === 'cardio') {
+            let totalVal = 0;
+            (ex.sets || []).forEach(s => { 
+                if((s.done || s.val) && s.val) totalVal += parseFloat(s.val); 
+            });
+            
+            if (totalVal > 0) {
+                const pace = totalVal / durMins; // Eficiencia: Unidades por minuto
+                const key = ex.name;
+                if (!S.prs) S.prs = {};
+
+                let isNewRecord = false;
+                if (!S.prs[key] || S.prs[key].type !== 'cardio') {
+                    isNewRecord = true;
+                } else {
+                    // Calculamos la eficiencia del récord antiguo
+                    const oldPace = S.prs[key].time ? (S.prs[key].val / S.prs[key].time) : 0;
+                    if (pace > oldPace) {
+                        isNewRecord = true;
+                    }
+                }
+
+                if (isNewRecord) {
+                    S.prs[key] = {
+                        type: 'cardio',
+                        val: totalVal,
+                        time: durMins,
+                        unit: ex.unit,
+                        date: today()
+                    };
+                    showToast(`¡Nuevo Récord de eficiencia en ${key}! 🏆`);
+                }
+            }
         }
     });
     
@@ -358,7 +405,7 @@ function finishWorkout() {
         id: S.activeRoutine.id, 
         date: S.activeRoutine.date, 
         name: S.activeRoutine.name, 
-        type: S.activeRoutine.type, // Guardamos el tipo de rutina
+        type: S.activeRoutine.type, 
         startTime: S.activeRoutine.startTime, 
         endTime: S.activeRoutine.endTime, 
         volume: vol,
@@ -435,12 +482,10 @@ function renderWorkoutLog() {
             let rightSideHtml = '';
             let detailsHtml = '';
             
-            // Calculamos el tiempo total del entreno
             const durMins = calcDuration(w.startTime, w.endTime);
             const durTextBadge = durMins !== null ? ` en ${durMins} min` : '';
             const durTextSub = durMins !== null ? ` (${durMins} min)` : '';
             
-            // Bandera para saber si ya hemos puesto el tiempo en el título o en el cardio
             let usedDurationInCardio = false;
 
             if (w.exercises && w.exercises.length > 0) {
@@ -453,7 +498,6 @@ function renderWorkoutLog() {
                     badges.push(`<div style="font-size:14px; font-weight:800; color:var(--acc);">${w.volume} <span style="font-size:10px; color:var(--t3);">kg</span></div>`);
                 }
                 
-                // Métrica de cardio combinada con el tiempo
                 cardioExercises.forEach(cx => {
                     let cVal = 0;
                     (cx.sets || []).forEach(s => { if (s.val) cVal += parseFloat(s.val); });
@@ -465,7 +509,6 @@ function renderWorkoutLog() {
 
                 rightSideHtml = `<div style="display:flex; gap:10px; align-items:center;">${badges.join('')}</div>`;
 
-                // Acordeón de pesas
                 if (hasPesas) {
                     let exList = '';
                     w.exercises.forEach(ex => {
@@ -540,6 +583,20 @@ function renderRecords() {
     list.innerHTML = prKeys.length ? prKeys.map(k => {
         const pr = S.prs[k];
         const isPesas = pr.type === 'pesas';
+        
+        let rightHtml = '';
+        if (isPesas) {
+            rightHtml = `
+                <div style="font-size:22px; font-weight:800; color:var(--yel); line-height:1;">${pr.val} <span style="font-size:12px; color:var(--t2);">kg</span></div>
+                <div style="font-size:12px; color:var(--t1); font-weight:600; margin-top:2px;">x ${pr.reps} reps</div>
+            `;
+        } else {
+            rightHtml = `
+                <div style="font-size:22px; font-weight:800; color:var(--yel); line-height:1;">${pr.val} <span style="font-size:12px; color:var(--t2);">${pr.unit || ''}</span></div>
+                ${pr.time ? `<div style="font-size:12px; color:var(--t1); font-weight:600; margin-top:2px;">en ${pr.time} min</div>` : ''}
+            `;
+        }
+
         return `
         <div class="card" style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; border-left: 4px solid var(--yel);">
             <div>
@@ -548,8 +605,7 @@ function renderRecords() {
             </div>
             <div style="display:flex; align-items:center; gap:16px;">
                 <div style="text-align:right;">
-                    <div style="font-size:22px; font-weight:800; color:var(--yel); line-height:1;">${pr.val} <span style="font-size:12px; color:var(--t2);">${isPesas ? 'kg' : pr.unit}</span></div>
-                    ${isPesas ? `<div style="font-size:12px; color:var(--t1); font-weight:600; margin-top:2px;">x ${pr.reps} reps</div>` : ''}
+                    ${rightHtml}
                 </div>
                 <button class="btn-danger" onclick="delRecord('${k}')">✕</button>
             </div>
