@@ -31,7 +31,6 @@
       <div class="card">
         <div class="card-title" id="fin-period-label">Resumen</div>
         <div class="big-bal" id="fin-bal">€0</div>
-        <!-- LA HUCHA TOTAL -->
         <div style="font-size:13px; color:var(--blu); font-weight:600; margin-top:4px;">Hucha de ahorro: <span id="fin-total-sav">€0</span></div>
         
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:16px">
@@ -63,11 +62,11 @@
         <div id="fin-expense-list"><div class="empty">Sin gastos</div></div>
       </div>
       <div class="card">
-        <div class="card-header"><span class="card-title">Suscripciones (Recurrentes)</span><button class="btn btn-sm" onclick="openModal('modal-rec')">+ Añadir</button></div>
+        <div class="card-header"><span class="card-title">Suscripciones (Recurrentes)</span><button class="btn btn-sm" onclick="openModalFin('gasto', 'suscripciones')">+ Añadir</button></div>
         <div id="fin-rec-list"><div class="empty">Sin suscripciones</div></div>
       </div>
       <div class="card">
-        <div class="card-header"><span class="card-title">Historial de Ahorro</span><button class="btn btn-sm" onclick="openModalFinSav()">+ Movimiento</button></div>
+        <div class="card-header"><span class="card-title">Historial de Ahorro</span><button class="btn btn-sm" onclick="openModalFin('gasto', 'ahorro')">+ Movimiento</button></div>
         <div id="fin-sav-list"><div class="empty">Sin movimientos</div></div>
       </div>
     </div>
@@ -81,17 +80,15 @@
     <button class="nav-btn" onclick="window.location.href='gym.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5v14M18 5v14M3 9h18M3 15h18"/></svg><span class="nav-label">Gym</span></button>
   </nav>
 
-  <!-- Modales Finanzas -->
   <div class="overlay" id="modal-fin" onclick="closeModal('modal-fin',event)">
     <div class="modal"><div class="modal-handle"></div><div class="modal-title" id="modal-fin-title">Nuevo registro</div>
       <div class="form-row">
         <div><div class="form-label" id="fin-type-label">Tipo</div><select id="fin-type"><option value="ingreso">Ingreso</option><option value="gasto">Gasto</option></select></div>
         <div><div class="form-label">Importe (€)</div><input type="number" id="fin-amount" placeholder="0.00" step="0.01"></div>
       </div>
-      <div style="margin-top:10px"><div class="form-label">Descripción</div><input type="text" id="fin-desc" placeholder="Nómina, supermercado, vacaciones..."></div>
+      <div style="margin-top:10px"><div class="form-label" id="fin-desc-label">Descripción</div><input type="text" id="fin-desc" placeholder="Nómina, supermercado, vacaciones..."></div>
       <div class="form-row" style="margin-top:10px">
         <div><div class="form-label">Categoría</div>
-          <!-- IMPORTANTE: EL ONCHANGE PARA QUE CAMBIEN LAS OPCIONES SI ELIGES AHORRO -->
           <select id="fin-cat" onchange="toggleFinTypeOptions()">
             <option value="nómina">Nómina</option>
             <option value="ahorro">Ahorro</option>
@@ -106,21 +103,10 @@
             <option value="otro">Otro</option>
           </select>
         </div>
-        <div><div class="form-label">Fecha</div><input type="date" id="fin-date"></div>
+        <div id="date-wrapper"><div class="form-label">Fecha</div><input type="date" id="fin-date"></div>
+        <div id="day-wrapper" style="display:none;"><div class="form-label">Día del mes</div><input type="number" id="fin-day" placeholder="1-31" min="1" max="31"></div>
       </div>
       <button class="btn btn-primary" style="margin-top:16px" onclick="addFinEntry()">Guardar</button>
-    </div>
-  </div>
-
-  <div class="overlay" id="modal-rec" onclick="closeModal('modal-rec',event)">
-    <div class="modal"><div class="modal-handle"></div><div class="modal-title">Nueva Suscripción</div>
-      <div class="form-label">Nombre</div><input type="text" id="rec-name" placeholder="Netflix, alquiler...">
-      <div class="form-row" style="margin-top:10px">
-        <div><div class="form-label">Importe (€)</div><input type="number" id="rec-amount" placeholder="0.00" step="0.01"></div>
-        <div><div class="form-label">Día del mes</div><input type="number" id="rec-day" placeholder="1-31" min="1" max="31"></div>
-      </div>
-      <div style="margin-top:10px"><div class="form-label">Tipo</div><select id="rec-type"><option value="gasto">Gasto</option><option value="ingreso">Ingreso</option></select></div>
-      <button class="btn btn-primary" style="margin-top:16px" onclick="addRecurring()">Añadir</button>
     </div>
   </div>
 
@@ -138,9 +124,10 @@
 
   <div class="toast-container" id="toast-container"></div>
 </div>
-<!-- v=8 para forzar actualización de caché -->
-<script src="js/main.js?v=8"></script>
-<script src="js/finanzas.js?v=8"></script>
+
+<!-- ?v=11 para añadir la línea azul al gráfico -->
+<script src="js/main.js?v=11"></script>
+<script src="js/finanzas.js?v=11"></script>
 <script>document.addEventListener('DOMContentLoaded', init);</script>
 </body>
 </html>
