@@ -1,136 +1,60 @@
-.card {
-  background: var(--bg2);
-  border-radius: 18px;
-  padding: 18px;
-  margin-bottom: 14px;
-  border: 1px solid var(--line);
-  transition: transform 0.2s ease;
+/* =========================================
+   ESTILOS GLOBALES DE MODALES (Estética Gym)
+   ========================================= */
+.form-label { 
+    font-size: 11px; 
+    font-weight: 700; 
+    color: var(--acc); 
+    margin-bottom: 6px; 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px; 
+    display: block;
 }
 
-@media (min-width: 768px) {
-  .card { margin-bottom: 0; } /* El gap del grid ya maneja el espacio */
-  .card:hover { border-color: rgba(255,255,255,0.15); }
+.form-input { 
+    width: 100%; 
+    padding: 12px; 
+    background: var(--bg3); 
+    border: 1px solid var(--line); 
+    border-radius: 10px; 
+    color: var(--t1); 
+    font-family: inherit; 
+    font-size: 14px; 
+    box-sizing: border-box; 
+    margin-bottom: 16px; 
+    transition: border-color 0.2s;
 }
 
-.card-title {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--t3);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.form-input:focus { 
+    outline: none; 
+    border-color: var(--acc); 
 }
 
-.big-bal {
-  font-size: 32px;
-  font-weight: 700;
-  letter-spacing: -1px;
+/* Flecha personalizada para los desplegables oscuros */
+select.form-input { 
+    appearance: none; 
+    -webkit-appearance: none; 
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E"); 
+    background-repeat: no-repeat; 
+    background-position: right 14px top 50%; 
+    background-size: 10px auto; 
 }
 
-.nav {
-  position: absolute; /* En móvil está fija abajo */
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 75px;
-  background: rgba(18, 18, 18, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  border-top: 1px solid var(--line);
-  padding-bottom: env(safe-area-inset-bottom);
-  z-index: 100;
+/* =========================================
+   BOTÓN "X" GLOBAL (Estética Finanzas)
+   ========================================= */
+.btn-danger { 
+    background: transparent !important; 
+    border: none !important; 
+    color: var(--red) !important; 
+    font-size: 16px !important; 
+    font-weight: bold;
+    cursor: pointer; 
+    padding: 4px 8px; 
+    display: inline-flex; 
+    align-items: center; 
+    justify-content: center; 
+    transition: opacity 0.2s;
 }
 
-/* En escritorio, la navegación es más limpia */
-@media (min-width: 768px) {
-  .nav {
-    height: 85px;
-    background: var(--bg2);
-  }
-}
-
-.nav-btn {
-  background: none;
-  border: none;
-  color: var(--t3);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  width: 20%;
-  transition: all 0.2s ease;
-}
-
-.nav-btn svg { width: 22px; height: 22px; }
-.nav-btn.on { color: var(--acc); }
-.nav-label { font-size: 10px; font-weight: 500; }
-
-.btn {
-  background: var(--bg4);
-  color: var(--t1);
-  border: none;
-  padding: 12px 20px;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
-.btn-primary { background: var(--acc); color: #fff; width: 100%; }
-
-.empty {
-  padding: 40px 0;
-  text-align: center;
-  color: var(--t3);
-  font-size: 14px;
-}
-
-/* Modales adaptables */
-.overlay {
-  position: fixed;
-  top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0,0,0,0.85);
-  display: flex;
-  align-items: flex-end; /* En móvil suben desde abajo */
-  z-index: 1000;
-  visibility: hidden;
-  opacity: 0;
-  transition: all 0.3s ease;
-}
-
-.overlay.on { visibility: visible; opacity: 1; }
-
-.modal {
-  background: var(--bg2);
-  width: 100%;
-  border-radius: 24px 24px 0 0;
-  padding: 24px;
-  transform: translateY(100%);
-  transition: transform 0.3s ease;
-}
-
-.overlay.on .modal { transform: translateY(0); }
-
-/* Modal en escritorio: Centrado y estrecho */
-@media (min-width: 768px) {
-  .overlay { align-items: center; justify-content: center; }
-  .modal {
-    width: 450px;
-    border-radius: 24px;
-    transform: scale(0.9);
-  }
-  .overlay.on .modal { transform: scale(1); }
-}
-
-.modal-handle {
-  width: 40px; height: 4px; background: var(--bg4);
-  border-radius: 2px; margin: -10px auto 20px auto;
-}
+.btn-danger:hover { opacity: 0.7; }
