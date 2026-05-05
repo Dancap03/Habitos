@@ -1,0 +1,14 @@
+.fin-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px; }
+.fin-tabs::-webkit-scrollbar { display: none; }
+.fin-tab { font-size: 13px; padding: 7px 18px; border-radius: 20px; border: 1px solid var(--line); color: var(--t2); background: transparent; cursor: pointer; white-space: nowrap; font-family: var(--font); font-weight: 500; }
+.fin-tab.on { background: var(--acc); color: #fff; border-color: var(--acc); }
+
+.big-bal { font-size: 44px; font-weight: 700; letter-spacing: -1.5px; font-variant-numeric: tabular-nums; }
+
+.fin-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.fin-row:last-child { border-bottom: none; }
+.fin-amount-pos { font-size: 15px; font-weight: 600; color: var(--grn); font-variant-numeric: tabular-nums; }
+.fin-amount-neg { font-size: 15px; font-weight: 600; color: var(--red); font-variant-numeric: tabular-nums; }
+
+.bar-track { height: 5px; background: var(--bg4); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+.bar-fill { height: 100%; border-radius: 3px; transition: width .6s cubic-bezier(.4,0,.2,1); }
