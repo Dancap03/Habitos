@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/UI.css">
 <link rel="stylesheet" href="css/cartera.css">
-</head> 
+</head>
 <body>
 <div class="app">
 
@@ -53,9 +53,28 @@
   <!-- Modales Cartera -->
   <div class="overlay" id="modal-stock" onclick="closeModal('modal-stock',event)">
     <div class="modal"><div class="modal-handle"></div><div class="modal-title">Nueva posición</div>
-      <div class="form-row"><div><div class="form-label">Ticker</div><input type="text" id="st-ticker" placeholder="AAPL, VOO..."></div><div><div class="form-label">Nombre</div><input type="text" id="st-name" placeholder="Apple Inc."></div></div>
-      <div class="form-row" style="margin-top:10px"><div><div class="form-label">Dinero Invertido (€)</div><input type="number" id="st-invested" placeholder="Ej: 50.00" step="0.01"></div><div><div class="form-label">Precio de Compra (€)</div><input type="number" id="st-buy-price" placeholder="Ej: 10.00" step="0.01"></div></div>
-      <div class="form-row" style="margin-top:10px"><div><div class="form-label">Precio actual en Mercado (€)</div><input type="number" id="st-price" placeholder="180.00" step="0.01"></div><div><div class="form-label">Tipo</div><select id="st-type"><option value="accion">Acción</option><option value="etf">ETF</option><option value="crypto">Crypto</option><option value="bono">Bono</option><option value="otro">Otro</option></select></div></div>
+      <div class="form-row">
+        <div><div class="form-label">Ticker</div><input type="text" id="st-ticker" placeholder="AAPL, VOO..."></div>
+        <div><div class="form-label">Nombre</div><input type="text" id="st-name" placeholder="Apple Inc."></div>
+      </div>
+      <div class="form-row" style="margin-top:10px">
+        <div><div class="form-label">Dinero Invertido (€)</div><input type="number" id="st-invested" placeholder="Ej: 50.00" step="0.01"></div>
+        <div><div class="form-label">Precio de Compra (€)</div><input type="number" id="st-buy-price" placeholder="Ej: 10.00" step="0.01"></div>
+      </div>
+      <div class="form-row" style="margin-top:10px">
+        <div><div class="form-label">Precio actual en Mercado (€)</div><input type="number" id="st-price" placeholder="180.00" step="0.01"></div>
+        <div>
+          <div class="form-label">Tipo</div>
+          <select id="st-type">
+            <option value="Acción">Acción</option>
+            <option value="ETF">ETF</option>
+            <option value="Crypto">Crypto</option>
+            <option value="Fondos">Fondos</option>
+            <option value="Bonos">Bonos</option>
+            <option value="Materias Primas">Materias Primas</option>
+          </select>
+        </div>
+      </div>
       <button class="btn btn-primary" style="margin-top:16px" onclick="addStock()">Crear Posición</button>
     </div>
   </div>
@@ -75,9 +94,8 @@
       <div id="edit-stock-purchases" style="max-height: 250px; overflow-y: auto; padding-right:4px;"></div>
     </div>
   </div>
-  <div class="toast-container" id="toast-container"></div>
-</div>
-<!-- Modal Confirmación -->
+
+  <!-- Modal Confirmación -->
   <div class="overlay" id="modal-confirm" onclick="cancelConfirm(event)">
     <div class="modal" style="padding-bottom: 24px;">
       <div class="modal-handle"></div>
@@ -89,7 +107,12 @@
       </div>
     </div>
   </div>
-<script src="js/main.js"></script><script src="js/cartera.js"></script>
+
+  <div class="toast-container" id="toast-container"></div>
+</div>
+<!-- Truco para la caché -->
+<script src="js/main.js?v=5"></script>
+<script src="js/cartera.js?v=5"></script>
 <script>document.addEventListener('DOMContentLoaded', init);</script>
 </body>
 </html>
