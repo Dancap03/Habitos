@@ -28,10 +28,13 @@
         <button class="fin-tab" onclick="setFinPeriod('total',this)">Total</button>
       </div>
 
-      <div class="card">
+      <div class="card card-full">
         <div class="card-title" id="fin-period-label">Resumen</div>
         <div class="big-bal" id="fin-bal">€0</div>
-        <div style="font-size:13px; color:var(--blu); font-weight:600; margin-top:4px;">Hucha de ahorro: <span id="fin-total-sav">€0</span></div>
+        <div style="display:flex; gap:15px; margin-top:4px;">
+           <div style="font-size:12px; color:var(--blu); font-weight:600;">Hucha ahorro: <span id="fin-total-sav">€0</span></div>
+           <div style="font-size:12px; color:var(--yel); font-weight:600;">Total invertido: <span id="fin-total-inv-label">€0</span></div>
+        </div>
         
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:16px">
           <div style="background:rgba(39,174,96,.07);border-radius:10px;padding:10px;text-align:center;">
@@ -49,25 +52,35 @@
         </div>
       </div>
 
-      <div class="card">
+      <div class="card card-full">
         <div class="card-title" id="fin-chart-label">Evolución</div>
-        <div style="position:relative;width:100%;height:180px"><canvas id="finChart"></canvas></div>
+        <div style="position:relative;width:100%;height:220px"><canvas id="finChart"></canvas></div>
       </div>
+
       <div class="card">
         <div class="card-header"><span class="card-title">Ingresos</span><button class="btn btn-sm" onclick="openModalFin('ingreso')">+ Añadir</button></div>
         <div id="fin-income-list"><div class="empty">Sin ingresos</div></div>
       </div>
+
       <div class="card">
         <div class="card-header"><span class="card-title">Gastos</span><button class="btn btn-sm" onclick="openModalFin('gasto')">+ Añadir</button></div>
         <div id="fin-expense-list"><div class="empty">Sin gastos</div></div>
       </div>
+
       <div class="card">
-        <div class="card-header"><span class="card-title">Suscripciones (Recurrentes)</span><button class="btn btn-sm" onclick="openModalFin('gasto', 'suscripciones')">+ Añadir</button></div>
+        <div class="card-header"><span class="card-title">Suscripciones</span><button class="btn btn-sm" onclick="openModalFin('gasto', 'suscripciones')">+ Añadir</button></div>
         <div id="fin-rec-list"><div class="empty">Sin suscripciones</div></div>
       </div>
+
       <div class="card">
-        <div class="card-header"><span class="card-title">Historial de Ahorro</span><button class="btn btn-sm" onclick="openModalFin('gasto', 'ahorro')">+ Movimiento</button></div>
+        <div class="card-header"><span class="card-title">Hucha Ahorro</span><button class="btn btn-sm" onclick="openModalFin('gasto', 'ahorro')">+ Mov.</button></div>
         <div id="fin-sav-list"><div class="empty">Sin movimientos</div></div>
+      </div>
+
+      <!-- NUEVA TARJETA DE INVERSIÓN -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">Capital Invertido</span><button class="btn btn-sm" onclick="openModalFin('gasto', 'inversión')">+ Invertir</button></div>
+        <div id="fin-inv-list"><div class="empty">Sin inversiones</div></div>
       </div>
     </div>
   </div>
@@ -86,12 +99,13 @@
         <div><div class="form-label" id="fin-type-label">Tipo</div><select id="fin-type"><option value="ingreso">Ingreso</option><option value="gasto">Gasto</option></select></div>
         <div><div class="form-label">Importe (€)</div><input type="number" id="fin-amount" placeholder="0.00" step="0.01"></div>
       </div>
-      <div style="margin-top:10px"><div class="form-label" id="fin-desc-label">Descripción</div><input type="text" id="fin-desc" placeholder="Nómina, supermercado, vacaciones..."></div>
+      <div style="margin-top:10px"><div class="form-label" id="fin-desc-label">Descripción</div><input type="text" id="fin-desc" placeholder="..."></div>
       <div class="form-row" style="margin-top:10px">
         <div><div class="form-label">Categoría</div>
           <select id="fin-cat" onchange="toggleFinTypeOptions()">
             <option value="nómina">Nómina</option>
             <option value="ahorro">Ahorro</option>
+            <option value="inversión">Inversión</option>
             <option value="intereses">Intereses</option>
             <option value="dividendos">Dividendos</option>
             <option value="alquiler">Alquiler</option>
@@ -127,9 +141,8 @@
 
   <div class="toast-container" id="toast-container"></div>
 </div>
-
-<script src="js/main.js?v=14"></script>
-<script src="js/finanzas.js?v=14"></script>
+<script src="js/main.js?v=17"></script>
+<script src="js/finanzas.js?v=17"></script>
 <script>document.addEventListener('DOMContentLoaded', init);</script>
 </body>
 </html>
