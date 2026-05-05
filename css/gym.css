@@ -8,6 +8,6 @@
 
 .history-card { background: var(--bg3); border-radius: 10px; padding: 12px; margin-bottom: 10px; border: 1px solid var(--line); cursor: pointer; transition: background 0.2s; }
 .history-card:active { background: var(--bg4); }
-
+ 
 #temp-exercises-list::-webkit-scrollbar { width: 4px; }
 #temp-exercises-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
