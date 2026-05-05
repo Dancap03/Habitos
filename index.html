@@ -16,6 +16,7 @@
 <body>
 <div class="app">
 
+<!-- INICIO -->
 <div class="screen on" id="s-home">
   <div class="topbar">
     <div><div class="logo">Dan<b>cab</b></div><div style="font-size:13px;color:var(--t2);margin-top:3px" id="greeting"></div></div>
@@ -60,6 +61,7 @@
   </div>
 </div>
 
+<!-- CALENDARIO / EVENTOS -->
 <div class="screen" id="s-tareas">
   <div class="topbar">
     <span class="page-title">Calendario</span>
@@ -157,6 +159,7 @@
   </div>
 </div>
 
+<!-- FINANZAS -->
 <div class="screen" id="s-finanzas">
   <div class="topbar">
     <span class="page-title">Finanzas</span>
@@ -219,6 +222,7 @@
   </div>
 </div>
 
+<!-- CARTERA -->
 <div class="screen" id="s-acciones">
   <div class="topbar">
     <span class="page-title">Cartera</span>
@@ -251,6 +255,7 @@
   </div>
 </div>
 
+<!-- GYM -->
 <div class="screen" id="s-gym">
   <div class="topbar">
     <span class="page-title">Gym</span>
@@ -299,6 +304,7 @@
   </div>
 </div>
 
+<!-- NAVEGACIÓN INFERIOR -->
 <nav class="nav">
   <button class="nav-btn on" onclick="switchTo('home',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -322,6 +328,8 @@
   </button>
 </nav>
 
+<!-- ════════ MODALES GLOBALES ════════ -->
+<!-- Modal Tarea / Evento -->
 <div class="overlay" id="modal-task" onclick="closeModal('modal-task',event)">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -347,6 +355,7 @@
   </div>
 </div>
 
+<!-- Modal Finanzas -->
 <div class="overlay" id="modal-fin" onclick="closeModal('modal-fin',event)">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -364,6 +373,7 @@
   </div>
 </div>
 
+<!-- Modal Recurrente -->
 <div class="overlay" id="modal-rec" onclick="closeModal('modal-rec',event)">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -378,6 +388,7 @@
   </div>
 </div>
 
+<!-- Modal Acción Nueva -->
 <div class="overlay" id="modal-stock" onclick="closeModal('modal-stock',event)">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -398,6 +409,7 @@
   </div>
 </div>
 
+<!-- Modal Acción Editar -->
 <div class="overlay" id="modal-stock-edit" onclick="closeModal('modal-stock-edit',event)">
   <div class="modal" style="padding-bottom: 24px;">
     <div class="modal-handle"></div>
@@ -416,28 +428,51 @@
   </div>
 </div>
 
+<!-- Modal Rutina -->
 <div class="overlay" id="modal-routine" onclick="closeModal('modal-routine',event)">
   <div class="modal" style="padding-bottom: 24px;">
     <div class="modal-handle"></div>
     <div class="modal-title">Nueva rutina</div>
+    
     <div class="form-row">
-      <div style="flex:2"><div class="form-label">Nombre</div><input type="text" id="r-name" placeholder="Ej: Pecho y Tríceps..."></div>
-      <div style="flex:1"><div class="form-label">Tipo</div><select id="r-type" onchange="toggleRoutineType()"><option value="pesas">Pesas</option><option value="cardio">Cardio</option></select></div>
+      <div style="flex:2">
+        <div class="form-label">Nombre</div>
+        <input type="text" id="r-name" placeholder="Ej: Pecho, Cinta...">
+      </div>
+      <div style="flex:1">
+        <div class="form-label">Tipo</div>
+        <select id="r-type" onchange="toggleRoutineType()">
+          <option value="pesas">Pesas</option>
+          <option value="cardio">Cardio</option>
+        </select>
+      </div>
     </div>
+
+    <!-- UI PESAS -->
     <div class="card" id="routine-pesas-ui" style="margin:12px 0; padding:12px;">
       <div class="form-label">Añadir Ejercicio</div>
-      <div class="form-row" style="margin-bottom:0;"><input type="text" id="r-ex-name" placeholder="Ej: Press banca" style="flex:2"><input type="number" id="r-ex-sets" placeholder="Series" style="flex:1" min="1"><button class="btn" style="background:var(--grn); color:#fff; border-radius:10px; font-weight:600; padding:0 14px;" onclick="addTempExercise()">Añadir</button></div>
+      <div class="form-row" style="margin-bottom:0;">
+        <input type="text" id="r-ex-name" placeholder="Ej: Press banca" style="flex:2">
+        <input type="number" id="r-ex-sets" placeholder="Series" style="flex:1" min="1">
+        <button class="btn" style="background:var(--grn); color:#fff; border-radius:10px; font-weight:600; padding:0 14px;" onclick="addTempExercise()">Añadir</button>
+      </div>
     </div>
-    <div class="card" id="routine-cardio-ui" style="margin:12px 0; padding:12px; display:none;">
-      <div class="form-label">Añadir Actividad</div>
-      <div class="form-row" style="margin-bottom:0;"><input type="text" id="r-cardio-name" placeholder="Ej: Cinta, Elíptica..." style="flex:1"><button class="btn" style="background:var(--grn); color:#fff; border-radius:10px; font-weight:600; padding:0 14px;" onclick="addTempCardio()">Añadir</button></div>
+
+    <!-- INFO CARDIO -->
+    <div id="routine-cardio-ui" style="display:none; margin:12px 0; text-align:center; color:var(--t2); font-size:12px;">
+      Para cardio no hace falta añadir ejercicios. Se guardará directamente con el nombre de la rutina (Ej: Correr).
     </div>
-    <div class="card-title" style="margin-top:16px;">Ejercicios añadidos</div>
-    <div id="temp-exercises-list" style="max-height: 180px; overflow-y: auto; padding-right:4px; margin-bottom: 12px;"><div class="empty" style="padding: 10px 0;">Ningún ejercicio añadido</div></div>
+
+    <div class="card-title" id="temp-exercises-title" style="margin-top:16px;">Ejercicios añadidos</div>
+    <div id="temp-exercises-list" style="max-height: 180px; overflow-y: auto; padding-right:4px; margin-bottom: 12px;">
+       <div class="empty" style="padding: 10px 0;">Ningún ejercicio añadido</div>
+    </div>
+
     <button class="btn btn-primary" onclick="saveNewRoutine()">Crear rutina</button>
   </div>
 </div>
 
+<!-- Modal Kanban -->
 <div class="overlay" id="modal-kanban" onclick="closeModal('modal-kanban',event)">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -462,6 +497,7 @@
   </div>
 </div>
 
+<!-- Modal Eisenhower -->
 <div class="overlay" id="modal-eis" onclick="closeModal('modal-eis',event)">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -472,6 +508,7 @@
   </div>
 </div>
 
+<!-- Modal PIN Nube -->
 <div class="overlay" id="modal-pin" onclick="closeModal('modal-pin',event)">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -485,6 +522,7 @@
 <div class="toast-container" id="toast-container"></div>
 </div>
 
+<!-- SCRIPTS CARGADOS EN ORDEN -->
 <script src="js/main.js"></script>
 <script src="js/nube.js"></script>
 <script src="js/tareas.js"></script>
