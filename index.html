@@ -33,11 +33,18 @@
          </div>
       </div>
 
-      <!-- CALENDARIO GYM (Semana completa) -->
+      <!-- CALENDARIO GYM (Mensual Interactivo) -->
       <div class="card" onclick="window.location.href='gym.html'" style="cursor:pointer">
-         <div class="card-title" style="margin-bottom:16px;">CALENDARIO GYM</div>
-         <div id="home-gym-calendar" style="display:flex; justify-content:space-between; align-items:center;">
-            <!-- JS inyectará aquí los 7 días de la semana -->
+         <div class="card-header" style="margin-bottom:16px;">
+            <span class="card-title" style="margin:0">CALENDARIO GYM</span>
+            <div style="display:flex;gap:10px;align-items:center;">
+               <button class="btn btn-sm" style="padding:4px 8px; background:var(--bg3);" onclick="event.stopPropagation(); changeGymMonth(-1)">◀</button>
+               <span id="gym-cal-month" style="font-size:12px;font-weight:600;min-width:80px;text-align:center;">Mes</span>
+               <button class="btn btn-sm" style="padding:4px 8px; background:var(--bg3);" onclick="event.stopPropagation(); changeGymMonth(1)">▶</button>
+            </div>
+         </div>
+         <div id="home-gym-calendar" style="display:grid; grid-template-columns:repeat(7, 1fr); gap:8px 4px; text-align:center; align-items:center;">
+            <!-- JS inyectará aquí los días del mes -->
          </div>
       </div>
 
@@ -49,19 +56,27 @@
 
       <!-- FINANZAS TOTALES HISTÓRICAS -->
       <div class="card" onclick="window.location.href='finanzas.html'" style="cursor:pointer">
-         <div class="card-title">FINANZAS</div>
+         <div class="card-title" style="margin-bottom:12px;">FINANZAS</div>
+         
+         <!-- Dinero Disponible -->
+         <div style="text-align:center; margin-bottom:20px;">
+            <div style="font-size:11px; color:var(--t2); text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">Disponible para gastar</div>
+            <div class="big-bal" id="home-fin-avail" style="font-size:36px; font-weight:700; color:var(--t1); margin-top:2px;">€0</div>
+         </div>
+
+         <!-- Desglose Real -->
          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-            <div>
-               <div style="font-size:10px;color:var(--t3);text-transform:uppercase;margin-bottom:4px;font-weight:700;">Ingresos</div>
-               <div style="font-size:18px;font-weight:700;color:var(--grn)" id="home-fin-inc">€0</div>
+            <div style="background:rgba(39,174,96,.07);border-radius:10px;padding:10px;text-align:center;">
+               <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:4px;font-weight:700;">Ingresos</div>
+               <div style="font-size:14px;font-weight:700;color:var(--grn)" id="home-fin-inc">€0</div>
             </div>
-            <div>
-               <div style="font-size:10px;color:var(--t3);text-transform:uppercase;margin-bottom:4px;font-weight:700;">Gastos</div>
-               <div style="font-size:18px;font-weight:700;color:var(--red)" id="home-fin-exp">€0</div>
+            <div style="background:rgba(231,76,60,.07);border-radius:10px;padding:10px;text-align:center;">
+               <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:4px;font-weight:700;">Gastos</div>
+               <div style="font-size:14px;font-weight:700;color:var(--red)" id="home-fin-exp">€0</div>
             </div>
-            <div>
-               <div style="font-size:10px;color:var(--t3);text-transform:uppercase;margin-bottom:4px;font-weight:700;">Ahorro</div>
-               <div style="font-size:18px;font-weight:700;color:var(--blu)" id="home-fin-sav">€0</div>
+            <div style="background:rgba(59,130,246,.07);border-radius:10px;padding:10px;text-align:center;">
+               <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:4px;font-weight:700;">Ahorro</div>
+               <div style="font-size:14px;font-weight:700;color:var(--blu)" id="home-fin-sav">€0</div>
             </div>
          </div>
       </div>
@@ -97,7 +112,7 @@
   </nav>
 
 </div>
-<script src="js/main.js?v=13"></script>
+<script src="js/main.js?v=15"></script>
 <script>document.addEventListener('DOMContentLoaded', init);</script>
 </body>
 </html>
