@@ -87,9 +87,11 @@ function renderStockPurchases(id) {
 }
 
 function delStock(id) {
-  if(confirm('¿Seguro que quieres borrar esta posición completa?')) {
-    S.stocks = S.stocks.filter(x => x.id !== id); save(); renderStocks();
-  }
+  customConfirm('Borrar posición', '¿Seguro que quieres borrar esta acción y todas sus compras?', () => {
+    S.stocks = S.stocks.filter(x => x.id !== id); 
+    save(); 
+    renderStocks();
+  });
 }
 
 function renderStocks() {
