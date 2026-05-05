@@ -25,9 +25,17 @@ function submitPin() {
   }
 }
 
-function syncAction(action, event) {
-  if (!API_URL.startsWith("http")) return showToast("Falta configurar la URL de Google", "error");
-  requestPin(action, event);
+async function cloudSync(action, event) {
+  // 1. Verificamos que la URL esté configurada
+  if (!API_URL.startsWith("http")) {
+    return showToast("Falta configurar la URL de Google", "error");
+  }
+  
+  // 2. Mapeamos lo que envía el botón ('up'/'down') a lo que entiende tu código ('upload'/'download')
+  const finalAction = (action === 'up') ? 'upload' : 'download';
+  
+  // 3. Llamamos a la petición de PIN
+  requestPin(finalAction, event);
 }
 
 async function executeSync(action, pin, btn) {
