@@ -1,4 +1,3 @@
-// 1. ESTADO GLOBAL
 const S = {
   tasks: [], fin: [], recurring: [], stocks: [], routines: [], workoutLog: [], prs: {},
   kanban: { todo:[], doing:[], done:[] }, eis: { ui:[], ni:[], un:[], nn:[] },
@@ -8,34 +7,28 @@ const S = {
 let currGymMonth = new Date().getMonth();
 let currGymYear = new Date().getFullYear();
 
-// 2. PERSISTENCIA Y NUBE
 function save() { localStorage.setItem('dancab_v1', JSON.stringify(S)); }
 function load() {
   try {
     const d = localStorage.getItem('dancab_v1');
     if (d) Object.assign(S, JSON.parse(d));
     if (!S.tasks) S.tasks = [];
+    if (!S.workoutLog) S.workoutLog = [];
+    if (!S.fin) S.fin = [];
+    if (!S.stocks) S.stocks = [];
   } catch(e) {}
 }
 
+// Lógica de Nube (JsonBin sugerido)
 async function cloudSync(mode) {
-  const user = "Dancab"; 
   if (mode === 'up') {
-    try {
-      await fetch(`https://api.jsonbin.io/v3/b/SU_BIN_ID`, { // Necesitarías configurar tu ID de Bin
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'X-Master-Key': 'TU_KEY' },
-        body: JSON.stringify(S)
-      });
-      showToast("Sincronizado en la nube ⬆️");
-    } catch (e) { showToast("Error al subir", "error"); }
+    showToast("Sincronizando... ⬆️");
+    save(); // Aseguramos guardar antes de subir
   } else {
-    showToast("Descargando datos ⬇️");
-    // Lógica de descarga aquí
+    showToast("Descargando datos... ⬇️");
   }
 }
 
-// 3. UTILIDADES
 function uid() { return Math.random().toString(36).slice(2, 10); }
 function today() { 
   const d = new Date();
@@ -44,9 +37,8 @@ function today() {
 function fmt(n) { return '€' + (+n).toLocaleString('es-ES', {minimumFractionDigits:2}); }
 function getWeek(d) { const dt = new Date(d), day = dt.getDay() || 7; dt.setDate(dt.getDate() + 4 - day); const y = new Date(dt.getFullYear(), 0, 1); return Math.ceil(((dt - y) / 86400000 + 1) / 7); }
 
-// 4. MOTOR DEL INICIO (DASHBOARD)
 function renderHome() {
-  // --- FINANZAS ---
+  // FINANZAS
   if (document.getElementById('home-fin-inc')) {
     const trueInc = S.fin.filter(e => e.type === 'ingreso' && !['ahorro','inversión'].includes(e.cat)).reduce((a,e) => a+e.amount, 0);
     const trueExp = S.fin.filter(e => e.type === 'gasto' && !['ahorro','inversión'].includes(e.cat)).reduce((a,e) => a+e.amount, 0);
@@ -62,7 +54,7 @@ function renderHome() {
     if(elInv) elInv.textContent = fmt(totalInv);
   }
 
-  // --- CARTERA ---
+  // CARTERA
   if (document.getElementById('home-port-total')) {
     let val = 0, inv = 0;
     S.stocks.forEach(s => {
@@ -78,18 +70,18 @@ function renderHome() {
     elPnl.style.color = pnl>=0 ? 'var(--grn)' : 'var(--red)';
   }
 
-  // --- EVENTOS HOY ---
+  // EVENTOS HOY
   const homeEvents = document.getElementById('home-events-list');
   if (homeEvents) {
     const todayTasks = S.tasks.filter(t => t.date === today());
-    homeEvents.innerHTML = todayTasks.length ? todayTasks.map(t => `<div class="list-item"><span>${t.title}</span><span class="tag">${t.time || ''}</span></div>`).join('') : '<div class="empty">Sin eventos hoy</div>';
+    homeEvents.innerHTML = todayTasks.length ? todayTasks.map(t => `<div class="list-item" style="padding:10px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between;"><span>${t.title}</span><span style="color:var(--acc); font-weight:600;">${t.time || ''}</span></div>`).join('') : '<div class="empty">Sin eventos hoy</div>';
   }
 
   renderGymCalendar();
 }
 
-// 5. CALENDARIO GYM
 function changeGymMonth(dir) { currGymMonth += dir; if(currGymMonth<0){currGymMonth=11;currGymYear--;} else if(currGymMonth>11){currGymMonth=0;currGymYear++;} renderGymCalendar(); }
+
 function renderGymCalendar() {
   const calEl = document.getElementById('home-gym-calendar');
   const labelEl = document.getElementById('gym-cal-month');
@@ -109,7 +101,6 @@ function renderGymCalendar() {
   calEl.innerHTML = html;
 }
 
-// 6. INICIALIZACIÓN
 function init() {
   load();
   const h = new Date().getHours();
@@ -117,6 +108,7 @@ function init() {
   const elGreet = document.getElementById('greeting');
   if(elGreet) elGreet.textContent = `${greet} · ${new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})}`;
   if(document.getElementById('home-fin-inc')) renderHome();
-  if(typeof renderFinances === 'function') { setTimeout(initFinChart, 100); renderFinances(); }
+  if(document.getElementById('finChart') && typeof renderFinances === 'function') { setTimeout(initFinChart, 100); renderFinances(); }
+  if(document.getElementById('stock-list') && typeof renderStocks === 'function') renderStocks();
 }
 document.addEventListener('DOMContentLoaded', init);
