@@ -1,5 +1,5 @@
 function catEmoji(c) {
-  const m = { nómina:'💼', intereses:'📈', freelance:'💻', dividendos:'🏦', alquiler:'🏠', alimentación:'🛒', transporte:'🚗', suscripciones:'📱', salud:'❤️', ocio:'🎭' };
+  const m = { nómina:'💼', ahorro:'💰', intereses:'📈', dividendos:'🏦', alquiler:'🏠', alimentación:'🛒', transporte:'🚗', suscripciones:'📱', salud:'❤️', ocio:'🎭' };
   return m[c] || '📌';
 }
 
@@ -82,35 +82,68 @@ function filterByPeriod(entries, period) {
 }
 
 function renderFinances() {
-  // Por defecto arrancamos en semana si no hay nada guardado
   const period = S.activePeriod || 'semana';
   
-  // Iluminamos el botón correcto siempre
   document.querySelectorAll('.fin-tab').forEach(t => {
     t.classList.remove('on');
     if (t.getAttribute('onclick').includes(`'${period}'`)) t.classList.add('on');
   });
 
   const entries = filterByPeriod(S.fin, period);
-  const inc = entries.filter(e => e.type === 'ingreso').reduce((a,e) => a+e.amount, 0);
-  const exp = entries.filter(e => e.type === 'gasto').reduce((a,e) => a+e.amount, 0);
   const labels = { mes: 'Mes actual', semana: 'Esta semana', año: 'Este año', total: 'Acumulado total' };
 
+  // MATEMÁTICA DE LA HUCHA (TODO EL HISTORIAL)
+  const totalSavIn = S.fin.filter(e => e.type === 'gasto' && e.cat === 'ahorro').reduce((a,e) => a+e.amount, 0);
+  const totalSavOut = S.fin.filter(e => e.type === 'ingreso' && e.cat === 'ahorro').reduce((a,e) => a+e.amount, 0);
+  const historicalSavings = totalSavIn - totalSavOut;
+
+  // MATEMÁTICA DEL PERIODO (SEMANA/MES/AÑO...)
+  const inc = entries.filter(e => e.type === 'ingreso').reduce((a,e) => a+e.amount, 0);
+  const exp = entries.filter(e => e.type === 'gasto').reduce((a,e) => a+e.amount, 0);
+  
+  // Ingresos y Gastos REALES (ignorando el movimiento de la hucha)
+  const trueInc = entries.filter(e => e.type === 'ingreso' && e.cat !== 'ahorro').reduce((a,e) => a+e.amount, 0);
+  const trueExp = entries.filter(e => e.type === 'gasto' && e.cat !== 'ahorro').reduce((a,e) => a+e.amount, 0);
+  
+  // Ahorro generado en este periodo específico
+  const periodSavIn = entries.filter(e => e.type === 'gasto' && e.cat === 'ahorro').reduce((a,e) => a+e.amount, 0);
+  const periodSavOut = entries.filter(e => e.type === 'ingreso' && e.cat === 'ahorro').reduce((a,e) => a+e.amount, 0);
+  const periodSavings = periodSavIn - periodSavOut;
+
+  // ACTUALIZACIÓN DEL HTML
   const pLabel = document.getElementById('fin-period-label');
   if(pLabel) pLabel.textContent = labels[period];
   
   const cLabel = document.getElementById('fin-chart-label');
   if(cLabel) cLabel.textContent = 'Evolución — ' + labels[period];
   
+  // Balance Disponible (Total Ingresos - Total Gastos de tu bolsillo)
   const balEl = document.getElementById('fin-bal');
   if(balEl) balEl.textContent = fmt(inc - exp);
   
+  // Hucha total
+  const totalSavEl = document.getElementById('fin-total-sav');
+  if(totalSavEl) totalSavEl.textContent = fmt(historicalSavings);
+  
+  // Cajas de resumen con datos Reales
   const incTotEl = document.getElementById('fin-inc');
-  if(incTotEl) incTotEl.textContent = fmt(inc);
+  if(incTotEl) incTotEl.textContent = fmt(trueInc);
   
   const expTotEl = document.getElementById('fin-exp');
-  if(expTotEl) expTotEl.textContent = fmt(exp);
+  if(expTotEl) expTotEl.textContent = fmt(trueExp);
+  
+  const savTotEl = document.getElementById('fin-sav');
+  if(savTotEl) {
+      if(periodSavings < 0) {
+         savTotEl.textContent = '-' + fmt(Math.abs(periodSavings));
+         savTotEl.style.color = 'var(--red)';
+      } else {
+         savTotEl.textContent = fmt(periodSavings);
+         savTotEl.style.color = 'var(--blu)';
+      }
+  }
 
+  // PINTAR LISTAS
   const incEntries = entries.filter(e => e.type === 'ingreso');
   const incEl = document.getElementById('fin-income-list');
   if(incEl) {
@@ -174,8 +207,8 @@ function buildFinChart() {
   finChartInst = new Chart(ctx, {
     type: 'line',
     data: { labels: [], datasets: [
-      { label:'Ingresos', data:[], borderColor:'#27ae60', backgroundColor:'rgba(39,174,96,.08)', tension:.4, fill:true, pointRadius:3 },
-      { label:'Gastos', data:[], borderColor:'#e74c3c', backgroundColor:'rgba(231,76,60,.06)', tension:.4, fill:true, pointRadius:3, borderDash:[4,4] }
+      { label:'Ingresos Reales', data:[], borderColor:'#27ae60', backgroundColor:'rgba(39,174,96,.08)', tension:.4, fill:true, pointRadius:3 },
+      { label:'Gastos Reales', data:[], borderColor:'#e74c3c', backgroundColor:'rgba(231,76,60,.06)', tension:.4, fill:true, pointRadius:3, borderDash:[4,4] }
     ]},
     options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#444',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#444',font:{size:10},callback:v=>'€'+v.toLocaleString()},grid:{color:'rgba(255,255,255,.04)'}}}}
   });
@@ -186,24 +219,26 @@ function updateFinChart(period) {
   if (!finChartInst) return;
   let labels = [], inc = [], exp = [];
   const now = new Date();
+  
+  // El gráfico SOLO suma movimientos que NO sean ahorro para no distorsionar tu nivel de vida
   if (period === 'mes') {
     const days = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
     labels = Array.from({length:days}, (_,i)=>String(i+1));
-    inc = labels.map(d => S.fin.filter(e=>e.type==='ingreso'&&e.date===`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`).reduce((a,e)=>a+e.amount,0));
-    exp = labels.map(d => S.fin.filter(e=>e.type==='gasto'&&e.date===`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`).reduce((a,e)=>a+e.amount,0));
+    inc = labels.map(d => S.fin.filter(e=>e.type==='ingreso' && e.cat!=='ahorro' && e.date===`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`).reduce((a,e)=>a+e.amount,0));
+    exp = labels.map(d => S.fin.filter(e=>e.type==='gasto' && e.cat!=='ahorro' && e.date===`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`).reduce((a,e)=>a+e.amount,0));
   } else if (period === 'semana') {
     const wdays = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
     labels = wdays;
-    for (let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-d.getDay()+1+i);const ds=d.toISOString().split('T')[0];inc.push(S.fin.filter(e=>e.type==='ingreso'&&e.date===ds).reduce((a,e)=>a+e.amount,0));exp.push(S.fin.filter(e=>e.type==='gasto'&&e.date===ds).reduce((a,e)=>a+e.amount,0));}
+    for (let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-d.getDay()+1+i);const ds=d.toISOString().split('T')[0];inc.push(S.fin.filter(e=>e.type==='ingreso' && e.cat!=='ahorro' && e.date===ds).reduce((a,e)=>a+e.amount,0));exp.push(S.fin.filter(e=>e.type==='gasto' && e.cat!=='ahorro' && e.date===ds).reduce((a,e)=>a+e.amount,0));}
   } else if (period === 'año') {
     const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
     labels = months;
-    for (let m=0;m<12;m++){const yr=now.getFullYear(),mo=String(m+1).padStart(2,'0');inc.push(S.fin.filter(e=>e.type==='ingreso'&&e.date.startsWith(`${yr}-${mo}`)).reduce((a,e)=>a+e.amount,0));exp.push(S.fin.filter(e=>e.type==='gasto'&&e.date.startsWith(`${yr}-${mo}`)).reduce((a,e)=>a+e.amount,0));}
+    for (let m=0;m<12;m++){const yr=now.getFullYear(),mo=String(m+1).padStart(2,'0');inc.push(S.fin.filter(e=>e.type==='ingreso' && e.cat!=='ahorro' && e.date.startsWith(`${yr}-${mo}`)).reduce((a,e)=>a+e.amount,0));exp.push(S.fin.filter(e=>e.type==='gasto' && e.cat!=='ahorro' && e.date.startsWith(`${yr}-${mo}`)).reduce((a,e)=>a+e.amount,0));}
   } else {
     const years = [...new Set(S.fin.map(e=>e.date.slice(0,4)))].sort();
     labels = years.length ? years : [String(now.getFullYear())];
-    inc = labels.map(y=>S.fin.filter(e=>e.type==='ingreso'&&e.date.startsWith(y)).reduce((a,e)=>a+e.amount,0));
-    exp = labels.map(y=>S.fin.filter(e=>e.type==='gasto'&&e.date.startsWith(y)).reduce((a,e)=>a+e.amount,0));
+    inc = labels.map(y=>S.fin.filter(e=>e.type==='ingreso' && e.cat!=='ahorro' && e.date.startsWith(y)).reduce((a,e)=>a+e.amount,0));
+    exp = labels.map(y=>S.fin.filter(e=>e.type==='gasto' && e.cat!=='ahorro' && e.date.startsWith(y)).reduce((a,e)=>a+e.amount,0));
   }
   finChartInst.data.labels = labels;
   finChartInst.data.datasets[0].data = inc;
