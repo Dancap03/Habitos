@@ -86,6 +86,20 @@
   </div>
   <div class="toast-container" id="toast-container"></div>
 </div>
+
+  <!-- Modal Confirmación -->
+  <div class="overlay" id="modal-confirm" onclick="cancelConfirm(event)">
+    <div class="modal" style="padding-bottom: 24px;">
+      <div class="modal-handle"></div>
+      <div class="modal-title" id="confirm-title" style="color: var(--red);">¿Estás seguro?</div>
+      <div class="form-label" id="confirm-message" style="margin-bottom: 20px; text-transform: none; font-size: 14px; color: var(--t1); letter-spacing: normal;">¿Quieres borrar esto?</div>
+      <div class="form-row">
+        <button class="btn" style="background:var(--bg3); color:var(--t1);" onclick="cancelConfirm(event, true)">Cancelar</button>
+        <button class="btn" style="background:var(--red); color:#fff;" onclick="executeConfirm()">Borrar</button>
+      </div>
+    </div>
+  </div>
+  
 <script src="js/main.js"></script><script src="js/gym.js"></script>
 <script>document.addEventListener('DOMContentLoaded', init);</script>
 </body>
