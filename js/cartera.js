@@ -11,7 +11,7 @@ function renderStocks() {
     if(totalEl) totalEl.textContent = fmt(0);
     if(invEl) invEl.textContent = fmt(0);
     if(pnlEl) { pnlEl.textContent = '+€0.00 (0.00%)'; pnlEl.className = 'stock-chg-pos'; }
-    renderDonut();
+    renderDonuts();
     return;
   }
 
@@ -37,10 +37,10 @@ function renderStocks() {
     return `
     <div class="stock-item" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
       <div style="display:flex; align-items:center; gap:12px;" onclick="openEditStockModal('${s.id}')">
-        <div class="stock-ticker" style="background:var(--bg4)">${s.ticker}</div>
+        <div class="stock-ticker" style="background:var(--bg4); border:1px solid var(--line);">${s.ticker}</div>
         <div>
           <div style="font-size:14px;font-weight:600">${s.name}</div>
-          <div style="font-size:12px;color:var(--t2)">${shares.toFixed(4)} ud · ${fmt(s.price)}</div>
+          <div style="font-size:12px;color:var(--t2)">Precio: ${fmt(s.price)}</div>
         </div>
       </div>
       <div style="text-align:right; display:flex; align-items:center; gap:12px;">
@@ -63,7 +63,7 @@ function renderStocks() {
     pnlEl.className = isPosTot ? 'stock-chg-pos' : 'stock-chg-neg';
   }
 
-  renderDonut();
+  renderDonuts();
 }
 
 function addStock() {
@@ -115,7 +115,7 @@ function renderEditPurchases(s) {
     const colorClass = isPos ? 'stock-chg-pos' : 'stock-chg-neg';
     const sign = isPos ? '▲' : '▼';
 
-    // Aquí está la magia: Formato de Invertido limpio (ej. 6€ o 6.50€)
+    // ¡MAGIA PURA! Formato super limpio sin decimales inútiles
     const formattedInvested = p.invested % 1 === 0 ? p.invested + '€' : p.invested.toFixed(2) + '€';
 
     return `
@@ -203,22 +203,29 @@ function delStock(id) {
   }
 }
 
-let donutInst = null;
-function renderDonut() {
-  const canvas = document.getElementById('donutChart');
-  const legend = document.getElementById('port-legend');
-  if (!canvas || !legend) return;
+let donutTypeInst = null;
+let donutAssetInst = null;
+
+function renderDonuts() {
+  const canvasType = document.getElementById('donutChartType');
+  const legendType = document.getElementById('port-legend-type');
+  const canvasAsset = document.getElementById('donutChartAsset');
+  const legendAsset = document.getElementById('port-legend-asset');
+  
+  if (!canvasType || !legendType || !canvasAsset || !legendAsset) return;
 
   if (!S.stocks || S.stocks.length === 0) {
-    if(donutInst) donutInst.destroy();
-    donutInst = null;
-    legend.innerHTML = '';
+    if(donutTypeInst) donutTypeInst.destroy();
+    if(donutAssetInst) donutAssetInst.destroy();
+    donutTypeInst = null;
+    donutAssetInst = null;
+    legendType.innerHTML = '';
+    legendAsset.innerHTML = '';
     return;
   }
 
-  const data = [];
-  const labels = [];
-  const colors = ['#e05a2b', '#27ae60', '#3b82f6', '#f59e0b', '#8b5cf6', '#e74c3c', '#1abc9c'];
+  const typeMap = {};
+  const assetMap = {};
   let totalVal = 0;
 
   S.stocks.forEach(s => {
@@ -226,36 +233,77 @@ function renderDonut() {
     if(s.purchases) s.purchases.forEach(p => shares += p.shares);
     const val = shares * s.price;
     if (val > 0) {
-      data.push(val);
-      labels.push(s.ticker);
       totalVal += val;
+      const type = s.assetType || 'Otro';
+      typeMap[type] = (typeMap[type] || 0) + val;
+      assetMap[s.ticker] = (assetMap[s.ticker] || 0) + val;
     }
   });
 
   if (totalVal === 0) {
-    if(donutInst) donutInst.destroy();
-    donutInst = null;
-    legend.innerHTML = '';
+    if(donutTypeInst) donutTypeInst.destroy();
+    if(donutAssetInst) donutAssetInst.destroy();
+    donutTypeInst = null;
+    donutAssetInst = null;
+    legendType.innerHTML = '';
+    legendAsset.innerHTML = '';
     return;
   }
 
-  legend.innerHTML = labels.map((l, i) => `
+  // Colores asignados a cada categoría para que siempre sean los mismos
+  const typeColors = {
+    'Acción': '#3b82f6', // Azul
+    'ETF': '#8b5cf6', // Morado
+    'Crypto': '#f59e0b', // Naranja
+    'Fondos': '#1abc9c', // Turquesa
+    'Bonos': '#27ae60', // Verde
+    'Materias Primas': '#e74c3c', // Rojo
+    'Otro': '#95a5a6' // Gris
+  };
+
+  const defaultColors = ['#e05a2b', '#27ae60', '#3b82f6', '#f59e0b', '#8b5cf6', '#e74c3c', '#1abc9c'];
+
+  // --- 1. DOUGHNUT POR TIPO DE ACTIVO ---
+  const types = Object.keys(typeMap).sort((a,b) => typeMap[b] - typeMap[a]);
+  const dataTypes = types.map(t => typeMap[t]);
+  const bgTypes = types.map(t => typeColors[t] || defaultColors[0]);
+
+  legendType.innerHTML = types.map((l, i) => `
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
       <div style="display:flex; align-items:center; gap:6px;">
-        <div style="width:10px;height:10px;border-radius:50%;background:${colors[i%colors.length]}"></div>
-        <span>${l}</span>
+        <div style="width:10px;height:10px;border-radius:50%;background:${bgTypes[i]}"></div>
+        <span style="color:var(--t1); font-weight:500;">${l}</span>
       </div>
-      <span style="font-weight:600">${((data[i]/totalVal)*100).toFixed(1)}%</span>
+      <span style="color:var(--t2); font-weight:600">${((dataTypes[i]/totalVal)*100).toFixed(1)}%</span>
     </div>
   `).join('');
 
-  if (donutInst) donutInst.destroy();
-  donutInst = new Chart(canvas, {
+  if (donutTypeInst) donutTypeInst.destroy();
+  donutTypeInst = new Chart(canvasType, {
     type: 'doughnut',
-    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
-    options: {
-      responsive: true, maintainAspectRatio: false, cutout: '75%',
-      plugins: { legend: { display: false }, tooltip: { enabled: false } }
-    }
+    data: { labels: types, datasets: [{ data: dataTypes, backgroundColor: bgTypes, borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+  });
+
+  // --- 2. DOUGHNUT POR ACTIVO INDIVIDUAL ---
+  const assets = Object.keys(assetMap).sort((a,b) => assetMap[b] - assetMap[a]);
+  const dataAssets = assets.map(a => assetMap[a]);
+  const bgAssets = assets.map((a, i) => defaultColors[i % defaultColors.length]);
+
+  legendAsset.innerHTML = assets.map((l, i) => `
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <div style="width:10px;height:10px;border-radius:50%;background:${bgAssets[i]}"></div>
+        <span style="color:var(--t1); font-weight:500;">${l}</span>
+      </div>
+      <span style="color:var(--t2); font-weight:600">${((dataAssets[i]/totalVal)*100).toFixed(1)}%</span>
+    </div>
+  `).join('');
+
+  if (donutAssetInst) donutAssetInst.destroy();
+  donutAssetInst = new Chart(canvasAsset, {
+    type: 'doughnut',
+    data: { labels: assets, datasets: [{ data: dataAssets, backgroundColor: bgAssets, borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
   });
 }
