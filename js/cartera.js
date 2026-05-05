@@ -1,3 +1,18 @@
+// Función inteligente para asignar el color (ignora si está en mayúscula o minúscula)
+function getTypeColor(type) {
+  const colors = {
+    'acción': '#3b82f6', // Azul
+    'etf': '#8b5cf6', // Morado
+    'crypto': '#f59e0b', // Naranja
+    'fondos': '#1abc9c', // Turquesa
+    'bonos': '#27ae60', // Verde
+    'materias primas': '#e74c3c', // Rojo
+    'otro': '#95a5a6' // Gris
+  };
+  if (!type) return colors['otro'];
+  return colors[type.toLowerCase()] || colors['otro'];
+}
+
 function renderStocks() {
   const list = document.getElementById('stock-list');
   const totalEl = document.getElementById('port-total');
@@ -33,11 +48,15 @@ function renderStocks() {
     const isPos = pnl >= 0;
     const colorClass = isPos ? 'stock-chg-pos' : 'stock-chg-neg';
     const sign = isPos ? '▲' : '▼';
+    
+    // Obtenemos el color según la categoría para pintar el Ticker
+    const tickerColor = getTypeColor(s.assetType);
 
     return `
     <div class="stock-item" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
       <div style="display:flex; align-items:center; gap:12px;" onclick="openEditStockModal('${s.id}')">
-        <div class="stock-ticker" style="background:var(--bg4); border:1px solid var(--line);">${s.ticker}</div>
+        <!-- AQUÍ SE APLICA EL COLOR AL TEXTO DEL TICKER -->
+        <div class="stock-ticker" style="background:var(--bg4); border:1px solid var(--line); color:${tickerColor}; font-weight:700;">${s.ticker}</div>
         <div>
           <div style="font-size:14px;font-weight:600">${s.name}</div>
           <div style="font-size:12px;color:var(--t2)">Precio: ${fmt(s.price)}</div>
@@ -115,7 +134,6 @@ function renderEditPurchases(s) {
     const colorClass = isPos ? 'stock-chg-pos' : 'stock-chg-neg';
     const sign = isPos ? '▲' : '▼';
 
-    // ¡MAGIA PURA! Formato super limpio sin decimales inútiles
     const formattedInvested = p.invested % 1 === 0 ? p.invested + '€' : p.invested.toFixed(2) + '€';
 
     return `
@@ -234,8 +252,13 @@ function renderDonuts() {
     const val = shares * s.price;
     if (val > 0) {
       totalVal += val;
-      const type = s.assetType || 'Otro';
-      typeMap[type] = (typeMap[type] || 0) + val;
+      
+      // Normalizamos el nombre para agrupar viejos "crypto" con nuevos "Crypto"
+      let rawType = (s.assetType || 'Otro').trim();
+      let typeKey = rawType.toLowerCase();
+      let displayType = typeKey === 'etf' ? 'ETF' : (rawType.charAt(0).toUpperCase() + rawType.slice(1));
+      
+      typeMap[displayType] = (typeMap[displayType] || 0) + val;
       assetMap[s.ticker] = (assetMap[s.ticker] || 0) + val;
     }
   });
@@ -250,23 +273,11 @@ function renderDonuts() {
     return;
   }
 
-  // Colores asignados a cada categoría para que siempre sean los mismos
-  const typeColors = {
-    'Acción': '#3b82f6', // Azul
-    'ETF': '#8b5cf6', // Morado
-    'Crypto': '#f59e0b', // Naranja
-    'Fondos': '#1abc9c', // Turquesa
-    'Bonos': '#27ae60', // Verde
-    'Materias Primas': '#e74c3c', // Rojo
-    'Otro': '#95a5a6' // Gris
-  };
-
-  const defaultColors = ['#e05a2b', '#27ae60', '#3b82f6', '#f59e0b', '#8b5cf6', '#e74c3c', '#1abc9c'];
-
   // --- 1. DOUGHNUT POR TIPO DE ACTIVO ---
   const types = Object.keys(typeMap).sort((a,b) => typeMap[b] - typeMap[a]);
   const dataTypes = types.map(t => typeMap[t]);
-  const bgTypes = types.map(t => typeColors[t] || defaultColors[0]);
+  // Asignamos el color correcto usando la función inteligente
+  const bgTypes = types.map(t => getTypeColor(t));
 
   legendType.innerHTML = types.map((l, i) => `
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
@@ -286,6 +297,7 @@ function renderDonuts() {
   });
 
   // --- 2. DOUGHNUT POR ACTIVO INDIVIDUAL ---
+  const defaultColors = ['#e05a2b', '#27ae60', '#3b82f6', '#f59e0b', '#8b5cf6', '#e74c3c', '#1abc9c'];
   const assets = Object.keys(assetMap).sort((a,b) => assetMap[b] - assetMap[a]);
   const dataAssets = assets.map(a => assetMap[a]);
   const bgAssets = assets.map((a, i) => defaultColors[i % defaultColors.length]);
