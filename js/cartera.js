@@ -199,6 +199,29 @@ function delPurchase(sid, pid) {
   save(); renderStocks(); openManageStock(sid);
 }
 
+// --- FUNCIÓN PARA PINTAR LEYENDA CUSTOMIZADA ---
+function generateCustomLegend(containerId, labels, data, colors) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const total = data.reduce((a, b) => a + b, 0);
+    
+    let html = '';
+    labels.forEach((label, i) => {
+        const pct = total > 0 ? ((data[i] / total) * 100).toFixed(1) : 0;
+        const color = colors[i];
+        
+        html += `
+        <div style="display:flex; align-items:flex-start; gap:8px;">
+            <div style="width:10px; height:10px; border-radius:50%; background-color:${color}; flex-shrink:0; margin-top:4px;"></div>
+            <div>
+                <div style="font-size:10px; color:var(--t3); text-transform:uppercase; font-weight:700; letter-spacing:0.5px; margin-bottom:2px;">${label}</div>
+                <div style="font-size:18px; font-weight:800; color:${color}; line-height:1;">${pct}%</div>
+            </div>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
 let typeChart = null, assetChart = null;
 
 function updatePortfolioCharts() {
@@ -216,68 +239,34 @@ function updatePortfolioCharts() {
     }
   });
 
-  // PLUGIN PARA COLOREAR LA LEYENDA (Sobreescribe el gris genérico)
-  const legendPlugin = {
-      position: 'right',
-      labels: {
-          font: { size: 11, family: 'DM Sans', weight: 600 },
-          boxWidth: 10,
-          padding: 12,
-          usePointStyle: true, // Esto hace que el icono de color sea un circulito
-          generateLabels: function(chart) {
-              const data = chart.data;
-              if (data.labels.length && data.datasets.length) {
-                  return data.labels.map((label, i) => {
-                      const bgColor = data.datasets[0].backgroundColor[i];
-                      return {
-                          text: label,
-                          fillStyle: bgColor,
-                          strokeStyle: bgColor,
-                          lineWidth: 0,
-                          hidden: false,
-                          index: i,
-                          fontColor: bgColor // La magia: el texto coge el color exacto de la gráfica
-                      };
-                  });
-              }
-              return [];
-          }
-      }
-  };
-
   // PREPARACIÓN "POR TIPO"
   const typeLabelsRaw = Object.keys(types);
   const typeData = Object.values(types);
   const typeBgColors = typeLabelsRaw.map(t => getTypeColor(t));
-  const totalTypeVal = typeData.reduce((a, b) => a + b, 0);
-  
-  const typeLabelsPct = typeLabelsRaw.map((t, i) => {
-      const pct = totalTypeVal > 0 ? ((typeData[i] / totalTypeVal) * 100).toFixed(1) : 0;
-      return `${t} ${pct}%`;
-  });
   
   if (typeChart) typeChart.destroy();
   typeChart = new Chart(c1, {
     type: 'doughnut',
-    data: { labels: typeLabelsPct, datasets: [{ data: typeData, backgroundColor: typeBgColors, borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: legendPlugin } }
+    data: { labels: typeLabelsRaw, datasets: [{ data: typeData, backgroundColor: typeBgColors, borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false } } } // Apagamos la original
   });
+  
+  // Dibujamos nuestra propia leyenda
+  generateCustomLegend('legend-type', typeLabelsRaw, typeData, typeBgColors);
 
   // PREPARACIÓN "POR ACTIVO"
   const assetLabelsRaw = Object.keys(assets);
   const assetData = Object.values(assets);
-  const assetCols = ['#8b5cf6', '#3b82f6', '#27ae60', '#f59e0b', '#e74c3c', '#e05a2b', '#1abc9c', '#95a5a6']; 
-  const totalAssetVal = assetData.reduce((a, b) => a + b, 0);
+  const assetColsRaw = ['#8b5cf6', '#3b82f6', '#27ae60', '#f59e0b', '#e74c3c', '#e05a2b', '#1abc9c', '#95a5a6']; 
+  const assetCols = assetLabelsRaw.map((_, i) => assetColsRaw[i % assetColsRaw.length]); // Para que los colores den la vuelta si hay muchos activos
   
-  const assetLabelsPct = assetLabelsRaw.map((t, i) => {
-      const pct = totalAssetVal > 0 ? ((assetData[i] / totalAssetVal) * 100).toFixed(1) : 0;
-      return `${t} ${pct}%`;
-  });
-
   if (assetChart) assetChart.destroy();
   assetChart = new Chart(c2, {
     type: 'doughnut',
-    data: { labels: assetLabelsPct, datasets: [{ data: assetData, backgroundColor: assetCols, borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: legendPlugin } }
+    data: { labels: assetLabelsRaw, datasets: [{ data: assetData, backgroundColor: assetCols, borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false } } } // Apagamos la original
   });
+
+  // Dibujamos nuestra propia leyenda
+  generateCustomLegend('legend-asset', assetLabelsRaw, assetData, assetCols);
 }
