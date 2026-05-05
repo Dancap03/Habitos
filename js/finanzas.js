@@ -1,5 +1,5 @@
 function catEmoji(c) {
-  const m = { nómina:'💼', ahorro:'💰', intereses:'📈', dividendos:'🏦', alquiler:'🏠', comida:'🛒', transporte:'🚗', suscripciones:'📱', salud:'❤️', ocio:'🎭' };
+  const m = { nómina:'💼', ahorro:'💰', intereses:'📈', dividendos:'🏦', comida:'🛒', transporte:'🚗', suscripciones:'📱', salud:'❤️', ocio:'🎭', caprichos:'🎁', compras:'🛍️', viajes:'✈️' };
   return m[c] || '📌';
 }
 
@@ -269,7 +269,6 @@ function buildFinChart() {
     data: { labels: [], datasets: [
       { label:'Ingresos', data:[], borderColor:'#27ae60', backgroundColor:'rgba(39,174,96,.08)', tension:.4, fill:true, pointRadius:3 },
       { label:'Gastos', data:[], borderColor:'#e74c3c', backgroundColor:'rgba(231,76,60,.06)', tension:.4, fill:true, pointRadius:3, borderDash:[4,4] },
-      // ¡AQUÍ ESTÁ LA NUEVA LÍNEA AZUL DE AHORRO!
       { label:'Ahorrado', data:[], borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.08)', tension:.4, fill:true, pointRadius:3 }
     ]},
     options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#444',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#444',font:{size:10},callback:v=>'€'+v.toLocaleString()},grid:{color:'rgba(255,255,255,.04)'}}}}
@@ -289,7 +288,6 @@ function updateFinChart(period) {
         const ds = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
         inc.push(S.fin.filter(e=>e.type==='ingreso' && e.cat!=='ahorro' && e.date===ds).reduce((a,e)=>a+e.amount,0));
         exp.push(S.fin.filter(e=>e.type==='gasto' && e.cat!=='ahorro' && e.date===ds).reduce((a,e)=>a+e.amount,0));
-        // Ahorro generado ese día
         sav.push(S.fin.filter(e=>e.type==='gasto' && e.cat==='ahorro' && e.date===ds).reduce((a,e)=>a+e.amount,0) - S.fin.filter(e=>e.type==='ingreso' && e.cat==='ahorro' && e.date===ds).reduce((a,e)=>a+e.amount,0));
     });
   } else if (period === 'semana') {
