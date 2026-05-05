@@ -298,9 +298,10 @@ function toggleHistoryDetails(id) {
 }
 function loadMoreHistory() { historyPage++; renderGymHistory(); }
 function deleteWorkoutLog(id) { 
-  if(confirm('¿Seguro que quieres borrar este registro?')) { 
+  customConfirm('Borrar registro', '¿Seguro que quieres borrar este entrenamiento del historial?', () => {
     S.workoutLog = S.workoutLog.filter(w => w.id !== id); 
-    save(); renderGymHistory(); 
+    save(); 
+    renderGymHistory(); 
     if(typeof renderHome === 'function') renderHome(); 
-  } 
+  });
 }
