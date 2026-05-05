@@ -21,7 +21,6 @@
     </div>
     <div class="scroll">
       
-      <!-- PESTAÑAS ORDENADAS -->
       <div class="fin-tabs">
         <button class="fin-tab on" onclick="setFinPeriod('semana',this)">Semana</button>
         <button class="fin-tab" onclick="setFinPeriod('mes',this)">Mes</button>
@@ -32,11 +31,26 @@
       <div class="card">
         <div class="card-title" id="fin-period-label">Resumen</div>
         <div class="big-bal" id="fin-bal">€0</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
-          <div style="background:rgba(39,174,96,.07);border-radius:10px;padding:12px"><div style="font-size:11px;color:var(--t3);margin-bottom:5px">INGRESOS</div><div style="font-size:22px;font-weight:700;color:var(--grn)" id="fin-inc">€0</div></div>
-          <div style="background:rgba(231,76,60,.07);border-radius:10px;padding:12px"><div style="font-size:11px;color:var(--t3);margin-bottom:5px">GASTOS</div><div style="font-size:22px;font-weight:700;color:var(--red)" id="fin-exp">€0</div></div>
+        <!-- LA HUCHA TOTAL -->
+        <div style="font-size:13px; color:var(--blu); font-weight:600; margin-top:4px;">Hucha de ahorro: <span id="fin-total-sav">€0</span></div>
+        
+        <!-- NUEVO DISEÑO 3 COLUMNAS -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:16px">
+          <div style="background:rgba(39,174,96,.07);border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:9px;color:var(--t3);margin-bottom:4px;font-weight:700;">INGRESOS</div>
+            <div style="font-size:16px;font-weight:700;color:var(--grn)" id="fin-inc">€0</div>
+          </div>
+          <div style="background:rgba(231,76,60,.07);border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:9px;color:var(--t3);margin-bottom:4px;font-weight:700;">GASTOS</div>
+            <div style="font-size:16px;font-weight:700;color:var(--red)" id="fin-exp">€0</div>
+          </div>
+          <div style="background:rgba(59,130,246,.07);border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:9px;color:var(--t3);margin-bottom:4px;font-weight:700;">AHORRADO</div>
+            <div style="font-size:16px;font-weight:700;color:var(--blu)" id="fin-sav">€0</div>
+          </div>
         </div>
       </div>
+
       <div class="card">
         <div class="card-title" id="fin-chart-label">Evolución</div>
         <div style="position:relative;width:100%;height:180px"><canvas id="finChart"></canvas></div>
@@ -73,7 +87,21 @@
       </div>
       <div style="margin-top:10px"><div class="form-label">Descripción</div><input type="text" id="fin-desc" placeholder="Nómina, supermercado..."></div>
       <div class="form-row" style="margin-top:10px">
-        <div><div class="form-label">Categoría</div><select id="fin-cat"><option value="nómina">Nómina</option><option value="intereses">Intereses</option><option value="freelance">Freelance</option><option value="dividendos">Dividendos</option><option value="alquiler">Alquiler</option><option value="alimentación">Alimentación</option><option value="transporte">Transporte</option><option value="suscripciones">Suscripciones</option><option value="salud">Salud</option><option value="ocio">Ocio</option><option value="otro">Otro</option></select></div>
+        <div><div class="form-label">Categoría</div>
+          <select id="fin-cat">
+            <option value="nómina">Nómina</option>
+            <option value="ahorro">Ahorro</option>
+            <option value="intereses">Intereses</option>
+            <option value="dividendos">Dividendos</option>
+            <option value="alquiler">Alquiler</option>
+            <option value="alimentación">Alimentación</option>
+            <option value="transporte">Transporte</option>
+            <option value="suscripciones">Suscripciones</option>
+            <option value="salud">Salud</option>
+            <option value="ocio">Ocio</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
         <div><div class="form-label">Fecha</div><input type="date" id="fin-date"></div>
       </div>
       <button class="btn btn-primary" style="margin-top:16px" onclick="addFinEntry()">Guardar</button>
@@ -92,7 +120,6 @@
     </div>
   </div>
 
-  <!-- Modal Confirmación -->
   <div class="overlay" id="modal-confirm" onclick="cancelConfirm(event)">
     <div class="modal" style="padding-bottom: 24px;">
       <div class="modal-handle"></div>
@@ -107,7 +134,9 @@
 
   <div class="toast-container" id="toast-container"></div>
 </div>
-<script src="js/main.js"></script><script src="js/finanzas.js"></script>
+<!-- ?v=6 para forzar a tu móvil a leer el código nuevo -->
+<script src="js/main.js?v=6"></script>
+<script src="js/finanzas.js?v=6"></script>
 <script>document.addEventListener('DOMContentLoaded', init);</script>
 </body>
 </html>
