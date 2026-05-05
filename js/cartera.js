@@ -13,6 +13,17 @@ function getTypeColor(type) {
     return colors[type.toLowerCase()] || colors['otro'];
 }
 
+function openNewStockModal() {
+    // Vaciamos los campos de texto antes de abrir
+    document.getElementById('s-ticker').value = '';
+    document.getElementById('s-name').value = '';
+    document.getElementById('s-invested').value = '';
+    document.getElementById('s-price').value = '';
+    document.getElementById('s-current').value = '';
+    document.getElementById('s-type').value = 'Acción'; // Reiniciamos el desplegable
+    openModal('modal-stock');
+}
+
 function renderStocks() {
   const el = document.getElementById('stock-list');
   if (!el) return;
