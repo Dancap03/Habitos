@@ -200,6 +200,7 @@ function delPurchase(sid, pid) {
 }
 
 let typeChart = null, assetChart = null;
+
 function updatePortfolioCharts() {
   const c1 = document.getElementById('chart-type');
   const c2 = document.getElementById('chart-asset');
@@ -215,13 +216,41 @@ function updatePortfolioCharts() {
     }
   });
 
-  // PREPARACIÓN DE PORCENTAJES PARA "POR TIPO"
+  // PLUGIN PARA COLOREAR LA LEYENDA (Sobreescribe el gris genérico)
+  const legendPlugin = {
+      position: 'right',
+      labels: {
+          font: { size: 11, family: 'DM Sans', weight: 600 },
+          boxWidth: 10,
+          padding: 12,
+          usePointStyle: true, // Esto hace que el icono de color sea un circulito
+          generateLabels: function(chart) {
+              const data = chart.data;
+              if (data.labels.length && data.datasets.length) {
+                  return data.labels.map((label, i) => {
+                      const bgColor = data.datasets[0].backgroundColor[i];
+                      return {
+                          text: label,
+                          fillStyle: bgColor,
+                          strokeStyle: bgColor,
+                          lineWidth: 0,
+                          hidden: false,
+                          index: i,
+                          fontColor: bgColor // La magia: el texto coge el color exacto de la gráfica
+                      };
+                  });
+              }
+              return [];
+          }
+      }
+  };
+
+  // PREPARACIÓN "POR TIPO"
   const typeLabelsRaw = Object.keys(types);
   const typeData = Object.values(types);
   const typeBgColors = typeLabelsRaw.map(t => getTypeColor(t));
   const totalTypeVal = typeData.reduce((a, b) => a + b, 0);
   
-  // Añadimos el % al texto del label
   const typeLabelsPct = typeLabelsRaw.map((t, i) => {
       const pct = totalTypeVal > 0 ? ((typeData[i] / totalTypeVal) * 100).toFixed(1) : 0;
       return `${t} ${pct}%`;
@@ -231,16 +260,15 @@ function updatePortfolioCharts() {
   typeChart = new Chart(c1, {
     type: 'doughnut',
     data: { labels: typeLabelsPct, datasets: [{ data: typeData, backgroundColor: typeBgColors, borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'right', labels: { color: '#a1a1a6', font: { size: 10, family: 'DM Sans' }, boxWidth: 10, padding: 10 } } } }
+    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: legendPlugin } }
   });
 
-  // PREPARACIÓN DE PORCENTAJES PARA "POR ACTIVO"
+  // PREPARACIÓN "POR ACTIVO"
   const assetLabelsRaw = Object.keys(assets);
   const assetData = Object.values(assets);
   const assetCols = ['#8b5cf6', '#3b82f6', '#27ae60', '#f59e0b', '#e74c3c', '#e05a2b', '#1abc9c', '#95a5a6']; 
   const totalAssetVal = assetData.reduce((a, b) => a + b, 0);
   
-  // Añadimos el % al texto del label
   const assetLabelsPct = assetLabelsRaw.map((t, i) => {
       const pct = totalAssetVal > 0 ? ((assetData[i] / totalAssetVal) * 100).toFixed(1) : 0;
       return `${t} ${pct}%`;
@@ -250,6 +278,6 @@ function updatePortfolioCharts() {
   assetChart = new Chart(c2, {
     type: 'doughnut',
     data: { labels: assetLabelsPct, datasets: [{ data: assetData, backgroundColor: assetCols, borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'right', labels: { color: '#a1a1a6', font: { size: 10, family: 'DM Sans' }, boxWidth: 10, padding: 10 } } } }
+    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: legendPlugin } }
   });
 }
