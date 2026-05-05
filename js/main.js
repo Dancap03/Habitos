@@ -131,6 +131,7 @@ function renderGymCalendar() {
 
 function init() {
   load();
+  setupSwipeToClose();
   const h = new Date().getHours();
   const greet = h<5?'Buenas noches':h<12?'Buenos días':h<20?'Buenas tardes':'Buenas noches';
   const elGreet = document.getElementById('greeting');
@@ -141,3 +142,59 @@ function init() {
   if(document.getElementById('stock-list') && typeof renderStocks === 'function') renderStocks();
 }
 document.addEventListener('DOMContentLoaded', init);
+
+// ==========================================
+// DESLIZAR PARA CERRAR MODALES (SWIPE DOWN)
+// ==========================================
+function setupSwipeToClose() {
+    const modals = document.querySelectorAll('.modal');
+    
+    modals.forEach(modal => {
+        const handle = modal.querySelector('.modal-handle');
+        if (!handle) return;
+
+        let startY = 0;
+        let currentY = 0;
+        let isDragging = false;
+
+        // Cuando ponemos el dedo en la rayita
+        handle.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+            isDragging = true;
+            modal.style.transition = 'none'; // Quitamos la animación para que siga al dedo
+        }, { passive: true });
+
+        // Mientras arrastramos el dedo
+        handle.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            const y = e.touches[0].clientY;
+            currentY = Math.max(0, y - startY); // Solo permitimos arrastrar hacia abajo
+            
+            // Movemos el modal visualmente
+            modal.style.transform = `translateY(${currentY}px)`;
+        }, { passive: true });
+
+        // Cuando soltamos el dedo
+        handle.addEventListener('touchend', () => {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            // Devolvemos la animación suave
+            modal.style.transition = 'transform 0.3s cubic-bezier(0.1, 0.8, 0.2, 1)'; 
+
+            // Si lo hemos bajado más de 100px, lo cerramos
+            if (currentY > 100) {
+                const overlay = modal.closest('.overlay');
+                if (overlay) {
+                    // Quitamos los estilos en línea para que CSS vuelva a tomar el control
+                    setTimeout(() => modal.style.transform = '', 300); 
+                    overlay.classList.remove('on'); // Cerramos el modal
+                }
+            } else {
+                // Si no lo bajamos lo suficiente, rebota a su sitio original
+                modal.style.transform = ''; 
+            }
+            currentY = 0;
+        });
+    });
+}
