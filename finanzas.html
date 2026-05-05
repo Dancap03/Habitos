@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#080808">
+<title>Dancab - Finanzas</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/UI.css">
+<link rel="stylesheet" href="css/finanzas.css">
+</head>
+<body>
+<div class="app">
+
+  <div class="screen on">
+    <div class="topbar">
+      <span class="page-title">Finanzas</span>
+      <div class="topbar-right"><button class="btn btn-sm" onclick="openModal('modal-fin')">+ Registro</button></div>
+    </div>
+    <div class="scroll">
+      <div class="fin-tabs">
+        <button class="fin-tab on" onclick="setFinPeriod('mes',this)">Mes</button>
+        <button class="fin-tab" onclick="setFinPeriod('semana',this)">Semana</button>
+        <button class="fin-tab" onclick="setFinPeriod('año',this)">Año</button>
+        <button class="fin-tab" onclick="setFinPeriod('total',this)">Total</button>
+      </div>
+      <div class="card">
+        <div class="card-title" id="fin-period-label">Mes actual</div>
+        <div class="big-bal" id="fin-bal">€0</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
+          <div style="background:rgba(39,174,96,.07);border-radius:10px;padding:12px"><div style="font-size:11px;color:var(--t3);margin-bottom:5px">INGRESOS</div><div style="font-size:22px;font-weight:700;color:var(--grn)" id="fin-inc">€0</div></div>
+          <div style="background:rgba(231,76,60,.07);border-radius:10px;padding:12px"><div style="font-size:11px;color:var(--t3);margin-bottom:5px">GASTOS</div><div style="font-size:22px;font-weight:700;color:var(--red)" id="fin-exp">€0</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" id="fin-chart-label">Evolución mensual</div>
+        <div style="position:relative;width:100%;height:180px"><canvas id="finChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Ingresos</span><button class="btn btn-sm" onclick="openModalFin('ingreso')">+ Añadir</button></div>
+        <div id="fin-income-list"><div class="empty">Sin ingresos</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Gastos</span><button class="btn btn-sm" onclick="openModalFin('gasto')">+ Añadir</button></div>
+        <div id="fin-expense-list"><div class="empty">Sin gastos</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Recurrentes</span><button class="btn btn-sm" onclick="openModal('modal-rec')">+ Añadir</button></div>
+        <div id="fin-rec-list"><div class="empty">Sin recurrentes</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Notas / Segunda mano</div>
+        <textarea id="fin-notes" placeholder="Apunta aquí cosas por vender en Wallapop, ideas, deudas..." oninput="saveFinNotes()" style="min-height: 120px; line-height: 1.5;"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <button class="nav-btn" onclick="window.location.href='index.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="nav-label">Inicio</span></button>
+    <button class="nav-btn" onclick="window.location.href='calendario.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span class="nav-label">Calendario</span></button>
+    <button class="nav-btn on" onclick="window.location.href='finanzas.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg><span class="nav-label">Finanzas</span></button>
+    <button class="nav-btn" onclick="window.location.href='cartera.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Cartera</span></button>
+    <button class="nav-btn" onclick="window.location.href='gym.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5v14M18 5v14M3 9h18M3 15h18"/></svg><span class="nav-label">Gym</span></button>
+  </nav>
+
+  <!-- Modales Finanzas -->
+  <div class="overlay" id="modal-fin" onclick="closeModal('modal-fin',event)">
+    <div class="modal"><div class="modal-handle"></div><div class="modal-title" id="modal-fin-title">Nuevo registro</div>
+      <div class="form-row">
+        <div><div class="form-label">Tipo</div><select id="fin-type"><option value="ingreso">Ingreso</option><option value="gasto">Gasto</option></select></div>
+        <div><div class="form-label">Importe (€)</div><input type="number" id="fin-amount" placeholder="0.00" step="0.01"></div>
+      </div>
+      <div style="margin-top:10px"><div class="form-label">Descripción</div><input type="text" id="fin-desc" placeholder="Nómina, supermercado..."></div>
+      <div class="form-row" style="margin-top:10px">
+        <div><div class="form-label">Categoría</div><select id="fin-cat"><option value="nómina">Nómina</option><option value="intereses">Intereses</option><option value="freelance">Freelance</option><option value="dividendos">Dividendos</option><option value="alquiler">Alquiler</option><option value="alimentación">Alimentación</option><option value="transporte">Transporte</option><option value="suscripciones">Suscripciones</option><option value="salud">Salud</option><option value="ocio">Ocio</option><option value="otro">Otro</option></select></div>
+        <div><div class="form-label">Fecha</div><input type="date" id="fin-date"></div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:16px" onclick="addFinEntry()">Guardar</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="modal-rec" onclick="closeModal('modal-rec',event)">
+    <div class="modal"><div class="modal-handle"></div><div class="modal-title">Cuenta recurrente</div>
+      <div class="form-label">Nombre</div><input type="text" id="rec-name" placeholder="Netflix, alquiler...">
+      <div class="form-row" style="margin-top:10px">
+        <div><div class="form-label">Importe (€)</div><input type="number" id="rec-amount" placeholder="0.00" step="0.01"></div>
+        <div><div class="form-label">Día del mes</div><input type="number" id="rec-day" placeholder="1-31" min="1" max="31"></div>
+      </div>
+      <div style="margin-top:10px"><div class="form-label">Tipo</div><select id="rec-type"><option value="gasto">Gasto</option><option value="ingreso">Ingreso</option></select></div>
+      <button class="btn btn-primary" style="margin-top:16px" onclick="addRecurring()">Añadir</button>
+    </div>
+  </div>
+  <div class="toast-container" id="toast-container"></div>
+</div>
+<script src="js/main.js"></script><script src="js/finanzas.js"></script>
+<script>document.addEventListener('DOMContentLoaded', init);</script>
+</body>
+</html>
