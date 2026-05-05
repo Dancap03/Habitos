@@ -1,6 +1,15 @@
-// --- UTILIDAD DE TIEMPO ---
+// --- UTILIDADES DE TIEMPO ---
 function formatTime(date) {
     return String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
+}
+
+function calcDuration(start, end) {
+    if (!start || !end || start.includes('--') || end.includes('--')) return null;
+    const [h1, m1] = start.split(':').map(Number);
+    const [h2, m2] = end.split(':').map(Number);
+    let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+    if (diff < 0) diff += 24 * 60; // Por si pasa de medianoche
+    return diff;
 }
 
 // --- SISTEMA DE PESTAÑAS ---
@@ -173,6 +182,7 @@ function startWorkout(id) {
         id: uid(),
         routineId: r.id,
         name: r.name || 'Entrenamiento',
+        type: r.type || 'pesas', // Hereda el tipo para bloquear botones luego
         date: today(),
         startTime: formatTime(new Date()),
         endTime: '--:--',
@@ -200,6 +210,7 @@ function renderActiveWorkout() {
     cont.style.display = isRutinasTab ? 'block' : 'none';
     
     const w = S.activeRoutine;
+    const isOnlyCardio = w.type === 'cardio';
     
     let exHtml = (w.exercises || []).map((ex, exIdx) => {
         const isPesas = ex.type === 'pesas';
@@ -232,6 +243,11 @@ function renderActiveWorkout() {
         `;
     }).join('');
 
+    let addBtnHtml = '';
+    if (!isOnlyCardio) {
+        addBtnHtml = `<button class="btn" style="background:var(--bg3); color:var(--t1); width:100%; margin-top:16px; font-size:14px; border: 1px dashed var(--line);" onclick="openAddExerciseModal()">+ Añadir Ejercicio Adicional</button>`;
+    }
+
     cont.innerHTML = `
         <div class="card" style="border: 1px solid var(--acc);">
             <div style="font-size:22px; font-weight:800; color:var(--t1);">${w.name}</div>
@@ -250,7 +266,7 @@ function renderActiveWorkout() {
 
             ${exHtml}
 
-            <button class="btn" style="background:var(--bg3); color:var(--t1); width:100%; margin-top:16px; font-size:14px; border: 1px dashed var(--line);" onclick="openAddExerciseModal()">+ Añadir Ejercicio Adicional</button>
+            ${addBtnHtml}
 
             <div style="margin-top:24px; display:flex; flex-direction:column; gap:10px;">
                 <button class="btn" style="background:var(--acc); color:#fff; width:100%; font-size:15px;" onclick="finishWorkout()">Finalizar Entreno 💪</button>
@@ -329,7 +345,6 @@ function finishWorkout() {
     
     const savedExercises = JSON.parse(JSON.stringify(S.activeRoutine.exercises || []));
 
-    // Calculamos el volumen total de pesas (incluso si olvidó darle al "✓")
     savedExercises.forEach(ex => {
         if(ex.type === 'pesas') { 
             (ex.sets || []).forEach(s => { 
@@ -343,6 +358,7 @@ function finishWorkout() {
         id: S.activeRoutine.id, 
         date: S.activeRoutine.date, 
         name: S.activeRoutine.name, 
+        type: S.activeRoutine.type, // Guardamos el tipo de rutina
         startTime: S.activeRoutine.startTime, 
         endTime: S.activeRoutine.endTime, 
         volume: vol,
@@ -353,7 +369,7 @@ function finishWorkout() {
     save(); renderActiveWorkout(); renderWorkoutLog(); showToast('Entreno completado ✅');
 }
 
-// --- HISTORIAL ACORDEÓN MEJORADO ---
+// --- HISTORIAL ACORDEÓN ---
 function toggleLogDate(date) {
     const content = document.getElementById(`content-date-${date}`);
     const icon = document.getElementById(`icon-date-${date}`);
@@ -418,37 +434,42 @@ function renderWorkoutLog() {
         dayWorkouts.reverse().forEach(w => {
             let rightSideHtml = '';
             let detailsHtml = '';
+            
+            // Calculamos el tiempo total del entreno
+            const durMins = calcDuration(w.startTime, w.endTime);
+            const durTextBadge = durMins !== null ? ` en ${durMins} min` : '';
+            const durTextSub = durMins !== null ? ` (${durMins} min)` : '';
+            
+            // Bandera para saber si ya hemos puesto el tiempo en el título o en el cardio
+            let usedDurationInCardio = false;
 
-            // Solo hacemos el desglose si guardamos los ejercicios en su día
             if (w.exercises && w.exercises.length > 0) {
                 const hasPesas = w.exercises.some(ex => ex.type === 'pesas');
                 const cardioExercises = w.exercises.filter(ex => ex.type === 'cardio');
                 
                 let badges = [];
                 
-                // Si es un entreno con pesas, ponemos el volumen arriba
                 if (w.volume > 0) {
                     badges.push(`<div style="font-size:14px; font-weight:800; color:var(--acc);">${w.volume} <span style="font-size:10px; color:var(--t3);">kg</span></div>`);
                 }
                 
-                // Extraer directamente los datos de Cardio a la derecha
+                // Métrica de cardio combinada con el tiempo
                 cardioExercises.forEach(cx => {
                     let cVal = 0;
                     (cx.sets || []).forEach(s => { if (s.val) cVal += parseFloat(s.val); });
                     if (cVal > 0) {
-                        badges.push(`<div style="font-size:15px; font-weight:800; color:var(--yel);">${cVal} <span style="font-size:11px; color:var(--t3); font-weight:600;">${cx.unit}</span></div>`);
+                        badges.push(`<div style="font-size:15px; font-weight:800; color:var(--yel);">${cVal} <span style="font-size:11px; color:var(--t3); font-weight:600;">${cx.unit}${durTextBadge}</span></div>`);
+                        usedDurationInCardio = true;
                     }
                 });
 
                 rightSideHtml = `<div style="display:flex; gap:10px; align-items:center;">${badges.join('')}</div>`;
 
-                // Construimos el acordeón SOLAMENTE para los de Pesas
+                // Acordeón de pesas
                 if (hasPesas) {
                     let exList = '';
                     w.exercises.forEach(ex => {
                         if (ex.type !== 'pesas') return;
-                        
-                        // Capturamos series hechas (marcadas O simplemente con datos escritos)
                         const validSets = (ex.sets || []).filter(s => s.done || (s.kg && s.reps));
                         if (validSets.length === 0) return;
 
@@ -467,7 +488,6 @@ function renderWorkoutLog() {
                             ${exList}
                         </div>`;
                         
-                        // Añadimos el icono de la flecha al lado de los badges
                         rightSideHtml = `
                         <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="toggleWorkoutDetails('${w.id}')">
                             ${rightSideHtml}
@@ -476,7 +496,6 @@ function renderWorkoutLog() {
                     }
                 }
             } else {
-                // Entrenamientos antiguos que no guardaron los ejercicios (legacy)
                 if (w.volume > 0) {
                     rightSideHtml = `<div style="font-size:14px; font-weight:800; color:var(--acc);">${w.volume} <span style="font-size:10px; color:var(--t3);">kg</span></div>`;
                 }
@@ -487,7 +506,7 @@ function renderWorkoutLog() {
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div ${detailsHtml ? `onclick="toggleWorkoutDetails('${w.id}')" style="cursor:pointer;"` : ''}>
                             <div style="font-weight:700; color:var(--t1); font-size:15px;">${w.name || 'Entrenamiento'}</div>
-                            <div style="font-size:11px; color:var(--t3); margin-top:4px;">⏱️ ${w.startTime} - ${w.endTime}</div>
+                            <div style="font-size:11px; color:var(--t3); margin-top:4px;">⏱️ ${w.startTime} - ${w.endTime}${!usedDurationInCardio ? durTextSub : ''}</div>
                         </div>
                         <div style="display:flex; gap:16px; align-items:center;">
                             ${rightSideHtml}
