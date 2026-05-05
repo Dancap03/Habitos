@@ -146,38 +146,40 @@
 <script>
   // LÓGICA PARA GUARDAR DESDE EL INICIO
   function addFinEntryHome() {
-      const type = document.getElementById('fin-type-home').value;
-      const amount = parseFloat(document.getElementById('fin-amount-home').value);
-      const desc = document.getElementById('fin-desc-home').value.trim();
-      const cat = document.getElementById('fin-cat-home').value;
-      const date = document.getElementById('fin-date-home').value || today();
+    const type = document.getElementById('fin-type-home').value;
+    const amount = parseFloat(document.getElementById('fin-amount-home').value);
+    const desc = document.getElementById('fin-desc-home').value.trim();
+    const cat = document.getElementById('fin-cat-home').value;
+    const date = document.getElementById('fin-date-home').value || today();
 
-      if(!amount || !desc) return showToast('Rellena importe y descripción', 'error');
+    if(!amount || !desc) return showToast('Rellena importe y descripción', 'error');
 
-      const entry = { id: uid(), type, amount, desc, cat, date };
-      
-      if(cat === 'ahorro') {
-          S.savings.push(entry);
-      } else if(cat === 'inversión') {
-          S.investments.push(entry);
-      } else {
-          type === 'ingreso' ? S.incomes.push(entry) : S.expenses.push(entry);
-      }
+    const entry = { id: uid(), type, amount, desc, cat, date };
+    
+    // Verificamos que los arrays existan en S para no dar error
+    if(!S.savings) S.savings = [];
+    if(!S.investments) S.investments = [];
+    if(!S.incomes) S.incomes = [];
+    if(!S.expenses) S.expenses = [];
 
-      save();
-      closeModal('modal-fin-home');
-      init(); // Recarga los números del Inicio
-      showToast('Registro guardado ✅');
-      
-      // Limpiar campos para la próxima vez
-      document.getElementById('fin-amount-home').value = '';
-      document.getElementById('fin-desc-home').value = '';
-  }
+    if(cat === 'ahorro') S.savings.push(entry);
+    else if(cat === 'inversión') S.investments.push(entry);
+    else (type === 'ingreso' ? S.incomes.push(entry) : S.expenses.push(entry));
 
-  document.addEventListener('DOMContentLoaded', () => {
-      init();
-      document.getElementById('fin-date-home').value = today();
-  });
+    save();
+    closeModal('modal-fin-home');
+    if (typeof init === 'function') init(); 
+    showToast('Registro guardado ✅', 'success');
+    
+    document.getElementById('fin-amount-home').value = '';
+    document.getElementById('fin-desc-home').value = '';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof init === 'function') init();
+    const dateInput = document.getElementById('fin-date-home');
+    if (dateInput && typeof today === 'function') dateInput.value = today();
+});
 </script>
 </body>
 </html>
