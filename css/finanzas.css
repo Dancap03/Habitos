@@ -6,7 +6,7 @@
 .big-bal { font-size: 44px; font-weight: 700; letter-spacing: -1.5px; font-variant-numeric: tabular-nums; }
 
 .fin-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--line); }
-.fin-row:last-child { border-bottom: none; }
+.fin-row:last-child { border-bottom: none; } 
 .fin-amount-pos { font-size: 15px; font-weight: 600; color: var(--grn); font-variant-numeric: tabular-nums; }
 .fin-amount-neg { font-size: 15px; font-weight: 600; color: var(--red); font-variant-numeric: tabular-nums; }
 
