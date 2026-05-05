@@ -6,6 +6,7 @@ function switchGymView(v, pill) {
   if(document.getElementById('gv-rutinas')) document.getElementById('gv-rutinas').style.display = v === 'rutinas' ? 'block' : 'none';
   if(document.getElementById('gv-historial')) document.getElementById('gv-historial').style.display = v === 'historial' ? 'block' : 'none';
   if (v === 'historial') renderGymHistory();
+  if (v === 'rutinas') renderRoutines();
 }
 
 function openRoutineModal() {
@@ -96,11 +97,17 @@ function saveNewRoutine() {
 }
 
 function deleteRoutine(id) {
-  customConfirm('Borrar rutina', '¿Seguro que quieres borrar esta rutina? No afectará a tu historial de entrenos.', () => {
+  if (typeof customConfirm === 'function') {
+    customConfirm('Borrar rutina', '¿Seguro que quieres borrar esta rutina? No afectará a tu historial de entrenos.', () => {
+      S.routines = S.routines.filter(r => r.id !== id);
+      if (S.activeRoutine === id) S.activeRoutine = null;
+      save(); renderRoutines();
+    });
+  } else {
     S.routines = S.routines.filter(r => r.id !== id);
     if (S.activeRoutine === id) S.activeRoutine = null;
     save(); renderRoutines();
-  });
+  }
 }
 
 function startRoutine(id) {
@@ -113,9 +120,10 @@ function startRoutine(id) {
 function cancelWorkout() { S.activeRoutine = null; save(); renderRoutines(); }
 
 function renderRoutines() {
-  // ¡CAMBIO CLAVE! Pinta los días de entrenamiento lo primero de todo
+  // 1. PINTO LOS DÍAS DE ENTRENAMIENTO LO PRIMERO (¡Obligatorio!)
   renderGymDays();
 
+  // 2. LUEGO ME ENCARGO DE LAS RUTINAS
   const el = document.getElementById('gym-routine-list');
   const active = document.getElementById('gym-active');
   if(!el || !active) return;
@@ -130,7 +138,7 @@ function renderRoutines() {
   active.style.display = 'none'; 
   el.style.display = 'block';
   
-  if (!S.routines.length) { 
+  if (!S.routines || !S.routines.length) { 
     el.innerHTML = '<div class="empty">Crea tu primera rutina</div>'; 
     return; 
   }
@@ -327,9 +335,19 @@ function toggleHistoryDetails(id) {
 function loadMoreHistory() { historyPage++; renderGymHistory(); }
 
 function deleteWorkoutLog(id) { 
-  customConfirm('Borrar registro', '¿Seguro que quieres borrar este entrenamiento del historial?', () => {
+  if (typeof customConfirm === 'function') {
+    customConfirm('Borrar registro', '¿Seguro que quieres borrar este entrenamiento del historial?', () => {
+      S.workoutLog = S.workoutLog.filter(w => w.id !== id); 
+      save(); 
+      renderGymHistory(); 
+      renderGymDays(); // Actualiza la pestaña de Días al instante
+      if(typeof renderHome === 'function') renderHome(); 
+    });
+  } else {
     S.workoutLog = S.workoutLog.filter(w => w.id !== id); 
-    save(); renderGymHistory(); 
+    save(); 
+    renderGymHistory(); 
+    renderGymDays();
     if(typeof renderHome === 'function') renderHome(); 
-  });
+  }
 }
