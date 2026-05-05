@@ -82,7 +82,7 @@ function renderRtExList() {
                 <div style="font-size:13px; font-weight:700;">${ex.name}</div>
                 <div style="font-size:11px; color:var(--t3);">${ex.sets} series</div>
             </div>
-            <button class="btn-danger" style="background:none; border:none; color:var(--red); padding:4px;" onclick="removeRtEx(${i})">✕</button>
+            <button class="btn-danger" onclick="removeRtEx(${i})">✕</button>
         </div>
     `).join('');
 }
@@ -120,7 +120,6 @@ function renderRoutines() {
     
     list.innerHTML = S.routines.length ? S.routines.map(r => {
         const isCardio = r.type === 'cardio';
-        // Protección extra por si una rutina antigua no tiene .exercises bien guardado
         const exCount = r.exercises ? r.exercises.length : 0;
         const subText = isCardio && r.exercises && r.exercises[0] ? `Cardio (${r.exercises[0].unit})` : `${exCount} ejercicios`;
         
@@ -130,9 +129,9 @@ function renderRoutines() {
                 <div style="font-weight:700; font-size:15px; color:${isCardio ? 'var(--yel)' : 'var(--t1)'}">${r.name || 'Sin nombre'}</div>
                 <div style="font-size:11px; color:var(--t3); margin-top:2px;">${subText}</div>
             </div>
-            <div style="display:flex; gap:8px;">
+            <div style="display:flex; gap:12px; align-items:center;">
                 <button class="btn btn-sm" style="background:var(--acc); color:#fff;" onclick="startWorkout('${r.id}')">▶ Empezar</button>
-                <button class="btn-danger" style="background:none; color:var(--red); border:none; padding:8px;" onclick="delRoutine('${r.id}')">✕</button>
+                <button class="btn-danger" onclick="delRoutine('${r.id}')">✕</button>
             </div>
         </div>
         `;
@@ -148,7 +147,6 @@ function delRoutine(id) {
 
 // --- ENTRENO ACTIVO ---
 function startWorkout(id) {
-    // Si hay un entreno corrupto atascado, lo limpiamos automáticamente
     if(S.activeRoutine && (!S.activeRoutine.exercises || !S.activeRoutine.startTime)) {
         S.activeRoutine = null;
     } else if (S.activeRoutine) {
@@ -361,9 +359,9 @@ function renderWorkoutLog() {
                 <div style="font-weight:700; color:var(--t1);">${w.name || 'Entrenamiento'}</div>
                 <div style="font-size:11px; color:var(--t2); margin-top:2px;">${w.date} · ⏱️ ${w.startTime} - ${w.endTime}</div>
             </div>
-            <div style="text-align:right; display:flex; align-items:center; gap:12px;">
+            <div style="text-align:right; display:flex; align-items:center; gap:16px;">
                 ${w.volume > 0 ? `<div style="font-size:14px; font-weight:800; color:var(--acc);">${w.volume} <span style="font-size:10px; color:var(--t3);">kg vol.</span></div>` : ''}
-                <button class="btn-danger" style="background:none; color:var(--red); border:none; padding:4px;" onclick="delWorkoutLog('${w.id}')">✕</button>
+                <button class="btn-danger" onclick="delWorkoutLog('${w.id}')">✕</button>
             </div>
         </div>
     `).join('') : '<div class="empty">Tu historial aparecerá aquí</div>';
@@ -387,12 +385,27 @@ function renderRecords() {
         const isPesas = pr.type === 'pesas';
         return `
         <div class="card" style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; border-left: 4px solid var(--yel);">
-            <div><div style="font-weight:700; font-size:15px; color:var(--t1); text-transform:uppercase;">${k}</div><div style="font-size:11px; color:var(--t3); margin-top:4px;">El ${pr.date}</div></div>
-            <div style="text-align:right;">
-                <div style="font-size:22px; font-weight:800; color:var(--yel); line-height:1;">${pr.val} <span style="font-size:12px; color:var(--t2);">${isPesas ? 'kg' : pr.unit}</span></div>
-                ${isPesas ? `<div style="font-size:12px; color:var(--t1); font-weight:600; margin-top:2px;">x ${pr.reps} reps</div>` : ''}
+            <div>
+                <div style="font-weight:700; font-size:15px; color:var(--t1); text-transform:uppercase;">${k}</div>
+                <div style="font-size:11px; color:var(--t3); margin-top:4px;">El ${pr.date}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:16px;">
+                <div style="text-align:right;">
+                    <div style="font-size:22px; font-weight:800; color:var(--yel); line-height:1;">${pr.val} <span style="font-size:12px; color:var(--t2);">${isPesas ? 'kg' : pr.unit}</span></div>
+                    ${isPesas ? `<div style="font-size:12px; color:var(--t1); font-weight:600; margin-top:2px;">x ${pr.reps} reps</div>` : ''}
+                </div>
+                <button class="btn-danger" onclick="delRecord('${k}')">✕</button>
             </div>
         </div>
         `;
     }).join('') : '<div class="empty">Tus récords aparecerán al marcar series ✅</div>';
+}
+
+function delRecord(key) {
+    customConfirm('Borrar Récord', `¿Eliminar tu récord de ${key}?`, () => {
+        delete S.prs[key];
+        save(); 
+        renderRecords();
+        showToast('Récord eliminado');
+    });
 }
