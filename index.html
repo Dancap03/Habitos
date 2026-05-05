@@ -33,11 +33,11 @@
          </div>
       </div>
 
-      <!-- CALENDARIO GYM (Automático) -->
+      <!-- CALENDARIO GYM (Semana completa) -->
       <div class="card" onclick="window.location.href='gym.html'" style="cursor:pointer">
-         <div style="display:flex;justify-content:space-between;align-items:center">
-            <div class="card-title" style="margin:0">CALENDARIO GYM</div>
-            <div class="tag tag-t3" id="home-gym-status">Hoy: No</div>
+         <div class="card-title" style="margin-bottom:16px;">CALENDARIO GYM</div>
+         <div id="home-gym-calendar" style="display:flex; justify-content:space-between; align-items:center;">
+            <!-- JS inyectará aquí los 7 días de la semana -->
          </div>
       </div>
 
@@ -97,7 +97,7 @@
   </nav>
 
 </div>
-<script src="js/main.js?v=12"></script>
+<script src="js/main.js?v=13"></script>
 <script>document.addEventListener('DOMContentLoaded', init);</script>
 </body>
 </html>
