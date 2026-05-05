@@ -9,7 +9,6 @@
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/UI.css">
 <style>
-  /* Estilos específicos para la vista del Gym */
   .gym-tabs { display: flex; gap: 10px; margin-bottom: 16px; overflow-x: auto; }
   .gym-tab { background: var(--bg3); color: var(--t2); border: none; padding: 8px 20px; border-radius: 20px; font-weight: 600; font-size: 13px; cursor: pointer; transition: 0.2s; white-space: nowrap; }
   .gym-tab.on { background: var(--acc); color: #fff; }
@@ -35,19 +34,16 @@
 
       <!-- ================= PESTAÑA: RUTINAS ================= -->
       
-      <!-- CONTENEDOR DEL ENTRENO ACTIVO -->
       <div id="active-workout-container" class="tab-rutinas-item" style="display:none; grid-column: 1 / -1; margin-bottom:14px;"></div>
 
-      <!-- LISTA DE RUTINAS -->
       <div class="card tab-rutinas-item">
          <div class="card-header">
             <span class="card-title">Tus Rutinas Base</span>
-            <button class="btn btn-sm" onclick="openModal('modal-routine')">+ Rutina</button>
+            <button class="btn btn-sm" onclick="openRoutineModal()">+ Rutina</button>
          </div>
          <div id="gym-routine-list"><div class="empty">Cargando...</div></div>
       </div>
 
-      <!-- HISTORIAL DE ENTRENAMIENTOS -->
       <div class="card tab-rutinas-item">
          <div class="card-title">DÍAS DE ENTRENAMIENTO 🗓️</div>
          <div id="gym-workout-log"><div class="empty">Sin entrenamientos aún</div></div>
@@ -55,7 +51,6 @@
 
       <!-- ================= PESTAÑA: RÉCORDS ================= -->
       
-      <!-- LISTA DE PRs -->
       <div class="card tab-records-item" style="display:none; grid-column: 1 / -1;">
          <div class="card-title">Tus Récords (PRs) 🏆</div>
          <div id="gym-records-list"><div class="empty">Cargando...</div></div>
@@ -72,43 +67,58 @@
     <button class="nav-btn on" onclick="window.location.href='gym.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 5v14M18 5v14M3 9h18M3 15h18"/></svg><span class="nav-label">Gym</span></button>
   </nav>
 
-  <!-- MODAL: NUEVA RUTINA BASE -->
+  <!-- MODAL: CREADOR DE RUTINA -->
   <div class="overlay" id="modal-routine" onclick="closeModal('modal-routine',event)">
     <div class="modal">
       <div class="modal-handle"></div>
       <div class="modal-title">Nueva Rutina</div>
-      <div style="font-size:12px; color:var(--t2); margin-bottom:16px;">Solo necesitas el nombre. Añadirás los ejercicios al empezar a entrenar.</div>
-      <div class="form-label">Nombre de la rutina</div>
-      <input type="text" id="rt-name" class="form-input" placeholder="Ej: Empuje, Pierna, Pecho, Cardio...">
-      <button class="btn btn-primary" style="margin-top:20px;" onclick="addRoutine()">Guardar Rutina</button>
+      
+      <input type="text" id="rt-name" class="form-input" placeholder="Nombre (Ej: Empuje, Pierna...)">
+
+      <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--line);">
+          <div style="font-size:12px; font-weight:700; color:var(--acc); margin-bottom:8px;">AÑADIR EJERCICIO</div>
+          
+          <select id="rt-ex-type" class="form-input" onchange="toggleRtExType()">
+            <option value="pesas">Pesas / Fuerza</option>
+            <option value="cardio">Cardio / Resistencia</option>
+          </select>
+
+          <input type="text" id="rt-ex-name" class="form-input" placeholder="Ejercicio (Ej: Press banca, Cinta...)">
+
+          <div id="rt-ex-sets-container">
+              <input type="number" id="rt-ex-sets" class="form-input" placeholder="Número de series (Ej: 4)" min="1">
+          </div>
+
+          <div id="rt-ex-unit-container" style="display:none;">
+              <input type="text" id="rt-ex-unit" class="form-input" placeholder="Unidad (Ej: km, min, kcal, escalones...)">
+          </div>
+
+          <button class="btn btn-sm" style="background:var(--bg4); width:100%; margin-top:12px; color:var(--t1);" onclick="addRtEx()">+ Añadir a la lista</button>
+      </div>
+
+      <div id="rt-ex-list" style="margin-top:16px; display:flex; flex-direction:column; gap:8px;"></div>
+
+      <button class="btn btn-primary" style="margin-top:24px; width:100%;" onclick="addRoutine()">Guardar Rutina Completa</button>
     </div>
   </div>
 
-  <!-- MODAL: AÑADIR EJERCICIO AL ENTRENO -->
+  <!-- MODAL: AÑADIR EJERCICIO EXTRA AL ENTRENO ACTIVO -->
   <div class="overlay" id="modal-exercise" onclick="closeModal('modal-exercise',event)">
     <div class="modal">
       <div class="modal-handle"></div>
-      <div class="modal-title">Añadir Ejercicio</div>
-      
-      <div class="form-label" style="margin-top:10px;">Tipo de ejercicio</div>
+      <div class="modal-title">Añadir Ejercicio Extra</div>
       <select id="ex-type" class="form-input" onchange="toggleExerciseType()">
         <option value="pesas">Pesas / Fuerza</option>
         <option value="cardio">Cardio / Resistencia</option>
       </select>
-
-      <div class="form-label" style="margin-top:16px;">Nombre del ejercicio</div>
-      <input type="text" id="ex-name" class="form-input" placeholder="Ej: Press banca, Cinta, Dominadas...">
-
-      <div id="ex-unit-container" style="display:none; margin-top:16px;">
-        <div class="form-label">¿Qué vas a medir? (Unidad)</div>
-        <input type="text" id="ex-unit" class="form-input" placeholder="Ej: km, cal, min, escalones, pisos...">
+      <input type="text" id="ex-name" class="form-input" placeholder="Ej: Curl bíceps, Elíptica...">
+      <div id="ex-unit-container" style="display:none;">
+        <input type="text" id="ex-unit" class="form-input" placeholder="Ej: km, cal, min...">
       </div>
-
       <button class="btn btn-primary" style="margin-top:20px;" onclick="addExerciseToWorkout()">Añadir al entreno</button>
     </div>
   </div>
 
-  <!-- MODAL: CONFIRMACIÓN GENÉRICA -->
   <div class="overlay" id="modal-confirm" onclick="cancelConfirm(event)">
     <div class="modal" style="padding-bottom: 24px;">
       <div class="modal-handle"></div>
@@ -123,8 +133,8 @@
 
   <div class="toast-container" id="toast-container"></div>
 </div>
-<script src="js/main.js?v=23"></script>
-<script src="js/gym.js?v=23"></script>
+<script src="js/main.js?v=24"></script>
+<script src="js/gym.js?v=24"></script>
 <script>document.addEventListener('DOMContentLoaded', renderGymInit);</script>
 </body>
 </html>
