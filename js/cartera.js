@@ -14,308 +14,205 @@ function getTypeColor(type) {
 }
 
 function renderStocks() {
-  const list = document.getElementById('stock-list');
-  const totalEl = document.getElementById('port-total');
-  const invEl = document.getElementById('port-inv');
-  const pnlEl = document.getElementById('port-pnl');
+  const el = document.getElementById('stock-list');
+  if (!el) return;
+  if (!S.stocks) S.stocks = [];
 
-  if (!list) return;
+  let html = '';
+  let totalVal = 0, totalInv = 0;
 
-  if (!S.stocks || S.stocks.length === 0) {
-    list.innerHTML = '<div class="empty">Sin posiciones</div>';
-    if(totalEl) totalEl.textContent = fmt(0);
-    if(invEl) invEl.textContent = fmt(0);
-    if(pnlEl) { pnlEl.textContent = '+€0.00 (0.00%)'; pnlEl.className = 'stock-chg-pos'; }
-    renderDonuts();
-    return;
-  }
-
-  let totalValue = 0;
-  let totalInvested = 0;
-
-  list.innerHTML = S.stocks.map(s => {
-    let inv = 0;
-    let shares = 0;
-    if(s.purchases) {
-       s.purchases.forEach(p => { inv += p.invested; shares += p.shares; });
+  S.stocks.forEach(s => {
+    let sInv = 0, sShares = 0;
+    if (s.purchases) {
+      s.purchases.forEach(p => {
+        sInv += p.invested;
+        sShares += p.shares;
+      });
     }
-    const val = shares * s.price;
-    totalValue += val;
-    totalInvested += inv;
 
-    const pnl = val - inv;
-    const pnlPct = inv > 0 ? (pnl / inv) * 100 : 0;
-    const isPos = pnl >= 0;
-    const colorClass = isPos ? 'stock-chg-pos' : 'stock-chg-neg';
-    const sign = isPos ? '▲' : '▼';
+    const curVal = sShares * s.price;
+    const pnl = curVal - sInv;
+    const pct = sInv > 0 ? (pnl / sInv) * 100 : 0;
     
-    // Obtenemos el color según la categoría para pintar el Ticker
-    const tickerColor = getTypeColor(s.assetType);
+    // Lógica estricta de color para individual
+    let cStr = 'var(--t3)';
+    let sign = '';
+    if (pnl > 0.001) { cStr = 'var(--grn)'; sign = '▲ '; }
+    else if (pnl < -0.001) { cStr = 'var(--red)'; sign = '▼ '; }
 
-    return `
-    <div class="stock-item" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
-      <div style="display:flex; align-items:center; gap:12px;" onclick="openEditStockModal('${s.id}')">
-        <!-- AQUÍ SE APLICA EL COLOR AL TEXTO DEL TICKER -->
-        <div class="stock-ticker" style="background:var(--bg4); border:1px solid var(--line); color:${tickerColor}; font-weight:700;">${s.ticker}</div>
+    totalVal += curVal;
+    totalInv += sInv;
+
+    html += `
+    <div class="list-item" style="padding:16px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+      <div style="display:flex; align-items:center; gap:12px; cursor:pointer; flex:1;" onclick="openManageStock('${s.id}')">
+        <div style="background:rgba(59,130,246,.1); color:var(--blu); font-weight:700; font-size:10px; padding:10px; border-radius:10px; width:45px; text-align:center;">${s.ticker}</div>
         <div>
-          <div style="font-size:14px;font-weight:600">${s.name}</div>
-          <div style="font-size:12px;color:var(--t2)">Precio: ${fmt(s.price)}</div>
+           <div style="font-weight:700; font-size:15px; color:var(--t1);">${s.name}</div>
+           <div style="font-size:11px; color:var(--t2); margin-top:4px;">Precio act: €${s.price.toFixed(2)}</div>
         </div>
       </div>
       <div style="text-align:right; display:flex; align-items:center; gap:12px;">
-        <div onclick="openEditStockModal('${s.id}')">
-          <div style="font-size:15px;font-weight:700">${fmt(val)}</div>
-          <div class="${colorClass}">${sign} ${fmt(Math.abs(pnl))} (${pnlPct.toFixed(2)}%)</div>
-        </div>
-        <button class="btn-danger" style="padding: 6px 10px; margin-left: 4px;" onclick="event.stopPropagation(); delStock('${s.id}')">✕</button>
+         <div>
+            <div style="font-size:15px; font-weight:700; color:var(--t1);">€${curVal.toFixed(2)}</div>
+            <div style="font-size:11px; font-weight:700; margin-top:4px; color:${cStr};">${sign}€${Math.abs(pnl).toFixed(2)} (${pct.toFixed(2)}%)</div>
+         </div>
+         <button class="btn-danger" onclick="delStock('${s.id}')">✕</button>
       </div>
     </div>`;
-  }).join('');
+  });
 
-  if(totalEl) totalEl.textContent = fmt(totalValue);
-  if(invEl) invEl.textContent = fmt(totalInvested);
-  if(pnlEl) {
-    const totalPnl = totalValue - totalInvested;
-    const totalPct = totalInvested > 0 ? (totalPnl / totalInvested) * 100 : 0;
-    const isPosTot = totalPnl >= 0;
-    pnlEl.textContent = `${isPosTot ? '+' : '-'}${fmt(Math.abs(totalPnl))} (${totalPct.toFixed(2)}%)`;
-    pnlEl.className = isPosTot ? 'stock-chg-pos' : 'stock-chg-neg';
-  }
+  el.innerHTML = html || '<div class="empty">Tu cartera está vacía</div>';
 
-  renderDonuts();
+  const tPnl = totalVal - totalInv;
+  const tPct = totalInv > 0 ? (tPnl / totalInv) * 100 : 0;
+  
+  document.getElementById('port-total').textContent = '€' + totalVal.toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('port-invested').textContent = '€' + totalInv.toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2});
+  
+  // Lógica de color para el VALOR TOTAL
+  const elPnl = document.getElementById('port-pnl');
+  let tColor = 'var(--t3)';
+  let tSign = '';
+  if (tPnl > 0.001) { tColor = 'var(--grn)'; tSign = '+'; }
+  else if (tPnl < -0.001) { tColor = 'var(--red)'; tSign = '-'; }
+  
+  elPnl.textContent = `${tSign}€${Math.abs(tPnl).toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2})} (${tPct.toFixed(2)}%)`;
+  elPnl.style.color = tColor;
+
+  updatePortfolioCharts();
 }
 
 function addStock() {
-  const ticker = document.getElementById('st-ticker').value.trim().toUpperCase();
-  const name = document.getElementById('st-name').value.trim();
-  const price = parseFloat(document.getElementById('st-price').value);
-  const invested = parseFloat(document.getElementById('st-invested').value);
-  const buyPrice = parseFloat(document.getElementById('st-buy-price').value);
-  const type = document.getElementById('st-type').value;
+  const ticker = document.getElementById('s-ticker').value.trim().toUpperCase();
+  const name = document.getElementById('s-name').value.trim();
+  const invested = parseFloat(document.getElementById('s-invested').value);
+  const buyPrice = parseFloat(document.getElementById('s-price').value);
+  const curPrice = parseFloat(document.getElementById('s-current').value);
+  const type = document.getElementById('s-type').value;
 
-  if (!ticker || isNaN(price)) return showToast('Ticker y precio actual son obligatorios', 'error');
+  if (!ticker || !name || !invested || !buyPrice || !curPrice) return showToast('Rellena todos los campos', 'error');
 
-  const purchases = [];
-  if (!isNaN(invested) && !isNaN(buyPrice) && buyPrice > 0 && invested > 0) {
-    purchases.push({ id: uid(), date: today(), shares: invested / buyPrice, price: buyPrice, invested: invested });
-  }
+  const shares = invested / buyPrice;
+  S.stocks.push({
+    id: uid(),
+    ticker, name, type, price: curPrice,
+    purchases: [{ id: uid(), date: today(), invested, price: buyPrice, shares }]
+  });
 
-  S.stocks.push({ id: uid(), ticker, name: name||ticker, price, assetType: type, purchases });
-  save(); closeAllModals();
-  ['st-ticker','st-name','st-price','st-invested','st-buy-price'].forEach(id => document.getElementById(id).value = '');
-  renderStocks(); showToast('Posición creada', 'success');
-}
-
-function openEditStockModal(id) {
-  const s = S.stocks.find(x => x.id === id);
-  if (!s) return;
-  document.getElementById('edit-st-id').value = id;
-  document.getElementById('edit-stock-title').textContent = `Gestionar ${s.ticker}`;
-  document.getElementById('edit-st-price').value = s.price;
-  document.getElementById('edit-st-buy-invested').value = '';
-  document.getElementById('edit-st-buy-price').value = '';
-  renderEditPurchases(s);
-  openModal('modal-stock-edit');
-}
-
-function renderEditPurchases(s) {
-  const el = document.getElementById('edit-stock-purchases');
-  if(!el) return;
-  if(!s.purchases || s.purchases.length === 0) {
-    el.innerHTML = '<div class="empty">Sin compras</div>';
-    return;
-  }
-  
-  el.innerHTML = s.purchases.map(p => {
-    const currentVal = p.shares * s.price;
-    const pnl = currentVal - p.invested;
-    const pnlPct = p.invested > 0 ? (pnl / p.invested) * 100 : 0;
-    const isPos = pnl >= 0;
-    const colorClass = isPos ? 'stock-chg-pos' : 'stock-chg-neg';
-    const sign = isPos ? '▲' : '▼';
-
-    const formattedInvested = p.invested % 1 === 0 ? p.invested + '€' : p.invested.toFixed(2) + '€';
-
-    return `
-    <div class="fin-row" style="padding: 12px 0; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
-      <div>
-        <div style="font-size:13px; font-weight:600; color:var(--t1);">Invertido: ${formattedInvested}</div>
-        <div style="font-size:12px; color:var(--t2); margin-top:2px;">${p.date}</div>
-      </div>
-      <div style="display:flex; flex-direction: column; align-items:flex-end; gap:6px;">
-        <div class="${colorClass}" style="font-size:12px; font-weight:600;">${sign} ${fmt(Math.abs(pnl))} (${pnlPct.toFixed(2)}%)</div>
-        <button class="btn-danger" style="padding: 4px 10px; border-radius:6px;" onclick="delStockPurchase('${s.id}', '${p.id}')">✕</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function saveStockPrice() {
-  const id = document.getElementById('edit-st-id').value;
-  const price = parseFloat(document.getElementById('edit-st-price').value);
-  if (isNaN(price) || price < 0) return showToast('Precio inválido', 'error');
-
-  const s = S.stocks.find(x => x.id === id);
-  if (s) {
-    s.price = price;
-    save();
-    renderEditPurchases(s);
-    renderStocks();
-    showToast('Precio actualizado', 'success');
-  }
-}
-
-function addStockPurchase() {
-  const id = document.getElementById('edit-st-id').value;
-  const invested = parseFloat(document.getElementById('edit-st-buy-invested').value);
-  const buyPrice = parseFloat(document.getElementById('edit-st-buy-price').value);
-
-  if (isNaN(invested) || isNaN(buyPrice) || invested <= 0 || buyPrice <= 0) {
-    return showToast('Datos inválidos', 'error');
-  }
-
-  const s = S.stocks.find(x => x.id === id);
-  if (s) {
-    if (!s.purchases) s.purchases = [];
-    s.purchases.push({ id: uid(), date: today(), shares: invested / buyPrice, price: buyPrice, invested: invested });
-    save();
-    document.getElementById('edit-st-buy-invested').value = '';
-    document.getElementById('edit-st-buy-price').value = '';
-    renderEditPurchases(s);
-    renderStocks();
-    showToast('Compra añadida', 'success');
-  }
-}
-
-function delStockPurchase(stockId, purchaseId) {
-  if (typeof customConfirm === 'function') {
-    customConfirm('Borrar lote', '¿Seguro que quieres borrar esta compra?', () => {
-      const s = S.stocks.find(x => x.id === stockId);
-      if (s) {
-        s.purchases = s.purchases.filter(p => p.id !== purchaseId);
-        save(); renderEditPurchases(s); renderStocks();
-      }
-    });
-  } else {
-    if (confirm('¿Borrar compra?')) {
-      const s = S.stocks.find(x => x.id === stockId);
-      if (s) {
-        s.purchases = s.purchases.filter(p => p.id !== purchaseId);
-        save(); renderEditPurchases(s); renderStocks();
-      }
-    }
-  }
+  save(); closeModal('modal-stock'); renderStocks(); showToast('Posición creada');
 }
 
 function delStock(id) {
-  if (typeof customConfirm === 'function') {
-    customConfirm('Borrar posición', '¿Seguro que quieres borrar esta posición y todas sus compras?', () => {
-      S.stocks = S.stocks.filter(x => x.id !== id);
-      save(); closeAllModals(); renderStocks();
-    });
-  } else {
-    if (confirm('¿Borrar acción?')) {
-      S.stocks = S.stocks.filter(x => x.id !== id);
-      save(); closeAllModals(); renderStocks();
-    }
-  }
+  customConfirm('Borrar Activo', '¿Eliminar toda la posición de la cartera?', () => {
+    S.stocks = S.stocks.filter(s => s.id !== id);
+    save(); renderStocks();
+  });
 }
 
-let donutTypeInst = null;
-let donutAssetInst = null;
+function openManageStock(id) {
+  const s = S.stocks.find(x => x.id === id);
+  if (!s) return;
 
-function renderDonuts() {
-  const canvasType = document.getElementById('donutChartType');
-  const legendType = document.getElementById('port-legend-type');
-  const canvasAsset = document.getElementById('donutChartAsset');
-  const legendAsset = document.getElementById('port-legend-asset');
-  
-  if (!canvasType || !legendType || !canvasAsset || !legendAsset) return;
+  let pHtml = s.purchases.map(p => {
+    const val = p.shares * s.price;
+    const pnl = val - p.invested;
+    const pct = (pnl / p.invested) * 100;
+    
+    // Lógica de color de lotes individuales
+    let pColor = 'var(--t3)';
+    let pSign = '';
+    if (pnl > 0.001) { pColor = 'var(--grn)'; pSign = '▲ '; }
+    else if (pnl < -0.001) { pColor = 'var(--red)'; pSign = '▼ '; }
 
-  if (!S.stocks || S.stocks.length === 0) {
-    if(donutTypeInst) donutTypeInst.destroy();
-    if(donutAssetInst) donutAssetInst.destroy();
-    donutTypeInst = null;
-    donutAssetInst = null;
-    legendType.innerHTML = '';
-    legendAsset.innerHTML = '';
-    return;
-  }
+    return `
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--line);">
+       <div>
+          <div style="font-size:12px; font-weight:700;">Invertido: €${p.invested.toFixed(2)}</div>
+          <div style="font-size:10px; color:var(--t3);">${p.date}</div>
+       </div>
+       <div style="display:flex; align-items:center; gap:12px;">
+          <div style="font-size:11px; font-weight:700; color:${pColor};">${pSign}€${Math.abs(pnl).toFixed(2)} (${pct.toFixed(2)}%)</div>
+          <button class="btn-danger" onclick="delPurchase('${s.id}', '${p.id}')">✕</button>
+       </div>
+    </div>`;
+  }).join('');
 
-  const typeMap = {};
-  const assetMap = {};
-  let totalVal = 0;
+  document.getElementById('manage-stock-content').innerHTML = `
+    <div class="modal-handle"></div>
+    <div class="modal-title" style="margin-bottom:20px;">Gestionar ${s.ticker}</div>
+    
+    <label class="form-label">Actualizar Precio Actual (€)</label>
+    <div style="display:flex; gap:10px; margin-bottom:16px;">
+       <input type="number" id="update-price-${s.id}" class="form-input" style="margin-bottom:0;" value="${s.price.toFixed(2)}" step="0.01">
+       <button class="btn" style="background:var(--acc); color:#fff; border-radius:10px; padding:0 20px; border:none; cursor:pointer;" onclick="updatePrice('${s.id}')">Actualizar</button>
+    </div>
 
+    <label class="form-label">Añadir Lote de Compra</label>
+    <div style="display:flex; gap:10px; margin-bottom:24px;">
+       <input type="number" id="add-inv-${s.id}" class="form-input" style="margin-bottom:0;" placeholder="Inversión (€)" step="0.01">
+       <input type="number" id="add-px-${s.id}" class="form-input" style="margin-bottom:0;" placeholder="Precio compra (€)" step="0.01">
+       <button class="btn" style="background:var(--grn); color:#fff; border-radius:10px; padding:0 20px; border:none; cursor:pointer;" onclick="addPurchase('${s.id}')">Añadir</button>
+    </div>
+
+    <label class="form-label">TUS COMPRAS (LOTES)</label>
+    <div>${pHtml || '<div class="empty">Sin compras</div>'}</div>
+  `;
+  openModal('modal-manage-stock');
+}
+
+function updatePrice(id) {
+  const s = S.stocks.find(x => x.id === id);
+  const px = parseFloat(document.getElementById(`update-price-${id}`).value);
+  if (!px || px <= 0) return showToast('Precio inválido', 'error');
+  s.price = px;
+  save(); renderStocks(); openManageStock(id); showToast('Precio actualizado');
+}
+
+function addPurchase(id) {
+  const s = S.stocks.find(x => x.id === id);
+  const inv = parseFloat(document.getElementById(`add-inv-${id}`).value);
+  const px = parseFloat(document.getElementById(`add-px-${id}`).value);
+  if (!inv || !px) return showToast('Rellena inversión y precio', 'error');
+  s.purchases.push({ id: uid(), date: today(), invested: inv, price: px, shares: inv / px });
+  save(); renderStocks(); openManageStock(id); showToast('Compra añadida');
+}
+
+function delPurchase(sid, pid) {
+  const s = S.stocks.find(x => x.id === sid);
+  s.purchases = s.purchases.filter(p => p.id !== pid);
+  save(); renderStocks(); openManageStock(sid);
+}
+
+let typeChart = null, assetChart = null;
+function updatePortfolioCharts() {
+  const c1 = document.getElementById('chart-type');
+  const c2 = document.getElementById('chart-asset');
+  if (!c1 || !c2 || !S.stocks) return;
+
+  let types = {}, assets = {};
   S.stocks.forEach(s => {
-    let shares = 0;
-    if(s.purchases) s.purchases.forEach(p => shares += p.shares);
-    const val = shares * s.price;
+    let val = 0;
+    if (s.purchases) s.purchases.forEach(p => val += p.shares * s.price);
     if (val > 0) {
-      totalVal += val;
-      
-      // Normalizamos el nombre para agrupar viejos "crypto" con nuevos "Crypto"
-      let rawType = (s.assetType || 'Otro').trim();
-      let typeKey = rawType.toLowerCase();
-      let displayType = typeKey === 'etf' ? 'ETF' : (rawType.charAt(0).toUpperCase() + rawType.slice(1));
-      
-      typeMap[displayType] = (typeMap[displayType] || 0) + val;
-      assetMap[s.ticker] = (assetMap[s.ticker] || 0) + val;
+      types[s.type] = (types[s.type] || 0) + val;
+      assets[s.ticker] = (assets[s.ticker] || 0) + val;
     }
   });
 
-  if (totalVal === 0) {
-    if(donutTypeInst) donutTypeInst.destroy();
-    if(donutAssetInst) donutAssetInst.destroy();
-    donutTypeInst = null;
-    donutAssetInst = null;
-    legendType.innerHTML = '';
-    legendAsset.innerHTML = '';
-    return;
-  }
-
-  // --- 1. DOUGHNUT POR TIPO DE ACTIVO ---
-  const types = Object.keys(typeMap).sort((a,b) => typeMap[b] - typeMap[a]);
-  const dataTypes = types.map(t => typeMap[t]);
-  // Asignamos el color correcto usando la función inteligente
-  const bgTypes = types.map(t => getTypeColor(t));
-
-  legendType.innerHTML = types.map((l, i) => `
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
-      <div style="display:flex; align-items:center; gap:6px;">
-        <div style="width:10px;height:10px;border-radius:50%;background:${bgTypes[i]}"></div>
-        <span style="color:var(--t1); font-weight:500;">${l}</span>
-      </div>
-      <span style="color:var(--t2); font-weight:600">${((dataTypes[i]/totalVal)*100).toFixed(1)}%</span>
-    </div>
-  `).join('');
-
-  if (donutTypeInst) donutTypeInst.destroy();
-  donutTypeInst = new Chart(canvasType, {
+  const cols = ['#8b5cf6', '#3b82f6', '#27ae60', '#f59e0b', '#e74c3c', '#e05a2b'];
+  
+  if (typeChart) typeChart.destroy();
+  typeChart = new Chart(c1, {
     type: 'doughnut',
-    data: { labels: types, datasets: [{ data: dataTypes, backgroundColor: bgTypes, borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+    data: { labels: Object.keys(types), datasets: [{ data: Object.values(types), backgroundColor: cols, borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'right', labels: { color: '#a1a1a6', font: { size: 10, family: 'DM Sans' }, boxWidth: 10, padding: 10 } } } }
   });
 
-  // --- 2. DOUGHNUT POR ACTIVO INDIVIDUAL ---
-  const defaultColors = ['#e05a2b', '#27ae60', '#3b82f6', '#f59e0b', '#8b5cf6', '#e74c3c', '#1abc9c'];
-  const assets = Object.keys(assetMap).sort((a,b) => assetMap[b] - assetMap[a]);
-  const dataAssets = assets.map(a => assetMap[a]);
-  const bgAssets = assets.map((a, i) => defaultColors[i % defaultColors.length]);
-
-  legendAsset.innerHTML = assets.map((l, i) => `
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
-      <div style="display:flex; align-items:center; gap:6px;">
-        <div style="width:10px;height:10px;border-radius:50%;background:${bgAssets[i]}"></div>
-        <span style="color:var(--t1); font-weight:500;">${l}</span>
-      </div>
-      <span style="color:var(--t2); font-weight:600">${((dataAssets[i]/totalVal)*100).toFixed(1)}%</span>
-    </div>
-  `).join('');
-
-  if (donutAssetInst) donutAssetInst.destroy();
-  donutAssetInst = new Chart(canvasAsset, {
+  if (assetChart) assetChart.destroy();
+  assetChart = new Chart(c2, {
     type: 'doughnut',
-    data: { labels: assets, datasets: [{ data: dataAssets, backgroundColor: bgAssets, borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+    data: { labels: Object.keys(assets), datasets: [{ data: Object.values(assets), backgroundColor: [...cols].reverse(), borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'right', labels: { color: '#a1a1a6', font: { size: 10, family: 'DM Sans' }, boxWidth: 10, padding: 10 } } } }
   });
 }
