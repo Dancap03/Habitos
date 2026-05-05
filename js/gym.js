@@ -340,7 +340,6 @@ function toggleSet(exIdx, sIdx) {
                 showToast(`¡Nuevo PR en ${key}! 🏆`);
             }
         }
-        // Nota: Los récords de Cardio se calculan en FinishWorkout para tener en cuenta el tiempo total.
     }
     save(); renderActiveWorkout(); renderRecords();
 }
@@ -591,9 +590,10 @@ function renderRecords() {
                 <div style="font-size:12px; color:var(--t1); font-weight:600; margin-top:2px;">x ${pr.reps} reps</div>
             `;
         } else {
+            const timeText = pr.time ? `en ${pr.time} min` : '<span style="color:var(--t3); font-weight:400;">(sin tiempo)</span>';
             rightHtml = `
                 <div style="font-size:22px; font-weight:800; color:var(--yel); line-height:1;">${pr.val} <span style="font-size:12px; color:var(--t2);">${pr.unit || ''}</span></div>
-                ${pr.time ? `<div style="font-size:12px; color:var(--t1); font-weight:600; margin-top:2px;">en ${pr.time} min</div>` : ''}
+                <div style="font-size:12px; color:var(--t1); font-weight:600; margin-top:2px;">${timeText}</div>
             `;
         }
 
