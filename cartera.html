@@ -15,32 +15,37 @@
   <div class="screen on">
     <div class="topbar">
       <span class="page-title">Cartera</span>
-      <div class="topbar-right"><button class="btn btn-sm" onclick="openModal('modal-stock')">+ Posición</button></div>
     </div>
     <div class="scroll">
       
+      <!-- VALOR TOTAL -->
       <div class="card card-full">
         <div class="card-title">VALOR TOTAL</div>
         <div class="big-bal" id="port-total">€0</div>
         <div style="margin-top:8px; display:flex; gap:10px;">
            <span style="font-size:13px;color:var(--t2)">Invertido: <span id="port-invested" style="color:var(--t1)">€0</span></span>
-           <span id="port-pnl" style="font-size:13px;font-weight:600;">+€0 (0%)</span>
+           <span id="port-pnl" style="font-size:13px;font-weight:700;">+€0 (0%)</span>
         </div>
       </div>
 
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;" class="card-full">
-         <div class="card" style="margin-bottom:0; height:100%;">
+      <!-- GRÁFICOS APILADOS VERTICALMENTE -->
+      <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:14px;" class="card-full">
+         <div class="card" style="margin-bottom:0;">
             <div class="card-title">POR TIPO</div>
-            <div style="position:relative; width:100%; height:120px;"><canvas id="chart-type"></canvas></div>
+            <div style="position:relative; width:100%; height:160px;"><canvas id="chart-type"></canvas></div>
          </div>
-         <div class="card" style="margin-bottom:0; height:100%;">
+         <div class="card" style="margin-bottom:0;">
             <div class="card-title">POR ACTIVO</div>
-            <div style="position:relative; width:100%; height:120px;"><canvas id="chart-asset"></canvas></div>
+            <div style="position:relative; width:100%; height:160px;"><canvas id="chart-asset"></canvas></div>
          </div>
       </div>
 
+      <!-- TUS POSICIONES -->
       <div class="card card-full">
-        <div class="card-title">TUS POSICIONES</div>
+        <div class="card-header" style="margin-bottom: 16px;">
+            <span class="card-title" style="margin-bottom: 0;">TUS POSICIONES</span>
+            <button class="btn btn-sm" onclick="openModal('modal-stock')">+ Posición</button>
+        </div>
         <div id="stock-list"><div class="empty">Sin posiciones</div></div>
       </div>
 
@@ -55,7 +60,7 @@
     <button class="nav-btn" onclick="window.location.href='gym.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 5v14M18 5v14M3 9h18M3 15h18"/></svg><span class="nav-label">Gym</span></button>
   </nav>
 
-  <!-- MODAL: CARTERA (ESTÉTICA GYM) -->
+  <!-- MODAL: NUEVA POSICIÓN -->
   <div class="overlay" id="modal-stock" onclick="closeModal('modal-stock',event)">
     <div class="modal">
       <div class="modal-handle"></div>
@@ -89,6 +94,7 @@
     </div>
   </div>
 
+  <!-- MODAL: GESTIONAR -->
   <div class="overlay" id="modal-manage-stock" onclick="closeModal('modal-manage-stock',event)">
     <div class="modal" id="manage-stock-content"></div>
   </div>
@@ -107,8 +113,8 @@
 
   <div class="toast-container" id="toast-container"></div>
 </div>
-<script src="js/main.js?v=28"></script>
-<script src="js/cartera.js?v=28"></script>
+<script src="js/main.js?v=37"></script>
+<script src="js/cartera.js?v=37"></script>
 <script>document.addEventListener('DOMContentLoaded', init);</script>
 </body>
 </html>
