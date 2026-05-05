@@ -4,6 +4,10 @@ const S = {
   pomo: { sessions: 0 }, activePeriod: 'semana', activeRoutine: null, finNotes: "" 
 };
 
+// Variables para el calendario del Gym
+let currGymMonth = new Date().getMonth();
+let currGymYear = new Date().getFullYear();
+
 function save() { localStorage.setItem('dancab_v1', JSON.stringify(S)); }
 
 function load() {
@@ -53,7 +57,6 @@ function closeAllModals() { document.querySelectorAll('.overlay').forEach(o => o
 
 function uid() { return Math.random().toString(36).slice(2, 10); }
 
-// Ajuste para evitar bugs de zona horaria (UTC vs Local)
 function today() { 
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -62,6 +65,21 @@ function today() {
 function formatTime(date) { return String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0'); }
 function fmt(n) { return '€' + (+n).toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2}); }
 function getWeek(d) { const dt = new Date(d), day = dt.getDay() || 7; dt.setDate(dt.getDate() + 4 - day); const y = new Date(dt.getFullYear(), 0, 1); return Math.ceil(((dt - y) / 86400000 + 1) / 7); }
+
+function catTagClass(c) {
+  if (['trabajo','salud','ahorro'].includes(c)) return 'tag-blu';
+  if (['clases','suscripciones','compras'].includes(c)) return 'tag-pur';
+  if (['exámenes','alquiler'].includes(c)) return 'tag-red';
+  if (['gym','transporte','viajes'].includes(c)) return 'tag-acc';
+  if (['cumpleaños','ocio','dividendos','intereses','caprichos'].includes(c)) return 'tag-yel';
+  if (['quedadas','alimentación','nómina','personal'].includes(c)) return 'tag-grn';
+  return 'tag-t3';
+}
+
+function catColor(c) {
+  const m = { ahorro:'var(--blu)', trabajo:'var(--blu)', personal:'var(--grn)', estudios:'var(--pur)', gym:'var(--acc)', nómina:'var(--grn)', intereses:'var(--yel)', dividendos:'var(--yel)', alquiler:'var(--red)', alimentación:'var(--grn)', transporte:'var(--acc)', suscripciones:'var(--pur)', salud:'var(--blu)', ocio:'var(--yel)', clases:'var(--pur)', exámenes:'var(--red)', cumpleaños:'var(--yel)', quedadas:'var(--grn)', caprichos:'var(--yel)', compras:'var(--pur)', viajes:'var(--acc)' };
+  return m[c] || 'var(--t3)';
+}
 
 function setGreeting() {
   const h = new Date().getHours();
@@ -98,18 +116,76 @@ function cancelConfirm(e, force = false) {
 }
 
 // ----------------------------------------
-// MOTOR DEL INICIO (DASHBOARD TOTAL)
+// MOTOR DEL INICIO Y CALENDARIO GYM
 // ----------------------------------------
+function changeGymMonth(dir) {
+  currGymMonth += dir;
+  if (currGymMonth < 0) { currGymMonth = 11; currGymYear--; }
+  else if (currGymMonth > 11) { currGymMonth = 0; currGymYear++; }
+  renderGymCalendar();
+}
+
+function renderGymCalendar() {
+  const calEl = document.getElementById('home-gym-calendar');
+  const labelEl = document.getElementById('gym-cal-month');
+  if (!calEl || !S.workoutLog) return;
+
+  const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  if(labelEl) labelEl.textContent = `${monthNames[currGymMonth]} ${currGymYear}`;
+
+  const daysInMonth = new Date(currGymYear, currGymMonth + 1, 0).getDate();
+  const firstDay = new Date(currGymYear, currGymMonth, 1).getDay();
+  const startDay = firstDay === 0 ? 6 : firstDay - 1; // Lunes = 0
+
+  const dayNames = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+  let html = dayNames.map(d => `<div style="font-size:10px; color:var(--t3); font-weight:600; padding-bottom:6px;">${d}</div>`).join('');
+
+  // Rellenar huecos vacíos antes del día 1
+  for (let i = 0; i < startDay; i++) {
+      html += `<div></div>`;
+  }
+
+  const todayStr = today();
+
+  // Días del mes
+  for (let i = 1; i <= daysInMonth; i++) {
+      const dStr = `${currGymYear}-${String(currGymMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+      const isToday = dStr === todayStr;
+      const didWorkout = S.workoutLog.some(w => w.date === dStr);
+
+      let bg = didWorkout ? 'var(--acc)' : 'var(--bg4)';
+      let color = didWorkout ? '#fff' : 'var(--t2)';
+      let border = isToday ? '2px solid var(--t1)' : '2px solid transparent';
+
+      html += `
+      <div style="display:flex; justify-content:center;">
+         <div style="width:30px; height:30px; border-radius:50%; background:${bg}; border:${border}; display:flex; justify-content:center; align-items:center; font-size:13px; font-weight:700; color:${color};">
+            ${i}
+         </div>
+      </div>`;
+  }
+
+  calEl.innerHTML = html;
+}
+
 function renderHome() {
-  // 1. FINANZAS TOTALES HISTÓRICAS
+  // 1. FINANZAS (HISTÓRICO Y DISPONIBLE)
   if (S.fin && document.getElementById('home-fin-inc')) {
+    // Totales reales (sin ahorro)
     const trueInc = S.fin.filter(e => e.type === 'ingreso' && e.cat !== 'ahorro').reduce((a,e) => a+e.amount, 0);
     const trueExp = S.fin.filter(e => e.type === 'gasto' && e.cat !== 'ahorro').reduce((a,e) => a+e.amount, 0);
     
+    // Hucha de ahorro
     const savIn = S.fin.filter(e => e.type === 'gasto' && e.cat === 'ahorro').reduce((a,e) => a+e.amount, 0);
     const savOut = S.fin.filter(e => e.type === 'ingreso' && e.cat === 'ahorro').reduce((a,e) => a+e.amount, 0);
     const totalSav = savIn - savOut;
 
+    // TODO EL DINERO ENTRANTE - TODO EL DINERO SALIENTE = DINERO EN MANO
+    const totalInc = S.fin.filter(e => e.type === 'ingreso').reduce((a,e) => a+e.amount, 0);
+    const totalExp = S.fin.filter(e => e.type === 'gasto').reduce((a,e) => a+e.amount, 0);
+    const available = totalInc - totalExp;
+
+    document.getElementById('home-fin-avail').textContent = fmt(available);
     document.getElementById('home-fin-inc').textContent = fmt(trueInc);
     document.getElementById('home-fin-exp').textContent = fmt(trueExp);
     
@@ -149,48 +225,8 @@ function renderHome() {
     elPnl.style.color = isPos ? 'var(--grn)' : 'var(--red)';
   }
 
-  // 3. CALENDARIO GYM (SEMANA COMPLETA)
-  const gymCal = document.getElementById('home-gym-calendar');
-  if (S.workoutLog && gymCal) {
-    const dayNames = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-    let calHtml = '';
-    
-    const now = new Date();
-    // Ajuste para que la semana empiece el Lunes (1) y termine el Domingo (7)
-    const dayOfWeek = now.getDay() || 7; 
-    now.setHours(0,0,0,0);
-    
-    // Encontramos el Lunes de esta semana
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - dayOfWeek + 1);
-
-    // Dibujamos los 7 días
-    for(let i=0; i<7; i++) {
-      const d = new Date(startOfWeek);
-      d.setDate(startOfWeek.getDate() + i);
-      
-      // Creamos el string YYYY-MM-DD para comparar con el historial
-      const dStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-      const isToday = dStr === today();
-      const didWorkout = S.workoutLog.some(w => w.date === dStr);
-
-      // Estilos según si has entrenado o no
-      let bg = didWorkout ? 'var(--acc)' : 'var(--bg4)';
-      let color = didWorkout ? '#fff' : 'var(--t2)';
-      // Aro blanco sutil para destacar qué día es "HOY"
-      let border = isToday ? '2px solid var(--t1)' : '2px solid transparent';
-
-      calHtml += `
-        <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
-           <div style="font-size:10px; color:var(--t3); font-weight:600;">${dayNames[i]}</div>
-           <div style="width:30px; height:30px; border-radius:50%; background:${bg}; border:${border}; display:flex; justify-content:center; align-items:center; font-size:13px; font-weight:700; color:${color};">
-              ${d.getDate()}
-           </div>
-        </div>
-      `;
-    }
-    gymCal.innerHTML = calHtml;
-  }
+  // 3. CALENDARIO GYM MENSUAL
+  renderGymCalendar();
 }
 
 function init() {
@@ -207,6 +243,5 @@ function init() {
   if(document.getElementById('finChart') && typeof renderFinances === 'function') { setTimeout(initFinChart, 80); renderFinances(); }
   if(document.getElementById('stock-list') && typeof renderStocks === 'function') renderStocks();
   
-  // Disparamos la nueva función del Dashboard al abrir el Inicio
   if(document.getElementById('home-fin-inc')) renderHome();
 }
