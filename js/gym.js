@@ -329,10 +329,11 @@ function finishWorkout() {
     
     const savedExercises = JSON.parse(JSON.stringify(S.activeRoutine.exercises || []));
 
+    // Calculamos el volumen total de pesas (incluso si olvidó darle al "✓")
     savedExercises.forEach(ex => {
         if(ex.type === 'pesas') { 
             (ex.sets || []).forEach(s => { 
-                if(s.done && s.kg && s.reps) vol += parseFloat(s.kg) * parseInt(s.reps); 
+                if((s.done || (s.kg && s.reps)) && s.kg && s.reps) vol += parseFloat(s.kg) * parseInt(s.reps); 
             }); 
         }
     });
@@ -352,7 +353,7 @@ function finishWorkout() {
     save(); renderActiveWorkout(); renderWorkoutLog(); showToast('Entreno completado ✅');
 }
 
-// --- HISTORIAL ACORDEÓN CON LÓGICA INTELIGENTE ---
+// --- HISTORIAL ACORDEÓN MEJORADO ---
 function toggleLogDate(date) {
     const content = document.getElementById(`content-date-${date}`);
     const icon = document.getElementById(`icon-date-${date}`);
@@ -415,40 +416,46 @@ function renderWorkoutLog() {
         `;
 
         dayWorkouts.reverse().forEach(w => {
-            // Lógica Inteligente para detectar si es SOLO CARDIO
-            const isOnlyCardio = w.exercises && w.exercises.length === 1 && w.exercises[0].type === 'cardio';
-            
             let rightSideHtml = '';
             let detailsHtml = '';
 
-            if (isOnlyCardio) {
-                // Si es solo cardio, extraemos el valor de la unidad directamente y no ponemos desplegable
-                let cardioVal = 0;
-                let cardioUnit = w.exercises[0].unit || '';
-                if (w.exercises[0].sets && w.exercises[0].sets[0] && w.exercises[0].sets[0].done) {
-                    cardioVal = w.exercises[0].sets[0].val || 0;
-                }
-                rightSideHtml = `<div style="font-size:15px; font-weight:800; color:var(--yel);">${cardioVal} <span style="font-size:11px; color:var(--t3); font-weight:600;">${cardioUnit}</span></div>`;
-            } else {
-                // Si es pesas o una rutina mixta, mostramos el volumen total en la cabecera
+            // Solo hacemos el desglose si guardamos los ejercicios en su día
+            if (w.exercises && w.exercises.length > 0) {
+                const hasPesas = w.exercises.some(ex => ex.type === 'pesas');
+                const cardioExercises = w.exercises.filter(ex => ex.type === 'cardio');
+                
+                let badges = [];
+                
+                // Si es un entreno con pesas, ponemos el volumen arriba
                 if (w.volume > 0) {
-                    rightSideHtml = `<div style="font-size:14px; font-weight:800; color:var(--acc);">${w.volume} <span style="font-size:10px; color:var(--t3);">kg</span></div>`;
+                    badges.push(`<div style="font-size:14px; font-weight:800; color:var(--acc);">${w.volume} <span style="font-size:10px; color:var(--t3);">kg</span></div>`);
                 }
                 
-                // Y preparamos el panel desplegable de ejercicios
-                if (w.exercises && w.exercises.length > 0) {
+                // Extraer directamente los datos de Cardio a la derecha
+                cardioExercises.forEach(cx => {
+                    let cVal = 0;
+                    (cx.sets || []).forEach(s => { if (s.val) cVal += parseFloat(s.val); });
+                    if (cVal > 0) {
+                        badges.push(`<div style="font-size:15px; font-weight:800; color:var(--yel);">${cVal} <span style="font-size:11px; color:var(--t3); font-weight:600;">${cx.unit}</span></div>`);
+                    }
+                });
+
+                rightSideHtml = `<div style="display:flex; gap:10px; align-items:center;">${badges.join('')}</div>`;
+
+                // Construimos el acordeón SOLAMENTE para los de Pesas
+                if (hasPesas) {
                     let exList = '';
                     w.exercises.forEach(ex => {
-                        const doneSets = (ex.sets || []).filter(s => s.done);
-                        if(doneSets.length === 0) return;
+                        if (ex.type !== 'pesas') return;
                         
-                        let setsBadges = doneSets.map((s) => {
-                            if(ex.type === 'pesas') return `<span style="background:var(--bg3); padding:4px 8px; border-radius:6px; font-size:11px; margin-right:6px; margin-bottom:6px; display:inline-block; border:1px solid var(--line); color:var(--t1);">${s.kg}kg × ${s.reps}</span>`;
-                            return `<span style="background:var(--bg3); padding:4px 8px; border-radius:6px; font-size:11px; margin-right:6px; margin-bottom:6px; display:inline-block; border:1px solid var(--line); color:var(--t1);">${s.val} ${ex.unit}</span>`;
-                        }).join('');
-                        
+                        // Capturamos series hechas (marcadas O simplemente con datos escritos)
+                        const validSets = (ex.sets || []).filter(s => s.done || (s.kg && s.reps));
+                        if (validSets.length === 0) return;
+
+                        let setsBadges = validSets.map(s => `<span style="background:var(--bg3); padding:4px 8px; border-radius:6px; font-size:11px; margin-right:6px; margin-bottom:6px; display:inline-block; border:1px solid var(--line); color:var(--t1);">${s.kg}kg × ${s.reps}</span>`).join('');
+
                         exList += `
-                        <div style="margin-top:10px; border-left:2px solid ${ex.type === 'pesas' ? 'var(--acc)' : 'var(--yel)'}; padding-left:12px;">
+                        <div style="margin-top:10px; border-left:2px solid var(--acc); padding-left:12px;">
                             <div style="font-size:12px; font-weight:700; color:var(--t2); margin-bottom:6px;">${ex.name}</div>
                             <div>${setsBadges}</div>
                         </div>`;
@@ -460,7 +467,7 @@ function renderWorkoutLog() {
                             ${exList}
                         </div>`;
                         
-                        // Añadimos la flechita para desplegar al lado del volumen
+                        // Añadimos el icono de la flecha al lado de los badges
                         rightSideHtml = `
                         <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="toggleWorkoutDetails('${w.id}')">
                             ${rightSideHtml}
@@ -468,9 +475,13 @@ function renderWorkoutLog() {
                         </div>`;
                     }
                 }
+            } else {
+                // Entrenamientos antiguos que no guardaron los ejercicios (legacy)
+                if (w.volume > 0) {
+                    rightSideHtml = `<div style="font-size:14px; font-weight:800; color:var(--acc);">${w.volume} <span style="font-size:10px; color:var(--t3);">kg</span></div>`;
+                }
             }
 
-            // Inyectamos la rutina del día
             html += `
                 <div style="padding:16px 0; border-bottom:1px solid var(--line);">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
