@@ -2,37 +2,47 @@ let tempExercises = [];
 
 function switchGymView(v, pill) {
   document.querySelectorAll('#gym-routine-pills .pill').forEach(p => p.classList.remove('on'));
-  pill.classList.add('on');
-  document.getElementById('gv-rutinas').style.display = v === 'rutinas' ? 'block' : 'none';
-  document.getElementById('gv-historial').style.display = v === 'historial' ? 'block' : 'none';
+  if(pill) pill.classList.add('on');
+  if(document.getElementById('gv-rutinas')) document.getElementById('gv-rutinas').style.display = v === 'rutinas' ? 'block' : 'none';
+  if(document.getElementById('gv-historial')) document.getElementById('gv-historial').style.display = v === 'historial' ? 'block' : 'none';
   if (v === 'historial') renderGymHistory();
 }
 
 function openRoutineModal() {
   tempExercises = [];
-  document.getElementById('r-name').value = '';
-  document.getElementById('r-type').value = 'pesas';
-  document.getElementById('r-ex-name').value = '';
-  document.getElementById('r-ex-sets').value = '';
+  if(document.getElementById('r-name')) document.getElementById('r-name').value = '';
+  if(document.getElementById('r-type')) document.getElementById('r-type').value = 'pesas';
+  if(document.getElementById('r-ex-name')) document.getElementById('r-ex-name').value = '';
+  if(document.getElementById('r-ex-sets')) document.getElementById('r-ex-sets').value = '';
+  // Esto es clave para que no se quede guardado "peldaños" de la vez anterior
+  if(document.getElementById('r-cardio-unit')) document.getElementById('r-cardio-unit').value = '';
+  
   toggleRoutineType();
   openModal('modal-routine');
 }
 
 function toggleRoutineType() {
-  const type = document.getElementById('r-type').value;
+  const typeEl = document.getElementById('r-type');
+  if(!typeEl) return;
+  const type = typeEl.value;
   tempExercises = []; 
   renderTempExercises();
   
+  const pesasUi = document.getElementById('routine-pesas-ui');
+  const cardioUi = document.getElementById('routine-cardio-ui');
+  const exTitle = document.getElementById('temp-exercises-title');
+  const exList = document.getElementById('temp-exercises-list');
+
   if (type === 'pesas') {
-    document.getElementById('routine-pesas-ui').style.display = 'block';
-    document.getElementById('routine-cardio-ui').style.display = 'none';
-    document.getElementById('temp-exercises-title').style.display = 'block';
-    document.getElementById('temp-exercises-list').style.display = 'block';
+    if(pesasUi) pesasUi.style.display = 'block';
+    if(cardioUi) cardioUi.style.display = 'none';
+    if(exTitle) exTitle.style.display = 'block';
+    if(exList) exList.style.display = 'block';
   } else {
-    document.getElementById('routine-pesas-ui').style.display = 'none';
-    document.getElementById('routine-cardio-ui').style.display = 'block';
-    document.getElementById('temp-exercises-title').style.display = 'none';
-    document.getElementById('temp-exercises-list').style.display = 'none';
+    if(pesasUi) pesasUi.style.display = 'none';
+    if(cardioUi) cardioUi.style.display = 'block';
+    if(exTitle) exTitle.style.display = 'none';
+    if(exList) exList.style.display = 'none';
   }
 }
 
@@ -53,6 +63,7 @@ function removeTempExercise(index) {
 
 function renderTempExercises() {
    const el = document.getElementById('temp-exercises-list');
+   if(!el) return;
    if (tempExercises.length === 0) { el.innerHTML = '<div class="empty" style="padding: 10px 0;">Ningún ejercicio añadido</div>'; return; }
    
    el.innerHTML = tempExercises.map((ex, i) => `
@@ -73,8 +84,10 @@ function saveNewRoutine() {
     if (tempExercises.length === 0) return showToast('Añade al menos un ejercicio', 'error');
     exercisesToSave = [...tempExercises];
   } else {
-    // Si es cardio, guardamos un "ejercicio" fantasma con el nombre de la rutina
-    exercisesToSave = [{ name: name, sets: 1 }];
+    // Si es cardio, cogemos la unidad que hayas escrito y creamos la rutina
+    const unitEl = document.getElementById('r-cardio-unit');
+    const unit = unitEl ? unitEl.value.trim() : '';
+    exercisesToSave = [{ name: name, sets: 1, unit: unit }];
   }
 
   S.routines.push({ id: uid(), name, type, exercises: exercisesToSave });
@@ -92,8 +105,8 @@ function deleteRoutine(id) {
 
 function startRoutine(id) {
   S.activeRoutine = id; save();
-  document.getElementById('gym-start-time').value = formatTime(new Date());
-  document.getElementById('gym-end-time').value = '';
+  if(document.getElementById('gym-start-time')) document.getElementById('gym-start-time').value = formatTime(new Date());
+  if(document.getElementById('gym-end-time')) document.getElementById('gym-end-time').value = '';
   renderGymActive();
 }
 
@@ -102,6 +115,8 @@ function cancelWorkout() { S.activeRoutine = null; save(); renderRoutines(); }
 function renderRoutines() {
   const el = document.getElementById('gym-routine-list');
   const active = document.getElementById('gym-active');
+  if(!el || !active) return;
+
   if (S.activeRoutine) { el.style.display='none'; active.style.display='block'; renderGymActive(); return; }
   active.style.display = 'none'; el.style.display = 'block';
   
@@ -123,18 +138,22 @@ function renderGymActive() {
   const r = S.routines.find(x => x.id === S.activeRoutine);
   if (!r) { S.activeRoutine = null; save(); renderRoutines(); return; }
   
-  document.getElementById('gym-routine-list').style.display = 'none';
-  document.getElementById('gym-active').style.display = 'block';
-  document.getElementById('gym-active-name').textContent = r.name;
-  document.getElementById('gym-active-date').textContent = new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+  if(document.getElementById('gym-routine-list')) document.getElementById('gym-routine-list').style.display = 'none';
+  if(document.getElementById('gym-active')) document.getElementById('gym-active').style.display = 'block';
+  if(document.getElementById('gym-active-name')) document.getElementById('gym-active-name').textContent = r.name;
+  if(document.getElementById('gym-active-date')) document.getElementById('gym-active-date').textContent = new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
   
   const el = document.getElementById('gym-exercises');
+  if(!el) return;
+
   el.innerHTML = r.exercises.map((e,ei) => {
     const isCardio = r.type === 'cardio';
     let setsHtml = '';
     
     if (isCardio) {
-      setsHtml = `<div class="set-row"><input type="number" class="set-field" placeholder="min" id="ex-${ei}-0-reps"><input type="number" class="set-field" placeholder="km / nivel" id="ex-${ei}-0-kg" step="0.5"><div class="set-done" onclick="toggleSetDone(this)" id="ex-${ei}-0-done"></div></div>`;
+      // Si la unidad está vacía, pone "valor", si no, pone la que hayas guardado
+      const unitPlaceholder = e.unit ? e.unit : 'valor';
+      setsHtml = `<div class="set-row"><input type="number" class="set-field" placeholder="min" id="ex-${ei}-0-reps"><input type="number" class="set-field" placeholder="${unitPlaceholder}" id="ex-${ei}-0-kg" step="0.5"><div class="set-done" onclick="toggleSetDone(this)" id="ex-${ei}-0-done"></div></div>`;
     } else {
       setsHtml = Array.from({length:e.sets},(_,si)=>`<div class="set-row"><span class="set-num">${si+1}</span><input type="number" class="set-field" placeholder="reps" id="ex-${ei}-${si}-reps"><input type="number" class="set-field" placeholder="kg" id="ex-${ei}-${si}-kg" step="0.5"><div class="set-done" onclick="toggleSetDone(this)" id="ex-${ei}-${si}-done"></div></div>`).join('');
     }
@@ -157,10 +176,11 @@ function finishWorkout() {
   const startT = document.getElementById('gym-start-time').value || formatTime(new Date());
   
   const logEntry = { id: uid(), date: today(), routineName: r.name, type: r.type, startTime: startT, endTime: endT, exercises: [] };
+  const isCardio = r.type === 'cardio';
 
   r.exercises.forEach((e, ei) => {
     let maxKg = 0; let maxReps = 0;
-    const logEx = { name: e.name, sets: [] };
+    const logEx = { name: e.name, sets: [], unit: e.unit || '' };
     
     for (let si = 0; si < e.sets; si++) {
       const kgEl = document.getElementById(`ex-${ei}-${si}-kg`);
@@ -177,11 +197,21 @@ function finishWorkout() {
     
     if(logEx.sets.length > 0) logEntry.exercises.push(logEx);
 
-    // Guardar Récords (tanto de pesas como de cardio)
+    // Sistema de PR adaptado a cardio (más peldaños o menos tiempo)
     if (maxKg > 0 || maxReps > 0) {
       const currentPr = S.prs[e.name];
-      if (!currentPr || maxKg > currentPr.kg || (maxKg === currentPr.kg && maxReps > currentPr.reps)) {
-        S.prs[e.name] = { kg: maxKg, reps: maxReps, date: today(), isCardio: r.type === 'cardio' };
+      let isNewPr = false;
+      if (!currentPr) {
+          isNewPr = true;
+      } else {
+          if (isCardio) {
+              if (maxKg > currentPr.kg || (maxKg === currentPr.kg && maxReps <= currentPr.reps)) isNewPr = true;
+          } else {
+              if (maxKg > currentPr.kg || (maxKg === currentPr.kg && maxReps >= currentPr.reps)) isNewPr = true;
+          }
+      }
+      if (isNewPr) {
+        S.prs[e.name] = { kg: maxKg, reps: maxReps, date: today(), isCardio: isCardio, unit: e.unit || '' };
       }
     }
   });
@@ -190,19 +220,22 @@ function finishWorkout() {
   S.activeRoutine = null; 
   save(); 
   renderRoutines(); 
-  renderHome(); 
+  if(typeof renderHome === 'function') renderHome(); 
   showToast('¡Entrenamiento guardado! 💪', 'success');
 }
 
 function renderGymPRs() {
   const el = document.getElementById('gym-prs');
+  if(!el) return;
   const prs = Object.entries(S.prs).map(([name, data]) => ({name, ...data}));
   
   if (!prs.length) { el.innerHTML = '<div class="empty">Sin registros aún</div>'; return; }
   
   el.innerHTML = prs.sort((a,b) => a.name.localeCompare(b.name)).map(p => {
     const isCardio = p.isCardio === true;
-    const prText = isCardio ? `${p.kg} km/nivel en ${p.reps} min` : `${p.kg} kg × ${p.reps} reps`;
+    const unitText = p.unit ? ` ${p.unit}` : '';
+    // Muestra "10 peldaños en 5 min" o "10 kg x 5 reps" de forma limpia
+    const prText = isCardio ? `${p.kg}${unitText} en ${p.reps} min` : `${p.kg} kg × ${p.reps} reps`;
     
     return `
     <div class="fin-row">
@@ -212,13 +245,17 @@ function renderGymPRs() {
   }).join('');
 }
 
+let historyPage = 1;
+const HISTORY_PER_PAGE = 10;
+
 function renderGymHistory() {
   const el = document.getElementById('gym-history-list');
   const btnMore = document.getElementById('gym-history-more');
+  if(!el) return;
   
   if (!S.workoutLog || !S.workoutLog.length) { 
     el.innerHTML = '<div class="empty">Aún no hay entrenamientos registrados</div>'; 
-    btnMore.style.display = 'none'; 
+    if(btnMore) btnMore.style.display = 'none'; 
     return; 
   }
   
@@ -226,13 +263,14 @@ function renderGymHistory() {
   
   el.innerHTML = itemsToShow.map(w => {
     const isCardio = w.type === 'cardio';
-    const exercises = w.exercises || []; // Protección anticaídas
+    const exercises = w.exercises || []; 
     const exCount = exercises.length;
     const setsCount = exercises.reduce((acc, curr) => acc + (curr.sets || []).length, 0);
     
     const detailsHtml = exercises.map(ex => {
+      const unitText = ex.unit ? ` ${ex.unit}` : '';
       const setsHtml = (ex.sets || []).map((s, i) => {
-        if(isCardio) return `<div style="display:flex; justify-content:space-between; font-size:12px; color:var(--t2); padding:2px 0;"><span>Registro</span><span>${s.kg} km/nivel en ${s.reps} min</span></div>`;
+        if(isCardio) return `<div style="display:flex; justify-content:space-between; font-size:12px; color:var(--t2); padding:2px 0;"><span>Registro</span><span>${s.kg}${unitText} en ${s.reps} min</span></div>`;
         else return `<div style="display:flex; justify-content:space-between; font-size:12px; color:var(--t2); padding:2px 0;"><span>Serie ${i+1}</span><span>${s.kg} kg × ${s.reps} reps</span></div>`;
       }).join('');
       
@@ -251,7 +289,7 @@ function renderGymHistory() {
       </div>`;
   }).join('');
   
-  btnMore.style.display = S.workoutLog.length > historyPage * HISTORY_PER_PAGE ? 'block' : 'none';
+  if(btnMore) btnMore.style.display = S.workoutLog.length > historyPage * HISTORY_PER_PAGE ? 'block' : 'none';
 }
 
 function toggleHistoryDetails(id) { 
@@ -262,34 +300,7 @@ function loadMoreHistory() { historyPage++; renderGymHistory(); }
 function deleteWorkoutLog(id) { 
   if(confirm('¿Seguro que quieres borrar este registro?')) { 
     S.workoutLog = S.workoutLog.filter(w => w.id !== id); 
-    save(); renderGymHistory(); renderHome(); 
+    save(); renderGymHistory(); 
+    if(typeof renderHome === 'function') renderHome(); 
   } 
-}
-
-function renderCalendar() {
-  const grid = document.getElementById('home-calendar-grid');
-  const now = new Date(); const y = now.getFullYear(); const m = now.getMonth();
-  const firstDay = (new Date(y, m, 1).getDay() || 7) - 1; 
-  const daysInMonth = new Date(y, m + 1, 0).getDate();
-  const daysTrained = S.workoutLog.map(w => w.date);
-  const todayStr = today();
-  const todayTrained = daysTrained.includes(todayStr);
-  
-  const badge = document.getElementById('home-gym-today');
-  badge.className = todayTrained ? 'tag tag-grn' : 'tag tag-t3';
-  badge.textContent = todayTrained ? 'Hoy: Entrenado ✓' : 'Hoy: Descanso';
-
-  let html = `<div style="font-size:10px;color:var(--t3)">L</div><div style="font-size:10px;color:var(--t3)">M</div><div style="font-size:10px;color:var(--t3)">X</div><div style="font-size:10px;color:var(--t3)">J</div><div style="font-size:10px;color:var(--t3)">V</div><div style="font-size:10px;color:var(--t3)">S</div><div style="font-size:10px;color:var(--t3)">D</div>`;
-  for (let i = 0; i < firstDay; i++) html += '<div></div>'; 
-  
-  for (let d = 1; d <= daysInMonth; d++) {
-     const dStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-     const isTrained = daysTrained.includes(dStr);
-     const isToday = dStr === todayStr;
-     const bg = isTrained ? 'var(--acc)' : 'var(--bg3)';
-     const color = isTrained ? '#fff' : (isToday ? 'var(--acc)' : 'var(--t1)');
-     const border = isToday && !isTrained ? '1px solid var(--acc)' : 'none';
-     html += `<div style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; background:${bg}; color:${color}; border:${border}; border-radius:8px; font-size:13px; font-weight:600;">${d}</div>`;
-  }
-  grid.innerHTML = html;
 }
