@@ -1,15 +1,57 @@
 function catEmoji(c) {
-  const m = { nómina:'💼', ahorro:'💰', intereses:'📈', dividendos:'🏦', alquiler:'🏠', alimentación:'🛒', transporte:'🚗', suscripciones:'📱', salud:'❤️', ocio:'🎭' };
+  const m = { nómina:'💼', ahorro:'💰', intereses:'📈', dividendos:'🏦', alquiler:'🏠', comida:'🛒', transporte:'🚗', suscripciones:'📱', salud:'❤️', ocio:'🎭' };
   return m[c] || '📌';
+}
+
+// -----------------------------
+// MAGIA DEL DESPLEGABLE
+// -----------------------------
+function toggleFinTypeOptions() {
+  const cat = document.getElementById('fin-cat').value;
+  const typeEl = document.getElementById('fin-type');
+  const typeLabel = document.getElementById('fin-type-label');
+  if(!typeEl || !typeLabel) return;
+  
+  if (cat === 'ahorro') {
+    typeLabel.textContent = 'Acción';
+    typeEl.innerHTML = '<option value="gasto">Ingresar a la hucha</option><option value="ingreso">Sacar de la hucha</option>';
+  } else {
+    typeLabel.textContent = 'Tipo';
+    const curr = typeEl.value; // Guardamos lo que tenía seleccionado si era ingreso/gasto
+    typeEl.innerHTML = '<option value="ingreso">Ingreso</option><option value="gasto">Gasto</option>';
+    if(curr === 'ingreso' || curr === 'gasto') typeEl.value = curr;
+  }
 }
 
 function openModalFin(type) {
   const elType = document.getElementById('fin-type');
+  const elCat = document.getElementById('fin-cat');
   const elTitle = document.getElementById('modal-fin-title');
   const elDate = document.getElementById('fin-date');
   
+  // Si estaba en ahorro, lo sacamos al abrir un registro normal
+  if(elCat && elCat.value === 'ahorro') {
+     elCat.value = type === 'ingreso' ? 'nómina' : 'otro';
+  }
+  toggleFinTypeOptions(); // Reseteamos opciones
+  
   if(elType) elType.value = type;
   if(elTitle) elTitle.textContent = type === 'ingreso' ? 'Nuevo ingreso' : 'Nuevo gasto';
+  if(elDate) elDate.value = today();
+  
+  openModal('modal-fin');
+}
+
+// Botón exclusivo de la tarjeta "Ahorro"
+function openModalFinSav() {
+  const elCat = document.getElementById('fin-cat');
+  const elTitle = document.getElementById('modal-fin-title');
+  const elDate = document.getElementById('fin-date');
+  
+  if(elCat) elCat.value = 'ahorro';
+  toggleFinTypeOptions(); // Esto cambia automáticamente a "Ingresar/Sacar"
+  
+  if(elTitle) elTitle.textContent = 'Movimiento de Ahorro';
   if(elDate) elDate.value = today();
   
   openModal('modal-fin');
@@ -57,12 +99,12 @@ function addRecurring() {
   document.getElementById('rec-amount').value = '';
   document.getElementById('rec-day').value = '';
   renderFinances();
-  showToast('Recurrente guardado', 'success');
+  showToast('Suscripción guardada', 'success');
 }
 
 function delRecurring(id) {
   if(typeof customConfirm === 'function') {
-    customConfirm('Borrar recurrente', '¿Seguro que quieres borrar este registro recurrente?', () => {
+    customConfirm('Borrar suscripción', '¿Seguro que quieres borrar esta suscripción?', () => {
       S.recurring = S.recurring.filter(x => x.id !== id); save(); renderFinances();
     });
   } else {
@@ -97,35 +139,35 @@ function renderFinances() {
   const totalSavOut = S.fin.filter(e => e.type === 'ingreso' && e.cat === 'ahorro').reduce((a,e) => a+e.amount, 0);
   const historicalSavings = totalSavIn - totalSavOut;
 
-  // MATEMÁTICA DEL PERIODO (SEMANA/MES/AÑO...)
+  // MATEMÁTICA DEL PERIODO ACTUAL
   const inc = entries.filter(e => e.type === 'ingreso').reduce((a,e) => a+e.amount, 0);
   const exp = entries.filter(e => e.type === 'gasto').reduce((a,e) => a+e.amount, 0);
   
-  // Ingresos y Gastos REALES (ignorando el movimiento de la hucha)
+  // Ingresos y Gastos REALES (ignorando la hucha de ahorro)
   const trueInc = entries.filter(e => e.type === 'ingreso' && e.cat !== 'ahorro').reduce((a,e) => a+e.amount, 0);
   const trueExp = entries.filter(e => e.type === 'gasto' && e.cat !== 'ahorro').reduce((a,e) => a+e.amount, 0);
   
-  // Ahorro generado en este periodo específico
+  // Ahorro generado específicamente en este periodo
   const periodSavIn = entries.filter(e => e.type === 'gasto' && e.cat === 'ahorro').reduce((a,e) => a+e.amount, 0);
   const periodSavOut = entries.filter(e => e.type === 'ingreso' && e.cat === 'ahorro').reduce((a,e) => a+e.amount, 0);
   const periodSavings = periodSavIn - periodSavOut;
 
-  // ACTUALIZACIÓN DEL HTML
+  // ACTUALIZACIÓN DE ETIQUETAS
   const pLabel = document.getElementById('fin-period-label');
   if(pLabel) pLabel.textContent = labels[period];
   
   const cLabel = document.getElementById('fin-chart-label');
   if(cLabel) cLabel.textContent = 'Evolución — ' + labels[period];
   
-  // Balance Disponible (Total Ingresos - Total Gastos de tu bolsillo)
+  // BALANCE FINAL (Incluye el dinero que tienes en el bolsillo contando entradas/salidas de la hucha)
   const balEl = document.getElementById('fin-bal');
   if(balEl) balEl.textContent = fmt(inc - exp);
   
-  // Hucha total
+  // HUCHA TOTAL
   const totalSavEl = document.getElementById('fin-total-sav');
   if(totalSavEl) totalSavEl.textContent = fmt(historicalSavings);
   
-  // Cajas de resumen con datos Reales
+  // CAJAS SUPERIORES REALES
   const incTotEl = document.getElementById('fin-inc');
   if(incTotEl) incTotEl.textContent = fmt(trueInc);
   
@@ -143,8 +185,8 @@ function renderFinances() {
       }
   }
 
-  // PINTAR LISTAS
-  const incEntries = entries.filter(e => e.type === 'ingreso');
+  // --- PINTAR LISTA INGRESOS ---
+  const incEntries = entries.filter(e => e.type === 'ingreso' && e.cat !== 'ahorro');
   const incEl = document.getElementById('fin-income-list');
   if(incEl) {
     incEl.innerHTML = incEntries.length ? incEntries.map(e => `
@@ -160,7 +202,8 @@ function renderFinances() {
       </div>`).join('') : '<div class="empty">Sin ingresos</div>';
   }
 
-  const expEntries = entries.filter(e => e.type === 'gasto');
+  // --- PINTAR LISTA GASTOS ---
+  const expEntries = entries.filter(e => e.type === 'gasto' && e.cat !== 'ahorro');
   const expEl = document.getElementById('fin-expense-list');
   if(expEl) {
     expEl.innerHTML = expEntries.length ? expEntries.map(e => `
@@ -176,19 +219,37 @@ function renderFinances() {
       </div>`).join('') : '<div class="empty">Sin gastos</div>';
   }
 
+  // --- PINTAR LISTA SUSCRIPCIONES ---
   const recEl = document.getElementById('fin-rec-list');
   if(recEl) {
     recEl.innerHTML = S.recurring.length ? S.recurring.map(r => `
       <div class="fin-row">
         <div class="row-gap">
-          <div class="icon-box" style="background:var(--bg4)">🔄</div>
+          <div class="icon-box" style="background:var(--pur); color:#fff; border-radius:10px;">🔄</div>
           <div><div style="font-size:13px;font-weight:500">${r.name}</div><div class="item-sub">Día ${r.day} · ${r.type}</div></div>
         </div>
         <div style="text-align:right">
           <div class="${r.type==='ingreso'?'fin-amount-pos':'fin-amount-neg'}">${r.type==='gasto'?'-':''}${fmt(r.amount)}</div>
           <button class="btn-danger" onclick="delRecurring('${r.id}')">✕</button>
         </div>
-      </div>`).join('') : '<div class="empty">Sin recurrentes</div>';
+      </div>`).join('') : '<div class="empty">Sin suscripciones</div>';
+  }
+
+  // --- PINTAR LISTA AHORRO ---
+  const savEntries = entries.filter(e => e.cat === 'ahorro');
+  const savListEl = document.getElementById('fin-sav-list');
+  if(savListEl) {
+    savListEl.innerHTML = savEntries.length ? savEntries.map(e => `
+      <div class="fin-row">
+        <div class="row-gap">
+          <div class="icon-box" style="background:rgba(59,130,246,.1)">${catEmoji(e.cat)}</div>
+          <div><div style="font-size:13px;font-weight:500">${e.desc}</div><div class="item-sub">${e.type === 'gasto' ? 'Ingresado a la hucha' : 'Sacado de la hucha'} · ${e.date}</div></div>
+        </div>
+        <div style="text-align:right">
+          <div class="${e.type === 'gasto' ? 'fin-amount-pos' : 'fin-amount-neg'}" style="color:${e.type === 'gasto' ? 'var(--blu)' : 'var(--t2)'}">${e.type === 'gasto' ? '+' : '-'}${fmt(e.amount)}</div>
+          <button class="btn-danger" onclick="delFinEntry('${e.id}')">✕</button>
+        </div>
+      </div>`).join('') : '<div class="empty">Sin movimientos de ahorro</div>';
   }
 
   updateFinChart(period);
@@ -220,7 +281,6 @@ function updateFinChart(period) {
   let labels = [], inc = [], exp = [];
   const now = new Date();
   
-  // El gráfico SOLO suma movimientos que NO sean ahorro para no distorsionar tu nivel de vida
   if (period === 'mes') {
     const days = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
     labels = Array.from({length:days}, (_,i)=>String(i+1));
