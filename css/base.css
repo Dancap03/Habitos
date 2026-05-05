@@ -1,0 +1,44 @@
+/* ─── RESET & VARIABLES GLOBALES ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --bg:    #080808;
+  --bg2:   #101010;
+  --bg3:   #181818;
+  --bg4:   #202020;
+  --line:  #252525;
+  --t1:    #f2f2f2;
+  --t2:    #888;
+  --t3:    #444;
+  --acc:   #e05a2b;
+  --acc2:  rgba(224,90,43,.12);
+  --grn:   #27ae60;
+  --red:   #e74c3c;
+  --blu:   #3b82f6;
+  --pur:   #8b5cf6;
+  --yel:   #f59e0b;
+  --r:     12px;
+  --font:  'DM Sans', sans-serif;
+  --mono:  'DM Mono', monospace;
+}
+
+html, body { height: 100%; overflow: hidden; background: var(--bg); }
+body { font-family: var(--font); color: var(--t1); overscroll-behavior: none; }
+
+/* ─── APP SHELL Y NAVEGACIÓN ─── */
+.app { max-width: 430px; margin: 0 auto; height: 100dvh; display: flex; flex-direction: column; background: var(--bg); position: relative; }
+.screen { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+.screen.on { display: flex; }
+.scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 16px 24px; }
+.scroll::-webkit-scrollbar { display: none; }
+
+.topbar { padding: 52px 20px 14px; display: flex; justify-content: space-between; align-items: flex-end; flex-shrink: 0; }
+.logo { font-size: 22px; font-weight: 700; letter-spacing: -.5px; }
+.logo b { color: var(--acc); }
+.page-title { font-size: 26px; font-weight: 700; letter-spacing: -.5px; }
+.topbar-right { display: flex; gap: 8px; align-items: center; }
+
+.nav { background: rgba(8,8,8,.97); border-top: 1px solid var(--line); display: flex; justify-content: space-around; padding: 10px 0; padding-bottom: calc(10px + env(safe-area-inset-bottom)); flex-shrink: 0; }
+.nav-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; opacity: .35; transition: opacity .2s; background: none; border: none; color: var(--t1); font-family: var(--font); padding: 4px 10px; }
+.nav-btn.on { opacity: 1; color: var(--acc); }
+.nav-btn svg { width: 22px; height: 22px; }
+.nav-label { font-size: 10px; font-weight: 500; }
