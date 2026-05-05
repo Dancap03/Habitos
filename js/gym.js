@@ -4,9 +4,10 @@ function switchGymView(v, pill) {
   document.querySelectorAll('#gym-routine-pills .pill').forEach(p => p.classList.remove('on'));
   if(pill) pill.classList.add('on');
   if(document.getElementById('gv-rutinas')) document.getElementById('gv-rutinas').style.display = v === 'rutinas' ? 'block' : 'none';
-  if(document.getElementById('gv-historial')) document.getElementById('gv-historial').style.display = v === 'historial' ? 'block' : 'none';
-  if (v === 'historial') renderGymHistory();
-  if (v === 'rutinas') renderRoutines();
+  if(document.getElementById('gv-records')) document.getElementById('gv-records').style.display = v === 'records' ? 'block' : 'none';
+  
+  if (v === 'records') renderGymPRs();
+  if (v === 'rutinas') { renderRoutines(); renderGymDays(); }
 }
 
 function openRoutineModal() {
@@ -98,7 +99,7 @@ function saveNewRoutine() {
 
 function deleteRoutine(id) {
   if (typeof customConfirm === 'function') {
-    customConfirm('Borrar rutina', '¿Seguro que quieres borrar esta rutina? No afectará a tu historial de entrenos.', () => {
+    customConfirm('Borrar rutina', '¿Seguro que quieres borrar esta rutina? No afectará a tus Días de Entrenamiento.', () => {
       S.routines = S.routines.filter(r => r.id !== id);
       if (S.activeRoutine === id) S.activeRoutine = null;
       save(); renderRoutines();
@@ -120,7 +121,6 @@ function startRoutine(id) {
 function cancelWorkout() { S.activeRoutine = null; save(); renderRoutines(); }
 
 function renderRoutines() {
-  renderGymPRs();
   renderGymDays();
 
   const el = document.getElementById('gym-routine-list');
@@ -209,14 +209,12 @@ function finishWorkout() {
         const reps = parseInt(repsEl.value)||0;
         logEx.sets.push({kg, reps});
         
-        // Registrar máximos para el PR
         if (kg > maxKg || (kg === maxKg && reps > maxReps)) { maxKg = kg; maxReps = reps; }
       }
     }
     
     if(logEx.sets.length > 0) logEntry.exercises.push(logEx);
 
-    // Guardar nuevo PR si se ha superado la marca anterior
     if (maxKg > 0 || maxReps > 0) {
       if(!S.prs) S.prs = {};
       const currentPr = S.prs[e.name];
@@ -246,7 +244,9 @@ function finishWorkout() {
   showToast('¡Entrenamiento guardado! 💪', 'success');
 }
 
-// NUEVO: Funciones para Récords Personales
+// ----------------------------------------
+// RÉCORDS PERSONALES
+// ----------------------------------------
 function renderGymPRs() {
   const el = document.getElementById('gym-prs');
   if(!el) return;
@@ -261,7 +261,6 @@ function renderGymPRs() {
     const unitText = p.unit ? ` ${p.unit}` : '';
     const prText = isCardio ? `${p.kg}${unitText} en ${p.reps} min` : `${p.kg} kg × ${p.reps} reps`;
     
-    // Al botón de borrar le pasamos el nombre del récord
     return `
     <div class="fin-row" style="padding: 12px 0; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
       <div><div style="font-size:14px; font-weight:500">${p.name}</div><div style="font-size:11px; color:var(--t2)">${p.date}</div></div>
@@ -275,7 +274,7 @@ function renderGymPRs() {
 
 function deletePR(name) {
   if (typeof customConfirm === 'function') {
-    customConfirm('Borrar Récord', `¿Seguro que quieres borrar el récord de ${name}? (Esto no borrará el entreno de tu historial)`, () => {
+    customConfirm('Borrar Récord', `¿Seguro que quieres borrar el récord de ${name}?`, () => {
       delete S.prs[name];
       save();
       renderGymPRs();
@@ -287,6 +286,9 @@ function deletePR(name) {
   }
 }
 
+// ----------------------------------------
+// DÍAS DE ENTRENAMIENTO
+// ----------------------------------------
 function renderGymDays() {
   const el = document.getElementById('gym-days');
   if(!el) return;
@@ -303,7 +305,7 @@ function renderGymDays() {
   
   const sortedDates = Object.keys(days).sort((a,b) => new Date(b) - new Date(a));
   
-  el.innerHTML = sortedDates.slice(0, 10).map((date, index) => {
+  el.innerHTML = sortedDates.slice(0, 15).map((date, index) => {
     const workouts = days[date];
     const [y, m, d] = date.split('-');
     const safeDate = new Date(y, m-1, d);
@@ -326,7 +328,10 @@ function renderGymDays() {
         <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--line);">
           <div style="font-size:13px; font-weight:700; color:var(--acc); display:flex; justify-content:space-between;">
             <span>${w.routineName}</span>
-            <span style="font-size:11px; color:var(--t2); font-weight:normal;">${w.startTime} - ${w.endTime}</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:11px; color:var(--t2); font-weight:normal;">${w.startTime} - ${w.endTime}</span>
+              <button class="btn-danger" style="padding: 2px 6px; font-size:10px;" onclick="event.stopPropagation(); deleteWorkoutLog('${w.id}')">✕</button>
+            </div>
           </div>
           ${exHtml}
         </div>
@@ -347,72 +352,22 @@ function renderGymDays() {
   }).join('');
 }
 
-let historyPage = 1;
-const HISTORY_PER_PAGE = 10;
-
-function renderGymHistory() {
-  const el = document.getElementById('gym-history-list');
-  const btnMore = document.getElementById('gym-history-more');
-  if(!el) return;
-  
-  if (!S.workoutLog || !S.workoutLog.length) { 
-    el.innerHTML = '<div class="empty">Aún no hay entrenamientos registrados</div>'; 
-    if(btnMore) btnMore.style.display = 'none'; 
-    return; 
-  }
-  
-  const itemsToShow = S.workoutLog.slice(0, historyPage * HISTORY_PER_PAGE);
-  
-  el.innerHTML = itemsToShow.map(w => {
-    const isCardio = w.type === 'cardio';
-    const exercises = w.exercises || []; 
-    const exCount = exercises.length;
-    const setsCount = exercises.reduce((acc, curr) => acc + (curr.sets || []).length, 0);
-    
-    const detailsHtml = exercises.map(ex => {
-      const unitText = ex.unit ? ` ${ex.unit}` : '';
-      const setsHtml = (ex.sets || []).map((s, i) => {
-        if(isCardio) return `<div style="display:flex; justify-content:space-between; font-size:12px; color:var(--t2); padding:2px 0;"><span>Registro</span><span>${s.kg}${unitText} en ${s.reps} min</span></div>`;
-        else return `<div style="display:flex; justify-content:space-between; font-size:12px; color:var(--t2); padding:2px 0;"><span>Serie ${i+1}</span><span>${s.kg} kg × ${s.reps} reps</span></div>`;
-      }).join('');
-      
-      const titleHtml = isCardio ? '' : `<div style="font-size:13px; font-weight:600; color:var(--t1);">${ex.name}</div>`;
-      return `<div style="margin-top:10px;">${titleHtml}${setsHtml}</div>`;
-    }).join('');
-
-    return `
-      <div class="history-card" onclick="toggleHistoryDetails('det-${w.id}')">
-        <div class="row" style="margin-bottom:8px;">
-          <div><div style="font-size:14px;font-weight:700">${w.routineName}</div><div style="font-size:11px;color:var(--t2)">${w.date} · ${w.startTime} - ${w.endTime}</div></div>
-          <button class="btn-danger" onclick="event.stopPropagation(); deleteWorkoutLog('${w.id}')">✕</button>
-        </div>
-        <div class="row"><div style="font-size:12px; color:var(--t1)">${isCardio ? `🏃 ${setsCount} registros` : `🏋️ ${exCount} ejercicios (${setsCount} series)`}</div><div style="font-size:10px; color:var(--acc);">▼ Detalles</div></div>
-        <div id="det-${w.id}" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--line); cursor:default;" onclick="event.stopPropagation();">${detailsHtml}</div>
-      </div>`;
-  }).join('');
-  
-  if(btnMore) btnMore.style.display = S.workoutLog.length > historyPage * HISTORY_PER_PAGE ? 'block' : 'none';
-}
-
 function toggleHistoryDetails(id) { 
   const el = document.getElementById(id); 
   if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; 
 }
-function loadMoreHistory() { historyPage++; renderGymHistory(); }
 
 function deleteWorkoutLog(id) { 
   if (typeof customConfirm === 'function') {
-    customConfirm('Borrar registro', '¿Seguro que quieres borrar este entrenamiento del historial?', () => {
+    customConfirm('Borrar registro', '¿Seguro que quieres borrar este entrenamiento de tu día?', () => {
       S.workoutLog = S.workoutLog.filter(w => w.id !== id); 
       save(); 
-      renderGymHistory(); 
       renderGymDays(); 
       if(typeof renderHome === 'function') renderHome(); 
     });
   } else {
     S.workoutLog = S.workoutLog.filter(w => w.id !== id); 
     save(); 
-    renderGymHistory(); 
     renderGymDays();
     if(typeof renderHome === 'function') renderHome(); 
   }
