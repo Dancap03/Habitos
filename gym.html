@@ -8,13 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/UI.css">
-<style>
-  .gym-tabs { display: flex; gap: 10px; margin-bottom: 16px; overflow-x: auto; }
-  .gym-tab { background: var(--bg3); color: var(--t2); border: none; padding: 8px 20px; border-radius: 20px; font-weight: 600; font-size: 13px; cursor: pointer; transition: 0.2s; white-space: nowrap; }
-  .gym-tab.on { background: var(--acc); color: #fff; }
-  .form-input { width: 100%; padding: 12px; background: var(--bg3); border: 1px solid var(--line); border-radius: 10px; color: var(--t1); font-family: inherit; font-size: 14px; box-sizing: border-box; margin-top: 6px; }
-  .form-input:focus { outline: none; border-color: var(--acc); }
-</style>
 </head>
 <body>
 <div class="app">
@@ -73,49 +66,57 @@
       <div class="modal-handle"></div>
       <div class="modal-title">Nueva Rutina</div>
       
-      <input type="text" id="rt-name" class="form-input" placeholder="Nombre (Ej: Empuje, Pierna...)">
+      <label class="form-label">Nombre de la rutina</label>
+      <input type="text" id="rt-name" class="form-input" placeholder="Ej: Empuje, Cinta de correr...">
 
-      <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--line);">
-          <div style="font-size:12px; font-weight:700; color:var(--acc); margin-bottom:8px;">AÑADIR EJERCICIO</div>
+      <label class="form-label">¿Qué tipo de entrenamiento es?</label>
+      <select id="rt-main-type" class="form-input" onchange="toggleRtMainType()">
+        <option value="pesas">Pesas (Varios ejercicios)</option>
+        <option value="cardio">Solo Cardio</option>
+      </select>
+
+      <!-- Contenedor si elige PESAS -->
+      <div id="rt-pesas-container" style="margin-top:10px; padding-top:16px; border-top:1px solid var(--line);">
+          <label class="form-label">AÑADIR EJERCICIOS A LA LISTA</label>
+          <input type="text" id="rt-ex-name" class="form-input" placeholder="Ejercicio (Ej: Press banca...)">
+          <input type="number" id="rt-ex-sets" class="form-input" placeholder="Número de series (Ej: 4)" min="1">
+
+          <button class="btn btn-sm" style="background:var(--bg4); width:100%; color:var(--t1);" onclick="addRtEx()">+ Añadir a la lista</button>
           
-          <select id="rt-ex-type" class="form-input" onchange="toggleRtExType()">
-            <option value="pesas">Pesas / Fuerza</option>
-            <option value="cardio">Cardio / Resistencia</option>
-          </select>
-
-          <input type="text" id="rt-ex-name" class="form-input" placeholder="Ejercicio (Ej: Press banca, Cinta...)">
-
-          <div id="rt-ex-sets-container">
-              <input type="number" id="rt-ex-sets" class="form-input" placeholder="Número de series (Ej: 4)" min="1">
-          </div>
-
-          <div id="rt-ex-unit-container" style="display:none;">
-              <input type="text" id="rt-ex-unit" class="form-input" placeholder="Unidad (Ej: km, min, kcal, escalones...)">
-          </div>
-
-          <button class="btn btn-sm" style="background:var(--bg4); width:100%; margin-top:12px; color:var(--t1);" onclick="addRtEx()">+ Añadir a la lista</button>
+          <div id="rt-ex-list" style="margin-top:16px; display:flex; flex-direction:column; gap:8px;"></div>
       </div>
 
-      <div id="rt-ex-list" style="margin-top:16px; display:flex; flex-direction:column; gap:8px;"></div>
+      <!-- Contenedor si elige CARDIO -->
+      <div id="rt-cardio-container" style="display:none; margin-top:10px; padding-top:16px; border-top:1px solid var(--line);">
+          <label class="form-label">CONFIGURAR CARDIO</label>
+          <input type="text" id="rt-cardio-unit" class="form-input" placeholder="¿Qué mides? (Ej: km, min, kcal...)">
+      </div>
 
       <button class="btn btn-primary" style="margin-top:24px; width:100%;" onclick="addRoutine()">Guardar Rutina Completa</button>
     </div>
   </div>
 
-  <!-- MODAL: AÑADIR EJERCICIO EXTRA AL ENTRENO ACTIVO -->
+  <!-- MODAL: AÑADIR EJERCICIO EXTRA (DENTRO DEL ENTRENO) -->
   <div class="overlay" id="modal-exercise" onclick="closeModal('modal-exercise',event)">
     <div class="modal">
       <div class="modal-handle"></div>
       <div class="modal-title">Añadir Ejercicio Extra</div>
+      
+      <label class="form-label">Tipo</label>
       <select id="ex-type" class="form-input" onchange="toggleExerciseType()">
         <option value="pesas">Pesas / Fuerza</option>
         <option value="cardio">Cardio / Resistencia</option>
       </select>
+      
+      <label class="form-label">Nombre</label>
       <input type="text" id="ex-name" class="form-input" placeholder="Ej: Curl bíceps, Elíptica...">
+      
       <div id="ex-unit-container" style="display:none;">
+        <label class="form-label">Unidad de medida</label>
         <input type="text" id="ex-unit" class="form-input" placeholder="Ej: km, cal, min...">
       </div>
-      <button class="btn btn-primary" style="margin-top:20px;" onclick="addExerciseToWorkout()">Añadir al entreno</button>
+      
+      <button class="btn btn-primary" style="margin-top:10px; width:100%;" onclick="addExerciseToWorkout()">Añadir al entreno</button>
     </div>
   </div>
 
@@ -124,17 +125,17 @@
       <div class="modal-handle"></div>
       <div class="modal-title" id="confirm-title" style="color: var(--red);">¿Estás seguro?</div>
       <div class="form-label" id="confirm-message" style="margin-bottom: 20px; text-transform: none; font-size: 14px; color: var(--t1); letter-spacing: normal;">¿Quieres borrar esto?</div>
-      <div class="form-row">
-        <button class="btn" style="background:var(--bg3); color:var(--t1);" onclick="cancelConfirm(event, true)">Cancelar</button>
-        <button class="btn" style="background:var(--red); color:#fff;" onclick="executeConfirm()">Borrar</button>
+      <div class="form-row" style="display:flex; gap:10px;">
+        <button class="btn" style="background:var(--bg3); color:var(--t1); flex:1;" onclick="cancelConfirm(event, true)">Cancelar</button>
+        <button class="btn" style="background:var(--red); color:#fff; flex:1;" onclick="executeConfirm()">Borrar</button>
       </div>
     </div>
   </div>
 
   <div class="toast-container" id="toast-container"></div>
 </div>
-<script src="js/main.js?v=27"></script>
-<script src="js/gym.js?v=27"></script>
+<script src="js/main.js?v=30"></script>
+<script src="js/gym.js?v=30"></script>
 <script>document.addEventListener('DOMContentLoaded', renderGymInit);</script>
 </body>
 </html>
