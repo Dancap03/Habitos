@@ -23,46 +23,6 @@ function load() {
   } catch(e) { console.error("Error cargando datos"); }
 }
 
-// 3. SINCRONIZACIÓN EN LA NUBE (BLINDADA)
-async function cloudSync(mode) {
-  // ⚠️ PON AQUÍ TUS DATOS REALES DE JSONBIN:
-  const BIN_ID = "TU_ID_DE_BIN_AQUI"; 
-  const MASTER_KEY = "TU_NUEVA_CONTRASEÑA_AQUI"; 
-
-  if (BIN_ID === "TU_ID_DE_BIN_AQUI") {
-    showToast("Aviso: Configura tu API Key en el código", "error");
-    return;
-  }
-
-  if (mode === 'up') {
-    showToast("Sincronizando... ⬆️");
-    save();
-    try {
-      const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'X-Master-Key': MASTER_KEY },
-        body: JSON.stringify(S)
-      });
-      if(res.ok) showToast("Guardado en la nube ✅");
-      else showToast("Contraseña incorrecta", "error");
-    } catch(e) { showToast("Error de conexión", "error"); }
-  } else {
-    showToast("Descargando... ⬇️");
-    try {
-      const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-        headers: { 'X-Master-Key': MASTER_KEY }
-      });
-      const data = await res.json();
-      if (data.record && Array.isArray(data.record.fin)) {
-        Object.assign(S, data.record);
-        save();
-        location.reload();
-      } else {
-        showToast("Error o nube vacía", "error");
-      }
-    } catch(e) { showToast("Error de conexión", "error"); }
-  }
-}
 
 // 4. UTILIDADES GENERALES
 function uid() { return Math.random().toString(36).slice(2, 10); }
