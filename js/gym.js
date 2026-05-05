@@ -19,7 +19,13 @@ function switchGymTab(tab, btn) {
 }
 
 function renderGymInit() {
-    init();
+    init(); // Asegura cargar S desde main.js
+    
+    // PROTECCIÓN CONTRA BUG "Cargando..." (Asegura que los arrays existan)
+    if (!S.routines) S.routines = [];
+    if (!S.workoutLog) S.workoutLog = [];
+    if (!S.prs) S.prs = {};
+
     renderRoutines();
     renderActiveWorkout();
     renderWorkoutLog();
@@ -31,36 +37,36 @@ let tempRtExercises = [];
 
 function openRoutineModal() {
     document.getElementById('rt-name').value = '';
+    document.getElementById('rt-main-type').value = 'pesas';
+    
     tempRtExercises = [];
     renderRtExList();
+    
     document.getElementById('rt-ex-name').value = '';
     document.getElementById('rt-ex-sets').value = '';
-    document.getElementById('rt-ex-unit').value = '';
-    document.getElementById('rt-ex-type').value = 'pesas';
-    toggleRtExType();
+    document.getElementById('rt-cardio-unit').value = '';
+    
+    toggleRtMainType();
     openModal('modal-routine');
 }
 
-function toggleRtExType() {
-    const t = document.getElementById('rt-ex-type').value;
-    document.getElementById('rt-ex-sets-container').style.display = t === 'pesas' ? 'block' : 'none';
-    document.getElementById('rt-ex-unit-container').style.display = t === 'cardio' ? 'block' : 'none';
+function toggleRtMainType() {
+    const type = document.getElementById('rt-main-type').value;
+    document.getElementById('rt-pesas-container').style.display = type === 'pesas' ? 'block' : 'none';
+    document.getElementById('rt-cardio-container').style.display = type === 'cardio' ? 'block' : 'none';
 }
 
 function addRtEx() {
-    const type = document.getElementById('rt-ex-type').value;
     const name = document.getElementById('rt-ex-name').value.trim();
     const sets = parseInt(document.getElementById('rt-ex-sets').value) || 1;
-    const unit = document.getElementById('rt-ex-unit').value.trim() || 'km';
 
     if(!name) return showToast('Pon nombre al ejercicio', 'error');
 
-    tempRtExercises.push({ type, name, sets, unit });
+    tempRtExercises.push({ type: 'pesas', name, sets });
     renderRtExList();
 
     document.getElementById('rt-ex-name').value = '';
     document.getElementById('rt-ex-sets').value = '';
-    document.getElementById('rt-ex-unit').value = '';
 }
 
 function renderRtExList() {
@@ -69,7 +75,7 @@ function renderRtExList() {
         <div style="background:var(--bg3); padding:8px 12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
             <div>
                 <div style="font-size:13px; font-weight:700;">${ex.name}</div>
-                <div style="font-size:11px; color:var(--t3);">${ex.type === 'pesas' ? `${ex.sets} series` : `Cardio (${ex.unit})`}</div>
+                <div style="font-size:11px; color:var(--t3);">${ex.sets} series</div>
             </div>
             <button class="btn-danger" style="background:none; border:none; color:var(--red); padding:4px;" onclick="removeRtEx(${i})">✕</button>
         </div>
@@ -83,10 +89,22 @@ function removeRtEx(i) {
 
 function addRoutine() {
     const name = document.getElementById('rt-name').value.trim();
-    if(!name) return showToast('Pon un nombre a la rutina', 'error');
-    if(tempRtExercises.length === 0) return showToast('Añade al menos un ejercicio', 'error');
+    const type = document.getElementById('rt-main-type').value;
     
-    S.routines.push({ id: uid(), name, exercises: [...tempRtExercises] });
+    if(!name) return showToast('Pon un nombre a la rutina', 'error');
+    
+    let finalExercises = [];
+    
+    if (type === 'pesas') {
+        if(tempRtExercises.length === 0) return showToast('Añade al menos un ejercicio a la lista', 'error');
+        finalExercises = [...tempRtExercises];
+    } else {
+        // Modo Cardio: Crea un único ejercicio con el mismo nombre que la rutina
+        const unit = document.getElementById('rt-cardio-unit').value.trim() || 'km';
+        finalExercises = [{ type: 'cardio', name: name, unit: unit, sets: 1 }];
+    }
+    
+    S.routines.push({ id: uid(), name, type, exercises: finalExercises });
     save(); closeModal('modal-routine'); renderRoutines();
     showToast('Rutina guardada');
 }
@@ -94,18 +112,25 @@ function addRoutine() {
 function renderRoutines() {
     const list = document.getElementById('gym-routine-list');
     if(!list) return;
-    list.innerHTML = S.routines.length ? S.routines.map(r => `
+    if(!S.routines) S.routines = []; // Doble check
+    
+    list.innerHTML = S.routines.length ? S.routines.map(r => {
+        const isCardio = r.type === 'cardio';
+        const subText = isCardio ? `Cardio (${r.exercises[0].unit})` : `${r.exercises.length} ejercicios`;
+        
+        return `
         <div class="list-item" style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--line);">
             <div>
-                <div style="font-weight:700; font-size:15px;">${r.name}</div>
-                <div style="font-size:11px; color:var(--t3); margin-top:2px;">${r.exercises.length} ejercicios</div>
+                <div style="font-weight:700; font-size:15px; color:${isCardio ? 'var(--yel)' : 'var(--t1)'}">${r.name}</div>
+                <div style="font-size:11px; color:var(--t3); margin-top:2px;">${subText}</div>
             </div>
             <div style="display:flex; gap:8px;">
                 <button class="btn btn-sm" style="background:var(--acc); color:#fff;" onclick="startWorkout('${r.id}')">▶ Empezar</button>
                 <button class="btn-danger" style="background:none; color:var(--red); border:none; padding:8px;" onclick="delRoutine('${r.id}')">✕</button>
             </div>
         </div>
-    `).join('') : '<div class="empty">Crea una rutina para empezar</div>';
+        `;
+    }).join('') : '<div class="empty">No tienes rutinas. ¡Crea una!</div>';
 }
 
 function delRoutine(id) {
@@ -121,20 +146,15 @@ function startWorkout(id) {
     const r = S.routines.find(x => x.id === id);
     if(!r) return;
     
-    // Generar el entreno con las series pre-configuradas
+    // Preparar las series según lo guardado
     const workoutExercises = r.exercises.map(ex => {
         let setsArray = [];
         if(ex.type === 'pesas') {
             for(let i=0; i<ex.sets; i++) setsArray.push({ done: false });
         } else {
-            setsArray.push({ done: false }); // Cardio por defecto 1 serie
+            setsArray.push({ done: false }); // Cardio por defecto 1 serie (1 registro)
         }
-        return {
-            type: ex.type,
-            name: ex.name,
-            unit: ex.unit,
-            sets: setsArray
-        };
+        return { type: ex.type, name: ex.name, unit: ex.unit, sets: setsArray };
     });
 
     S.activeRoutine = {
@@ -192,10 +212,10 @@ function renderActiveWorkout() {
 
         return `
         <div style="margin-top:16px; background:var(--bg3); padding:14px; border-radius:12px;">
-            <div style="font-weight:700; font-size:15px; color:var(--acc); margin-bottom:12px;">${ex.name} <span style="font-size:10px; color:var(--t3); font-weight:500;">(${isPesas ? 'Pesas' : 'Cardio'})</span></div>
+            <div style="font-weight:700; font-size:15px; color:${isPesas?'var(--acc)':'var(--yel)'}; margin-bottom:12px;">${ex.name}</div>
             <div style="display:flex; gap:8px; padding-left:32px; padding-right:56px; margin-bottom:4px;">${headers}</div>
             <div style="display:flex; flex-direction:column; gap:8px;">${setsHtml}</div>
-            <button class="btn btn-sm" style="background:rgba(255,255,255,0.05); width:100%; margin-top:12px; color:var(--t1);" onclick="addSet(${exIdx})">+ Añadir Serie Extra</button>
+            ${isPesas ? `<button class="btn btn-sm" style="background:rgba(255,255,255,0.05); width:100%; margin-top:12px; color:var(--t1);" onclick="addSet(${exIdx})">+ Añadir Serie Extra</button>` : ''}
         </div>
         `;
     }).join('');
@@ -228,7 +248,7 @@ function renderActiveWorkout() {
     `;
 }
 
-// --- EJERCICIOS AD-HOC Y SERIES ---
+// --- EJERCICIOS AD-HOC DENTRO DEL ENTRENO ---
 function openAddExerciseModal() {
     document.getElementById('ex-name').value = '';
     document.getElementById('ex-unit').value = '';
@@ -298,6 +318,8 @@ function finishWorkout() {
     S.activeRoutine.exercises.forEach(ex => {
         if(ex.type === 'pesas') { ex.sets.forEach(s => { if(s.done && s.kg && s.reps) vol += parseFloat(s.kg) * parseInt(s.reps); }); }
     });
+    
+    if(!S.workoutLog) S.workoutLog = [];
     S.workoutLog.push({ id: S.activeRoutine.id, date: S.activeRoutine.date, name: S.activeRoutine.name, startTime: S.activeRoutine.startTime, endTime: S.activeRoutine.endTime, volume: vol });
     S.activeRoutine = null;
     save(); renderActiveWorkout(); renderWorkoutLog(); showToast('Entreno completado ✅');
@@ -307,6 +329,8 @@ function finishWorkout() {
 function renderWorkoutLog() {
     const list = document.getElementById('gym-workout-log');
     if(!list) return;
+    if(!S.workoutLog) S.workoutLog = [];
+    
     const sortedLog = [...S.workoutLog].reverse();
     list.innerHTML = sortedLog.length ? sortedLog.map(w => `
         <div class="list-item" style="padding:12px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
@@ -327,7 +351,9 @@ function delWorkoutLog(id) { customConfirm('Borrar Entreno', '¿Eliminar este d�
 function renderRecords() {
     const list = document.getElementById('gym-records-list');
     if(!list) return;
-    const prKeys = Object.keys(S.prs || {});
+    if(!S.prs) S.prs = {};
+    
+    const prKeys = Object.keys(S.prs);
     list.innerHTML = prKeys.length ? prKeys.map(k => {
         const pr = S.prs[k];
         const isPesas = pr.type === 'pesas';
