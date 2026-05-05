@@ -1,5 +1,5 @@
 function catEmoji(c) {
-  const m = { nómina:'💼', ahorro:'💰', inversión:'📈', intereses:'📊', dividendos:'🏦', alquiler:'🏠', comer:'🛒', transporte:'🚗', suscripciones:'📱', salud:'❤️', ocio:'🎭', caprichos:'🎁', compras:'🛍️', viajes:'✈️' };
+  const m = { nómina:'💼', ahorro:'💰', inversión:'📈', intereses:'📊', dividendos:'🏦', alquiler:'🏠', comida:'🛒', transporte:'🚗', suscripciones:'📱', salud:'❤️', ocio:'🎭', caprichos:'🎁', compras:'🛍️', viajes:'✈️' };
   return m[c] || '📌';
 }
 
@@ -88,7 +88,10 @@ function renderFinances() {
         <div class="icon-box" style="background:var(--pur); color:#fff; padding:8px; border-radius:8px;">🔄</div>
         <div><div style="font-size:13px;font-weight:600">${r.name}</div><div class="item-sub" style="font-size:11px;color:var(--t2)">Día ${r.day}</div></div>
       </div>
-      <div style="text-align:right"><div style="font-weight:700; color:var(--red)">-${fmt(r.amount)}</div><button class="btn-danger" style="background:none; border:none; color:var(--red); cursor:pointer;" onclick="delRecurring('${r.id}')">✕</button></div>
+      <div style="text-align:right; display:flex; align-items:center; gap:8px;">
+         <div style="font-weight:700; color:var(--red)">-${fmt(r.amount)}</div>
+         <button class="btn-danger" onclick="delRecurring('${r.id}')">✕</button>
+      </div>
     </div>`).join('') : '<div class="empty">Vacío</div>';
 
   updateFinChart(period);
@@ -102,9 +105,9 @@ function renderList(id, list, h=false) {
         <div class="icon-box" style="background:${h ? (e.cat==='ahorro'?'rgba(59,130,246,0.1)':'rgba(245,158,11,0.1)') : 'rgba(255,255,255,0.05)'}; padding:8px; border-radius:8px;">${catEmoji(e.cat)}</div>
         <div><div style="font-size:13px;font-weight:600">${e.desc}</div><div class="item-sub" style="font-size:11px;color:var(--t2)">${e.date}</div></div>
       </div>
-      <div style="text-align:right">
+      <div style="text-align:right; display:flex; align-items:center; gap:8px;">
         <div style="font-weight:700; color:${e.type==='ingreso'?'var(--grn)':'var(--red)'}">${e.type==='gasto'?'-':'+'}${fmt(e.amount)}</div>
-        <button class="btn-danger" style="background:none; border:none; color:var(--red); cursor:pointer;" onclick="delFinEntry('${e.id}')">✕</button>
+        <button class="btn-danger" onclick="delFinEntry('${e.id}')">✕</button>
       </div>
     </div>`).join('') : '<div class="empty">Vacío</div>';
 }
@@ -144,7 +147,6 @@ function updateFinChart(period) {
   if (!finChartInst) return;
   let labels = [], inc = [], exp = [], sav = [], inv = [];
   const now = new Date();
-  
   if (period === 'semana') {
     labels = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
     for (let i=0; i<7; i++) {
@@ -170,7 +172,7 @@ function updateFinChart(period) {
     }
   } else {
     let years = [...new Set(S.fin.map(e => e.date.slice(0,4)))].sort();
-    if (years.length === 0) years = [String(now.getFullYear())]; // Para que nunca se quede en blanco
+    if (years.length === 0) years = [String(now.getFullYear())];
     labels = years;
     years.forEach(y => {
       inc.push(S.fin.filter(e => e.date.startsWith(y) && e.type==='ingreso' && !['ahorro','inversión'].includes(e.cat)).reduce((a,e)=>a+e.amount,0));
@@ -179,7 +181,6 @@ function updateFinChart(period) {
       inv.push(S.fin.filter(e => e.date.startsWith(y) && e.cat==='inversión').reduce((a,e)=>a+(e.type==='gasto'?e.amount:-e.amount),0));
     });
   }
-
   finChartInst.data.labels = labels;
   finChartInst.data.datasets[0].data = inc;
   finChartInst.data.datasets[1].data = exp;
