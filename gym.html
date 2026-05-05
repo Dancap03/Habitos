@@ -37,8 +37,9 @@
          <div id="gym-routine-list"><div class="empty">Cargando...</div></div>
       </div>
 
-      <div class="card tab-rutinas-item">
-         <div class="card-title">DÍAS DE ENTRENAMIENTO 🗓️</div>
+      <!-- AQUÍ IRÁ EL NUEVO HISTORIAL TIPO ACORDEÓN -->
+      <div class="card tab-rutinas-item" style="padding:0; background:transparent; border:none;">
+         <div class="card-title" style="padding-left:10px;">DÍAS DE ENTRENAMIENTO 🗓️</div>
          <div id="gym-workout-log"><div class="empty">Sin entrenamientos aún</div></div>
       </div>
 
@@ -75,7 +76,6 @@
         <option value="cardio">Solo Cardio</option>
       </select>
 
-      <!-- Contenedor si elige PESAS -->
       <div id="rt-pesas-container" style="margin-top:10px; padding-top:16px; border-top:1px solid var(--line);">
           <label class="form-label">AÑADIR EJERCICIOS A LA LISTA</label>
           <input type="text" id="rt-ex-name" class="form-input" placeholder="Ejercicio (Ej: Press banca...)">
@@ -86,7 +86,6 @@
           <div id="rt-ex-list" style="margin-top:16px; display:flex; flex-direction:column; gap:8px;"></div>
       </div>
 
-      <!-- Contenedor si elige CARDIO -->
       <div id="rt-cardio-container" style="display:none; margin-top:10px; padding-top:16px; border-top:1px solid var(--line);">
           <label class="form-label">CONFIGURAR CARDIO</label>
           <input type="text" id="rt-cardio-unit" class="form-input" placeholder="¿Qué mides? (Ej: km, min, kcal...)">
@@ -134,8 +133,8 @@
 
   <div class="toast-container" id="toast-container"></div>
 </div>
-<script src="js/main.js?v=30"></script>
-<script src="js/gym.js?v=30"></script>
+<script src="js/main.js?v=31"></script>
+<script src="js/gym.js?v=31"></script>
 <script>document.addEventListener('DOMContentLoaded', renderGymInit);</script>
 </body>
 </html>
