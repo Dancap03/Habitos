@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#080808">
+<title>Dancab - Calendario</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/UI.css">
+<link rel="stylesheet" href="css/tareas.css">
+</head>
+<body>
+<div class="app">
+
+  <div class="screen on">
+    <div class="topbar">
+      <span class="page-title">Calendario</span>
+      <div class="topbar-right"><button class="btn btn-sm" onclick="openModal('modal-task')">+ Evento</button></div>
+    </div>
+    <div class="scroll">
+      <div class="pill-row">
+        <span class="pill on" onclick="switchTaskView('agenda',this)">Agenda</span>
+        <span class="pill" onclick="switchTaskView('kanban',this)">Kanban</span>
+        <span class="pill" onclick="switchTaskView('eisenhower',this)">Eisenhower</span>
+        <span class="pill" onclick="switchTaskView('pomo',this)">Pomodoro</span>
+      </div>
+
+      <div id="tv-agenda">
+        <div class="card"><div class="card-title">Pendientes</div><div id="task-pending"><div class="empty">Sin eventos</div></div></div>
+        <div class="card"><div class="card-title">Completados</div><div id="task-done-list"><div class="empty">Ninguno aún</div></div></div>
+      </div>
+
+      <div id="tv-kanban" style="display:none">
+        <div class="kanban-wrap">
+          <div class="kanban-cols">
+            <div class="k-col"><div class="k-col-title" style="color:var(--t2)">POR HACER</div><div id="k-todo"></div><div class="k-add" onclick="openModalKanban('todo')">+ Añadir</div></div>
+            <div class="k-col"><div class="k-col-title" style="color:var(--acc)">EN PROGRESO</div><div id="k-doing"></div><div class="k-add" onclick="openModalKanban('doing')">+ Añadir</div></div>
+            <div class="k-col"><div class="k-col-title" style="color:var(--grn)">HECHO</div><div id="k-done"></div><div class="k-add" onclick="openModalKanban('done')">+ Añadir</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tv-eisenhower" style="display:none">
+        <div class="eis-grid">
+          <div class="eis-quad"><div class="eis-label" style="color:var(--red)">URGENTE + IMPORTANTE</div><div id="eis-ui"></div><div style="font-size:11px;color:var(--t3);margin-top:8px;cursor:pointer" onclick="openModalEis('ui')">+ Añadir</div></div>
+          <div class="eis-quad"><div class="eis-label" style="color:var(--blu)">NO URG. + IMPORTANTE</div><div id="eis-ni"></div><div style="font-size:11px;color:var(--t3);margin-top:8px;cursor:pointer" onclick="openModalEis('ni')">+ Añadir</div></div>
+          <div class="eis-quad"><div class="eis-label" style="color:var(--yel)">URGENTE + NO IMP.</div><div id="eis-un"></div><div style="font-size:11px;color:var(--t3);margin-top:8px;cursor:pointer" onclick="openModalEis('un')">+ Añadir</div></div>
+          <div class="eis-quad"><div class="eis-label" style="color:var(--t3)">NO URG. + NO IMP.</div><div id="eis-nn"></div><div style="font-size:11px;color:var(--t3);margin-top:8px;cursor:pointer" onclick="openModalEis('nn')">+ Añadir</div></div>
+        </div>
+      </div>
+
+      <div id="tv-pomo" style="display:none">
+        <div class="card">
+          <div class="pill-row"><span class="pill on" onclick="setPomoMode('focus',this)">Enfoque 25m</span><span class="pill" onclick="setPomoMode('short',this)">Pausa 5m</span><span class="pill" onclick="setPomoMode('long',this)">Descanso 15m</span></div>
+          <div class="pomo-display">
+            <div class="pomo-label" id="pomo-label">ENFOQUE</div><div class="pomo-num" id="pomo-display">25:00</div>
+            <div class="pomo-btns"><button class="pomo-btn pomo-play" onclick="togglePomo()" id="pomo-play">▶</button><button class="pomo-btn pomo-reset" onclick="resetPomo()">↺</button></div>
+          </div>
+        </div>
+        <div class="card"><div class="card-title">Sesiones hoy</div><div class="row"><span style="font-size:14px;color:var(--t2)">Completadas</span><span style="font-size:22px;font-weight:700" id="pomo-sessions">0</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <button class="nav-btn" onclick="window.location.href='index.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="nav-label">Inicio</span></button>
+    <button class="nav-btn on" onclick="window.location.href='calendario.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span class="nav-label">Calendario</span></button>
+    <button class="nav-btn" onclick="window.location.href='finanzas.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg><span class="nav-label">Finanzas</span></button>
+    <button class="nav-btn" onclick="window.location.href='cartera.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Cartera</span></button>
+    <button class="nav-btn" onclick="window.location.href='gym.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5v14M18 5v14M3 9h18M3 15h18"/></svg><span class="nav-label">Gym</span></button>
+  </nav>
+
+  <!-- Modales Tareas/Eventos -->
+  <div class="overlay" id="modal-task" onclick="closeModal('modal-task',event)">
+    <div class="modal"><div class="modal-handle"></div><div class="modal-title">Nuevo evento</div>
+      <div class="form-row"><div><div class="form-label">Nombre</div><input type="text" id="t-name" placeholder="Título..."></div></div>
+      <div class="form-row" style="margin-top:10px">
+        <div><div class="form-label">Categoría</div><select id="t-cat"><option value="trabajo">Trabajo</option><option value="clases">Clases</option><option value="exámenes">Exámenes</option><option value="gym">Gym</option><option value="cumpleaños">Cumpleaños</option><option value="quedadas">Quedadas</option><option value="otro">Otros</option></select></div>
+        <div><div class="form-label">Hora (opcional)</div><input type="text" id="t-time" placeholder="09:00"></div>
+      </div>
+      <div style="margin-top:10px"><div class="form-label">Fecha</div><input type="date" id="t-date"></div>
+      <button class="btn btn-primary" style="margin-top:16px" onclick="addTask()">Añadir evento</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="modal-kanban" onclick="closeModal('modal-kanban',event)">
+    <div class="modal"><div class="modal-handle"></div><div class="modal-title" id="modal-kanban-title">Añadir evento</div>
+      <div class="form-label">Evento</div><input type="text" id="k-title" placeholder="¿Qué evento es?">
+      <div class="form-row" style="margin-top:10px"><div><div class="form-label">Categoría</div><select id="k-cat"><option value="trabajo">Trabajo</option><option value="clases">Clases</option><option value="exámenes">Exámenes</option><option value="gym">Gym</option><option value="cumpleaños">Cumpleaños</option><option value="quedadas">Quedadas</option><option value="otro">Otros</option></select></div></div>
+      <input type="hidden" id="k-col-target"><button class="btn btn-primary" style="margin-top:16px" onclick="addKanbanCard()">Añadir</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="modal-eis" onclick="closeModal('modal-eis',event)">
+    <div class="modal"><div class="modal-handle"></div><div class="modal-title" id="modal-eis-title">Añadir evento</div>
+      <div class="form-label">Evento</div><input type="text" id="eis-task-text" placeholder="Describe el evento...">
+      <input type="hidden" id="eis-quad-target"><button class="btn btn-primary" style="margin-top:16px" onclick="addEisTask()">Añadir</button>
+    </div>
+  </div>
+  <div class="toast-container" id="toast-container"></div>
+</div>
+<script src="js/main.js"></script><script src="js/tareas.js"></script>
+<script>document.addEventListener('DOMContentLoaded', init);</script>
+</body>
+</html>
