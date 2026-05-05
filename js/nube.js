@@ -2,6 +2,17 @@ const API_URL = "https://script.google.com/macros/s/AKfycbx7-VjrjUJkURvGedaUtPHF
 let pendingSyncAction = null;
 let currentSyncBtn = null;
 
+// Esta es la función que llaman tus botones en el HTML
+async function cloudSync(action, event) {
+  if (!API_URL.startsWith("http")) {
+    return showToast("Falta configurar la URL de Google", "error");
+  }
+  
+  // Mapeamos 'up'/'down' a 'upload'/'download' que es lo que entiende el resto del código
+  const finalAction = (action === 'up') ? 'upload' : 'download';
+  requestPin(finalAction, event);
+}
+
 function requestPin(action, btnEvent) {
   let pin = localStorage.getItem('dancab_pin');
   if (pin) {
@@ -25,19 +36,6 @@ function submitPin() {
   }
 }
 
-async function cloudSync(action, event) {
-  // 1. Verificamos que la URL esté configurada
-  if (!API_URL.startsWith("http")) {
-    return showToast("Falta configurar la URL de Google", "error");
-  }
-  
-  // 2. Mapeamos lo que envía el botón ('up'/'down') a lo que entiende tu código ('upload'/'download')
-  const finalAction = (action === 'up') ? 'upload' : 'download';
-  
-  // 3. Llamamos a la petición de PIN
-  requestPin(finalAction, event);
-}
-
 async function executeSync(action, pin, btn) {
   const originalText = btn.textContent;
   
@@ -49,21 +47,27 @@ async function executeSync(action, pin, btn) {
         body: JSON.stringify(S)
       });
       const text = await res.text();
-      if (text === "OK") showToast("Datos guardados en la nube ☁️", "success");
-      else { 
+      if (text === "OK") {
+        showToast("Datos guardados en la nube ☁️", "success");
+      } else { 
         showToast("Error: PIN incorrecto", "error"); 
         localStorage.removeItem('dancab_pin'); 
       }
-    } catch (e) { showToast("Error de conexión", "error"); }
+    } catch (e) { 
+      showToast("Error de conexión", "error"); 
+    }
   } 
   else if (action === 'download') {
     btn.textContent = "⏳ Bajando...";
     try {
       const res = await fetch(API_URL + "?pin=" + pin);
       const text = await res.text();
-      if (text === "{}" || text === "Acceso denegado") {
-         showToast(text === "Acceso denegado" ? "PIN incorrecto" : "Base de datos vacía", "error");
-         if (text === "Acceso denegado") localStorage.removeItem('dancab_pin');
+      
+      if (text === "ERROR_PIN" || text === "Acceso denegado") {
+         showToast("PIN incorrecto", "error");
+         localStorage.removeItem('dancab_pin');
+      } else if (text === "{}" || !text) {
+         showToast("Base de datos vacía", "error");
       } else {
          const data = JSON.parse(text);
          Object.assign(S, data);
@@ -71,7 +75,9 @@ async function executeSync(action, pin, btn) {
          showToast("Datos descargados 📥", "success");
          setTimeout(() => location.reload(), 1500);
       }
-    } catch (e) { showToast("Error de conexión", "error"); }
+    } catch (e) { 
+      showToast("Error de conexión", "error"); 
+    }
   }
   btn.textContent = originalText;
 }
