@@ -327,7 +327,6 @@ function finishWorkout() {
     if(!S.activeRoutine.endTime || S.activeRoutine.endTime === '--:--') S.activeRoutine.endTime = formatTime(new Date());
     let vol = 0;
     
-    // Copiamos los ejercicios para guardar exactamente lo que se hizo ese día
     const savedExercises = JSON.parse(JSON.stringify(S.activeRoutine.exercises || []));
 
     savedExercises.forEach(ex => {
@@ -353,7 +352,7 @@ function finishWorkout() {
     save(); renderActiveWorkout(); renderWorkoutLog(); showToast('Entreno completado ✅');
 }
 
-// --- HISTORIAL ACORDEÓN ---
+// --- HISTORIAL ACORDEÓN CON LÓGICA INTELIGENTE ---
 function toggleLogDate(date) {
     const content = document.getElementById(`content-date-${date}`);
     const icon = document.getElementById(`icon-date-${date}`);
@@ -363,6 +362,19 @@ function toggleLogDate(date) {
     } else {
         content.style.display = 'none';
         icon.style.transform = 'rotate(0deg)';
+    }
+}
+
+function toggleWorkoutDetails(id) {
+    const el = document.getElementById(`details-${id}`);
+    const icon = document.getElementById(`icon-workout-${id}`);
+    if(!el) return;
+    if(el.style.display === 'none') {
+        el.style.display = 'block';
+        if(icon) icon.style.transform = 'rotate(180deg)';
+    } else {
+        el.style.display = 'none';
+        if(icon) icon.style.transform = 'rotate(0deg)';
     }
 }
 
@@ -376,14 +388,12 @@ function renderWorkoutLog() {
         return;
     }
 
-    // 1. Agrupar por fechas
     const grouped = {};
     S.workoutLog.forEach(w => {
         if(!grouped[w.date]) grouped[w.date] = [];
         grouped[w.date].push(w);
     });
 
-    // 2. Ordenar fechas (más recientes primero)
     const sortedDates = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
 
     let html = '';
@@ -393,7 +403,6 @@ function renderWorkoutLog() {
         
         html += `
         <div style="margin-bottom:12px; background:var(--bg2); border-radius:12px; border:1px solid var(--line); overflow:hidden;">
-            <!-- Cabecera de la fecha -->
             <div style="padding:14px 16px; background:var(--bg3); display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleLogDate('${date}')">
                 <div style="font-weight:700; color:var(--t1); font-size:14px;">📅 ${date}</div>
                 <div style="display:flex; gap:12px; align-items:center;">
@@ -402,48 +411,79 @@ function renderWorkoutLog() {
                 </div>
             </div>
             
-            <!-- Contenedor de rutinas del día -->
             <div id="content-date-${date}" style="display:none; padding:0 16px;">
         `;
 
         dayWorkouts.reverse().forEach(w => {
-            let exHtml = '';
-            // Si el entreno tiene ejercicios detallados guardados
-            if(w.exercises && w.exercises.length > 0) {
-                exHtml = '<div style="margin-top:12px; display:flex; flex-direction:column; gap:12px;">';
-                w.exercises.forEach(ex => {
-                    const isPesas = ex.type === 'pesas';
-                    const setsDone = (ex.sets || []).filter(s => s.done);
-                    
-                    if(setsDone.length === 0) return;
+            // Lógica Inteligente para detectar si es SOLO CARDIO
+            const isOnlyCardio = w.exercises && w.exercises.length === 1 && w.exercises[0].type === 'cardio';
+            
+            let rightSideHtml = '';
+            let detailsHtml = '';
 
-                    const setsStr = setsDone.map(s => {
-                        if(isPesas) return `<span style="background:var(--bg3); padding:4px 8px; border-radius:6px; font-size:11px; margin-right:6px; margin-bottom:6px; display:inline-block; border:1px solid var(--line);">${s.kg}kg x ${s.reps}</span>`;
-                        return `<span style="background:var(--bg3); padding:4px 8px; border-radius:6px; font-size:11px; margin-right:6px; margin-bottom:6px; display:inline-block; border:1px solid var(--line);">${s.val} ${ex.unit}</span>`;
-                    }).join('');
+            if (isOnlyCardio) {
+                // Si es solo cardio, extraemos el valor de la unidad directamente y no ponemos desplegable
+                let cardioVal = 0;
+                let cardioUnit = w.exercises[0].unit || '';
+                if (w.exercises[0].sets && w.exercises[0].sets[0] && w.exercises[0].sets[0].done) {
+                    cardioVal = w.exercises[0].sets[0].val || 0;
+                }
+                rightSideHtml = `<div style="font-size:15px; font-weight:800; color:var(--yel);">${cardioVal} <span style="font-size:11px; color:var(--t3); font-weight:600;">${cardioUnit}</span></div>`;
+            } else {
+                // Si es pesas o una rutina mixta, mostramos el volumen total en la cabecera
+                if (w.volume > 0) {
+                    rightSideHtml = `<div style="font-size:14px; font-weight:800; color:var(--acc);">${w.volume} <span style="font-size:10px; color:var(--t3);">kg</span></div>`;
+                }
+                
+                // Y preparamos el panel desplegable de ejercicios
+                if (w.exercises && w.exercises.length > 0) {
+                    let exList = '';
+                    w.exercises.forEach(ex => {
+                        const doneSets = (ex.sets || []).filter(s => s.done);
+                        if(doneSets.length === 0) return;
+                        
+                        let setsBadges = doneSets.map((s) => {
+                            if(ex.type === 'pesas') return `<span style="background:var(--bg3); padding:4px 8px; border-radius:6px; font-size:11px; margin-right:6px; margin-bottom:6px; display:inline-block; border:1px solid var(--line); color:var(--t1);">${s.kg}kg × ${s.reps}</span>`;
+                            return `<span style="background:var(--bg3); padding:4px 8px; border-radius:6px; font-size:11px; margin-right:6px; margin-bottom:6px; display:inline-block; border:1px solid var(--line); color:var(--t1);">${s.val} ${ex.unit}</span>`;
+                        }).join('');
+                        
+                        exList += `
+                        <div style="margin-top:10px; border-left:2px solid ${ex.type === 'pesas' ? 'var(--acc)' : 'var(--yel)'}; padding-left:12px;">
+                            <div style="font-size:12px; font-weight:700; color:var(--t2); margin-bottom:6px;">${ex.name}</div>
+                            <div>${setsBadges}</div>
+                        </div>`;
+                    });
 
-                    exHtml += `
-                    <div style="border-left:2px solid var(--acc); padding-left:12px;">
-                        <div style="font-size:12px; font-weight:700; color:var(--t2); margin-bottom:6px;">${ex.name}</div>
-                        <div>${setsStr}</div>
-                    </div>`;
-                });
-                exHtml += '</div>';
+                    if (exList) {
+                        detailsHtml = `
+                        <div id="details-${w.id}" style="display:none; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
+                            ${exList}
+                        </div>`;
+                        
+                        // Añadimos la flechita para desplegar al lado del volumen
+                        rightSideHtml = `
+                        <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="toggleWorkoutDetails('${w.id}')">
+                            ${rightSideHtml}
+                            <div id="icon-workout-${w.id}" style="font-size:10px; color:var(--t3); transition:0.2s; padding:4px;">▼</div>
+                        </div>`;
+                    }
+                }
             }
 
+            // Inyectamos la rutina del día
             html += `
                 <div style="padding:16px 0; border-bottom:1px solid var(--line);">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                        <div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div ${detailsHtml ? `onclick="toggleWorkoutDetails('${w.id}')" style="cursor:pointer;"` : ''}>
                             <div style="font-weight:700; color:var(--t1); font-size:15px;">${w.name || 'Entrenamiento'}</div>
                             <div style="font-size:11px; color:var(--t3); margin-top:4px;">⏱️ ${w.startTime} - ${w.endTime}</div>
                         </div>
-                        <div style="display:flex; gap:12px; align-items:center;">
-                            ${w.volume > 0 ? `<div style="font-size:13px; font-weight:800; color:var(--acc);">${w.volume} kg</div>` : ''}
+                        <div style="display:flex; gap:16px; align-items:center;">
+                            ${rightSideHtml}
                             <button class="btn-danger" onclick="delWorkoutLog('${w.id}')">✕</button>
                         </div>
                     </div>
-                    ${exHtml}
+                    ${detailsHtml}
                 </div>
             `;
         });
