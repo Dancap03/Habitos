@@ -18,7 +18,6 @@ function switchGymTab(tab, btn) {
     });
 }
 
-// --- RENDERIZADO INICIAL ---
 function renderGymInit() {
     init();
     renderRoutines();
@@ -27,14 +26,68 @@ function renderGymInit() {
     renderRecords();
 }
 
-// --- RUTINAS BASE ---
+// --- CREADOR DE RUTINAS BASE ---
+let tempRtExercises = [];
+
+function openRoutineModal() {
+    document.getElementById('rt-name').value = '';
+    tempRtExercises = [];
+    renderRtExList();
+    document.getElementById('rt-ex-name').value = '';
+    document.getElementById('rt-ex-sets').value = '';
+    document.getElementById('rt-ex-unit').value = '';
+    document.getElementById('rt-ex-type').value = 'pesas';
+    toggleRtExType();
+    openModal('modal-routine');
+}
+
+function toggleRtExType() {
+    const t = document.getElementById('rt-ex-type').value;
+    document.getElementById('rt-ex-sets-container').style.display = t === 'pesas' ? 'block' : 'none';
+    document.getElementById('rt-ex-unit-container').style.display = t === 'cardio' ? 'block' : 'none';
+}
+
+function addRtEx() {
+    const type = document.getElementById('rt-ex-type').value;
+    const name = document.getElementById('rt-ex-name').value.trim();
+    const sets = parseInt(document.getElementById('rt-ex-sets').value) || 1;
+    const unit = document.getElementById('rt-ex-unit').value.trim() || 'km';
+
+    if(!name) return showToast('Pon nombre al ejercicio', 'error');
+
+    tempRtExercises.push({ type, name, sets, unit });
+    renderRtExList();
+
+    document.getElementById('rt-ex-name').value = '';
+    document.getElementById('rt-ex-sets').value = '';
+    document.getElementById('rt-ex-unit').value = '';
+}
+
+function renderRtExList() {
+    const el = document.getElementById('rt-ex-list');
+    el.innerHTML = tempRtExercises.map((ex, i) => `
+        <div style="background:var(--bg3); padding:8px 12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div style="font-size:13px; font-weight:700;">${ex.name}</div>
+                <div style="font-size:11px; color:var(--t3);">${ex.type === 'pesas' ? `${ex.sets} series` : `Cardio (${ex.unit})`}</div>
+            </div>
+            <button class="btn-danger" style="background:none; border:none; color:var(--red); padding:4px;" onclick="removeRtEx(${i})">✕</button>
+        </div>
+    `).join('');
+}
+
+function removeRtEx(i) {
+    tempRtExercises.splice(i, 1);
+    renderRtExList();
+}
+
 function addRoutine() {
     const name = document.getElementById('rt-name').value.trim();
     if(!name) return showToast('Pon un nombre a la rutina', 'error');
+    if(tempRtExercises.length === 0) return showToast('Añade al menos un ejercicio', 'error');
     
-    S.routines.push({ id: uid(), name });
+    S.routines.push({ id: uid(), name, exercises: [...tempRtExercises] });
     save(); closeModal('modal-routine'); renderRoutines();
-    document.getElementById('rt-name').value = '';
     showToast('Rutina guardada');
 }
 
@@ -43,13 +96,16 @@ function renderRoutines() {
     if(!list) return;
     list.innerHTML = S.routines.length ? S.routines.map(r => `
         <div class="list-item" style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--line);">
-            <div style="font-weight:700; font-size:15px;">${r.name}</div>
+            <div>
+                <div style="font-weight:700; font-size:15px;">${r.name}</div>
+                <div style="font-size:11px; color:var(--t3); margin-top:2px;">${r.exercises.length} ejercicios</div>
+            </div>
             <div style="display:flex; gap:8px;">
                 <button class="btn btn-sm" style="background:var(--acc); color:#fff;" onclick="startWorkout('${r.id}')">▶ Empezar</button>
                 <button class="btn-danger" style="background:none; color:var(--red); border:none; padding:8px;" onclick="delRoutine('${r.id}')">✕</button>
             </div>
         </div>
-    `).join('') : '<div class="empty">Crea una rutina para empezar (ej. "Día de Pecho")</div>';
+    `).join('') : '<div class="empty">Crea una rutina para empezar</div>';
 }
 
 function delRoutine(id) {
@@ -65,6 +121,22 @@ function startWorkout(id) {
     const r = S.routines.find(x => x.id === id);
     if(!r) return;
     
+    // Generar el entreno con las series pre-configuradas
+    const workoutExercises = r.exercises.map(ex => {
+        let setsArray = [];
+        if(ex.type === 'pesas') {
+            for(let i=0; i<ex.sets; i++) setsArray.push({ done: false });
+        } else {
+            setsArray.push({ done: false }); // Cardio por defecto 1 serie
+        }
+        return {
+            type: ex.type,
+            name: ex.name,
+            unit: ex.unit,
+            sets: setsArray
+        };
+    });
+
     S.activeRoutine = {
         id: uid(),
         routineId: r.id,
@@ -72,7 +144,7 @@ function startWorkout(id) {
         date: today(),
         startTime: formatTime(new Date()),
         endTime: '--:--',
-        exercises: [] // Empieza vacío, se añaden sobre la marcha
+        exercises: workoutExercises
     };
     save();
     
@@ -99,13 +171,10 @@ function renderActiveWorkout() {
     
     let exHtml = w.exercises.map((ex, exIdx) => {
         const isPesas = ex.type === 'pesas';
-        
-        // Cabeceras de columnas
         const headers = isPesas 
             ? `<div style="flex:1; text-align:center; font-size:10px; color:var(--t3); font-weight:700;">KG</div><div style="flex:1; text-align:center; font-size:10px; color:var(--t3); font-weight:700;">REPS</div>`
             : `<div style="flex:1; text-align:center; font-size:10px; color:var(--t3); font-weight:700; text-transform:uppercase;">${ex.unit}</div>`;
 
-        // Filas de series
         const setsHtml = ex.sets.map((set, sIdx) => {
             const inputs = isPesas
                 ? `<input type="number" placeholder="kg" value="${set.kg||''}" onchange="updateSet(${exIdx}, ${sIdx}, 'kg', this.value)" style="flex:1; min-width:0; padding:10px; background:var(--bg4); border:none; border-radius:8px; color:#fff; text-align:center;">
@@ -123,19 +192,10 @@ function renderActiveWorkout() {
 
         return `
         <div style="margin-top:16px; background:var(--bg3); padding:14px; border-radius:12px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <div style="font-weight:700; font-size:15px; color:var(--acc);">${ex.name} <span style="font-size:10px; color:var(--t3); font-weight:500;">(${isPesas ? 'Pesas' : 'Cardio'})</span></div>
-            </div>
-            
-            <div style="display:flex; gap:8px; padding-left:32px; padding-right:56px; margin-bottom:4px;">
-                ${headers}
-            </div>
-            
-            <div style="display:flex; flex-direction:column; gap:8px;">
-                ${setsHtml}
-            </div>
-            
-            <button class="btn btn-sm" style="background:rgba(255,255,255,0.05); width:100%; margin-top:12px; color:var(--t1);" onclick="addSet(${exIdx})">+ Añadir Serie</button>
+            <div style="font-weight:700; font-size:15px; color:var(--acc); margin-bottom:12px;">${ex.name} <span style="font-size:10px; color:var(--t3); font-weight:500;">(${isPesas ? 'Pesas' : 'Cardio'})</span></div>
+            <div style="display:flex; gap:8px; padding-left:32px; padding-right:56px; margin-bottom:4px;">${headers}</div>
+            <div style="display:flex; flex-direction:column; gap:8px;">${setsHtml}</div>
+            <button class="btn btn-sm" style="background:rgba(255,255,255,0.05); width:100%; margin-top:12px; color:var(--t1);" onclick="addSet(${exIdx})">+ Añadir Serie Extra</button>
         </div>
         `;
     }).join('');
@@ -158,7 +218,7 @@ function renderActiveWorkout() {
 
             ${exHtml}
 
-            <button class="btn" style="background:var(--bg3); color:var(--t1); width:100%; margin-top:16px; font-size:14px; border: 1px dashed var(--line);" onclick="openAddExerciseModal()">+ Añadir Ejercicio</button>
+            <button class="btn" style="background:var(--bg3); color:var(--t1); width:100%; margin-top:16px; font-size:14px; border: 1px dashed var(--line);" onclick="openAddExerciseModal()">+ Añadir Ejercicio Adicional</button>
 
             <div style="margin-top:24px; display:flex; flex-direction:column; gap:10px;">
                 <button class="btn" style="background:var(--acc); color:#fff; width:100%; font-size:15px;" onclick="finishWorkout()">Finalizar Entreno 💪</button>
@@ -168,7 +228,7 @@ function renderActiveWorkout() {
     `;
 }
 
-// --- LÓGICA DE EJERCICIOS Y SERIES ---
+// --- EJERCICIOS AD-HOC Y SERIES ---
 function openAddExerciseModal() {
     document.getElementById('ex-name').value = '';
     document.getElementById('ex-unit').value = '';
@@ -187,15 +247,9 @@ function addExerciseToWorkout() {
     const name = document.getElementById('ex-name').value.trim();
     const unit = document.getElementById('ex-unit').value.trim() || 'km';
 
-    if(!name) return showToast('Escribe el nombre del ejercicio', 'error');
+    if(!name) return showToast('Escribe el nombre', 'error');
 
-    S.activeRoutine.exercises.push({ 
-        type, 
-        name, 
-        unit: type === 'cardio' ? unit : null, 
-        sets: [ { done: false } ] // Empieza con 1 serie vacía por defecto
-    });
-    
+    S.activeRoutine.exercises.push({ type, name, unit: type === 'cardio' ? unit : null, sets: [ { done: false } ] });
     save(); closeModal('modal-exercise'); renderActiveWorkout();
 }
 
@@ -214,11 +268,9 @@ function toggleSet(exIdx, sIdx) {
     const s = ex.sets[sIdx];
     s.done = !s.done;
     
-    // Récords
     if(s.done) {
         if(!S.prs) S.prs = {};
         const key = ex.name;
-        
         if (ex.type === 'pesas' && s.kg && s.reps) {
             const weight = parseFloat(s.kg);
             if(!S.prs[key] || weight > S.prs[key].val) {
@@ -237,36 +289,16 @@ function toggleSet(exIdx, sIdx) {
 }
 
 function cancelWorkout() {
-    customConfirm('Cancelar Entreno', '¿Estás seguro de descartar este entrenamiento en progreso?', () => {
-        S.activeRoutine = null;
-        save(); renderActiveWorkout();
-    });
+    customConfirm('Cancelar Entreno', '¿Descartar este entrenamiento?', () => { S.activeRoutine = null; save(); renderActiveWorkout(); });
 }
 
 function finishWorkout() {
-    if(!S.activeRoutine.endTime || S.activeRoutine.endTime === '--:--') {
-        S.activeRoutine.endTime = formatTime(new Date());
-    }
-    
-    // Volumen total solo suma pesas
+    if(!S.activeRoutine.endTime || S.activeRoutine.endTime === '--:--') S.activeRoutine.endTime = formatTime(new Date());
     let vol = 0;
     S.activeRoutine.exercises.forEach(ex => {
-        if(ex.type === 'pesas') {
-            ex.sets.forEach(s => {
-                if(s.done && s.kg && s.reps) vol += parseFloat(s.kg) * parseInt(s.reps);
-            });
-        }
+        if(ex.type === 'pesas') { ex.sets.forEach(s => { if(s.done && s.kg && s.reps) vol += parseFloat(s.kg) * parseInt(s.reps); }); }
     });
-
-    S.workoutLog.push({
-        id: S.activeRoutine.id,
-        date: S.activeRoutine.date,
-        name: S.activeRoutine.name,
-        startTime: S.activeRoutine.startTime,
-        endTime: S.activeRoutine.endTime,
-        volume: vol
-    });
-
+    S.workoutLog.push({ id: S.activeRoutine.id, date: S.activeRoutine.date, name: S.activeRoutine.name, startTime: S.activeRoutine.startTime, endTime: S.activeRoutine.endTime, volume: vol });
     S.activeRoutine = null;
     save(); renderActiveWorkout(); renderWorkoutLog(); showToast('Entreno completado ✅');
 }
@@ -275,7 +307,6 @@ function finishWorkout() {
 function renderWorkoutLog() {
     const list = document.getElementById('gym-workout-log');
     if(!list) return;
-    
     const sortedLog = [...S.workoutLog].reverse();
     list.innerHTML = sortedLog.length ? sortedLog.map(w => `
         <div class="list-item" style="padding:12px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
@@ -285,38 +316,26 @@ function renderWorkoutLog() {
             </div>
             <div style="text-align:right; display:flex; align-items:center; gap:12px;">
                 ${w.volume > 0 ? `<div style="font-size:14px; font-weight:800; color:var(--acc);">${w.volume} <span style="font-size:10px; color:var(--t3);">kg vol.</span></div>` : ''}
-                <button class="btn-danger" style="background:none; color:var(--red); border:none; padding:4px; font-size:16px;" onclick="delWorkoutLog('${w.id}')">✕</button>
+                <button class="btn-danger" style="background:none; color:var(--red); border:none; padding:4px;" onclick="delWorkoutLog('${w.id}')">✕</button>
             </div>
         </div>
-    `).join('') : '<div class="empty">Tu historial de entrenos aparecerá aquí</div>';
+    `).join('') : '<div class="empty">Tu historial aparecerá aquí</div>';
 }
 
-function delWorkoutLog(id) {
-    customConfirm('Borrar Entreno', '¿Eliminar este día del historial?', () => {
-        S.workoutLog = S.workoutLog.filter(x => x.id !== id);
-        save(); renderWorkoutLog();
-    });
-}
+function delWorkoutLog(id) { customConfirm('Borrar Entreno', '¿Eliminar este día?', () => { S.workoutLog = S.workoutLog.filter(x => x.id !== id); save(); renderWorkoutLog(); }); }
 
 function renderRecords() {
     const list = document.getElementById('gym-records-list');
     if(!list) return;
-    
     const prKeys = Object.keys(S.prs || {});
     list.innerHTML = prKeys.length ? prKeys.map(k => {
         const pr = S.prs[k];
         const isPesas = pr.type === 'pesas';
-        
         return `
         <div class="card" style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; border-left: 4px solid var(--yel);">
-            <div>
-                <div style="font-weight:700; font-size:15px; color:var(--t1); text-transform:uppercase;">${k}</div>
-                <div style="font-size:11px; color:var(--t3); margin-top:4px;">El ${pr.date}</div>
-            </div>
+            <div><div style="font-weight:700; font-size:15px; color:var(--t1); text-transform:uppercase;">${k}</div><div style="font-size:11px; color:var(--t3); margin-top:4px;">El ${pr.date}</div></div>
             <div style="text-align:right;">
-                <div style="font-size:22px; font-weight:800; color:var(--yel); line-height:1;">
-                    ${pr.val} <span style="font-size:12px; color:var(--t2);">${isPesas ? 'kg' : pr.unit}</span>
-                </div>
+                <div style="font-size:22px; font-weight:800; color:var(--yel); line-height:1;">${pr.val} <span style="font-size:12px; color:var(--t2);">${isPesas ? 'kg' : pr.unit}</span></div>
                 ${isPesas ? `<div style="font-size:12px; color:var(--t1); font-weight:600; margin-top:2px;">x ${pr.reps} reps</div>` : ''}
             </div>
         </div>
