@@ -14,7 +14,6 @@ function openRoutineModal() {
   if(document.getElementById('r-type')) document.getElementById('r-type').value = 'pesas';
   if(document.getElementById('r-ex-name')) document.getElementById('r-ex-name').value = '';
   if(document.getElementById('r-ex-sets')) document.getElementById('r-ex-sets').value = '';
-  // Esto es clave para que no se quede guardado "peldaños" de la vez anterior
   if(document.getElementById('r-cardio-unit')) document.getElementById('r-cardio-unit').value = '';
   
   toggleRoutineType();
@@ -84,7 +83,6 @@ function saveNewRoutine() {
     if (tempExercises.length === 0) return showToast('Añade al menos un ejercicio', 'error');
     exercisesToSave = [...tempExercises];
   } else {
-    // Si es cardio, cogemos la unidad que hayas escrito y creamos la rutina
     const unitEl = document.getElementById('r-cardio-unit');
     const unit = unitEl ? unitEl.value.trim() : '';
     exercisesToSave = [{ name: name, sets: 1, unit: unit }];
@@ -98,9 +96,11 @@ function saveNewRoutine() {
 }
 
 function deleteRoutine(id) {
-  S.routines = S.routines.filter(r => r.id !== id);
-  if (S.activeRoutine === id) S.activeRoutine = null;
-  save(); renderRoutines();
+  customConfirm('Borrar rutina', '¿Seguro que quieres borrar esta rutina? No afectará a tu historial de entrenos.', () => {
+    S.routines = S.routines.filter(r => r.id !== id);
+    if (S.activeRoutine === id) S.activeRoutine = null;
+    save(); renderRoutines();
+  });
 }
 
 function startRoutine(id) {
@@ -151,7 +151,6 @@ function renderGymActive() {
     let setsHtml = '';
     
     if (isCardio) {
-      // Si la unidad está vacía, pone "valor", si no, pone la que hayas guardado
       const unitPlaceholder = e.unit ? e.unit : 'valor';
       setsHtml = `<div class="set-row"><input type="number" class="set-field" placeholder="min" id="ex-${ei}-0-reps"><input type="number" class="set-field" placeholder="${unitPlaceholder}" id="ex-${ei}-0-kg" step="0.5"><div class="set-done" onclick="toggleSetDone(this)" id="ex-${ei}-0-done"></div></div>`;
     } else {
@@ -197,7 +196,6 @@ function finishWorkout() {
     
     if(logEx.sets.length > 0) logEntry.exercises.push(logEx);
 
-    // Sistema de PR adaptado a cardio (más peldaños o menos tiempo)
     if (maxKg > 0 || maxReps > 0) {
       const currentPr = S.prs[e.name];
       let isNewPr = false;
@@ -234,7 +232,6 @@ function renderGymPRs() {
   el.innerHTML = prs.sort((a,b) => a.name.localeCompare(b.name)).map(p => {
     const isCardio = p.isCardio === true;
     const unitText = p.unit ? ` ${p.unit}` : '';
-    // Muestra "10 peldaños en 5 min" o "10 kg x 5 reps" de forma limpia
     const prText = isCardio ? `${p.kg}${unitText} en ${p.reps} min` : `${p.kg} kg × ${p.reps} reps`;
     
     return `
@@ -297,11 +294,11 @@ function toggleHistoryDetails(id) {
   if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; 
 }
 function loadMoreHistory() { historyPage++; renderGymHistory(); }
+
 function deleteWorkoutLog(id) { 
   customConfirm('Borrar registro', '¿Seguro que quieres borrar este entrenamiento del historial?', () => {
     S.workoutLog = S.workoutLog.filter(w => w.id !== id); 
-    save(); 
-    renderGymHistory(); 
+    save(); renderGymHistory(); 
     if(typeof renderHome === 'function') renderHome(); 
   });
 }
