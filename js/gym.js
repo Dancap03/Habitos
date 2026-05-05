@@ -120,10 +120,9 @@ function startRoutine(id) {
 function cancelWorkout() { S.activeRoutine = null; save(); renderRoutines(); }
 
 function renderRoutines() {
-  // 1. PINTO LOS DÍAS DE ENTRENAMIENTO LO PRIMERO (¡Obligatorio!)
+  renderGymPRs();
   renderGymDays();
 
-  // 2. LUEGO ME ENCARGO DE LAS RUTINAS
   const el = document.getElementById('gym-routine-list');
   const active = document.getElementById('gym-active');
   if(!el || !active) return;
@@ -194,8 +193,10 @@ function finishWorkout() {
   const startT = document.getElementById('gym-start-time').value || formatTime(new Date());
   
   const logEntry = { id: uid(), date: today(), routineName: r.name, type: r.type, startTime: startT, endTime: endT, exercises: [] };
+  const isCardio = r.type === 'cardio';
 
   r.exercises.forEach((e, ei) => {
+    let maxKg = 0; let maxReps = 0;
     const logEx = { name: e.name, sets: [], unit: e.unit || '' };
     
     for (let si = 0; si < e.sets; si++) {
@@ -207,10 +208,34 @@ function finishWorkout() {
         const kg = parseFloat(kgEl.value)||0;
         const reps = parseInt(repsEl.value)||0;
         logEx.sets.push({kg, reps});
+        
+        // Registrar máximos para el PR
+        if (kg > maxKg || (kg === maxKg && reps > maxReps)) { maxKg = kg; maxReps = reps; }
       }
     }
     
     if(logEx.sets.length > 0) logEntry.exercises.push(logEx);
+
+    // Guardar nuevo PR si se ha superado la marca anterior
+    if (maxKg > 0 || maxReps > 0) {
+      if(!S.prs) S.prs = {};
+      const currentPr = S.prs[e.name];
+      let isNewPr = false;
+      
+      if (!currentPr) {
+          isNewPr = true;
+      } else {
+          if (isCardio) {
+              if (maxKg > currentPr.kg || (maxKg === currentPr.kg && maxReps <= currentPr.reps)) isNewPr = true;
+          } else {
+              if (maxKg > currentPr.kg || (maxKg === currentPr.kg && maxReps >= currentPr.reps)) isNewPr = true;
+          }
+      }
+      
+      if (isNewPr) {
+        S.prs[e.name] = { kg: maxKg, reps: maxReps, date: today(), isCardio: isCardio, unit: e.unit || '' };
+      }
+    }
   });
 
   S.workoutLog.unshift(logEntry); 
@@ -219,6 +244,47 @@ function finishWorkout() {
   renderRoutines(); 
   if(typeof renderHome === 'function') renderHome(); 
   showToast('¡Entrenamiento guardado! 💪', 'success');
+}
+
+// NUEVO: Funciones para Récords Personales
+function renderGymPRs() {
+  const el = document.getElementById('gym-prs');
+  if(!el) return;
+  
+  if(!S.prs) S.prs = {};
+  const prs = Object.entries(S.prs).map(([name, data]) => ({name, ...data}));
+  
+  if (!prs.length) { el.innerHTML = '<div class="empty">Sin registros aún</div>'; return; }
+  
+  el.innerHTML = prs.sort((a,b) => a.name.localeCompare(b.name)).map(p => {
+    const isCardio = p.isCardio === true;
+    const unitText = p.unit ? ` ${p.unit}` : '';
+    const prText = isCardio ? `${p.kg}${unitText} en ${p.reps} min` : `${p.kg} kg × ${p.reps} reps`;
+    
+    // Al botón de borrar le pasamos el nombre del récord
+    return `
+    <div class="fin-row" style="padding: 12px 0; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+      <div><div style="font-size:14px; font-weight:500">${p.name}</div><div style="font-size:11px; color:var(--t2)">${p.date}</div></div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="font-size:15px;font-weight:700;color:var(--yel)">${prText} 🏆</div>
+        <button class="btn-danger" style="padding: 4px 8px;" onclick="deletePR('${p.name}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function deletePR(name) {
+  if (typeof customConfirm === 'function') {
+    customConfirm('Borrar Récord', `¿Seguro que quieres borrar el récord de ${name}? (Esto no borrará el entreno de tu historial)`, () => {
+      delete S.prs[name];
+      save();
+      renderGymPRs();
+    });
+  } else {
+    delete S.prs[name];
+    save();
+    renderGymPRs();
+  }
 }
 
 function renderGymDays() {
@@ -340,7 +406,7 @@ function deleteWorkoutLog(id) {
       S.workoutLog = S.workoutLog.filter(w => w.id !== id); 
       save(); 
       renderGymHistory(); 
-      renderGymDays(); // Actualiza la pestaña de Días al instante
+      renderGymDays(); 
       if(typeof renderHome === 'function') renderHome(); 
     });
   } else {
