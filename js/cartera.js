@@ -215,27 +215,41 @@ function updatePortfolioCharts() {
     }
   });
 
-  // Generamos los arrays para el chart de tipos utilizando la función de color
-  const typeLabels = Object.keys(types);
+  // PREPARACIÓN DE PORCENTAJES PARA "POR TIPO"
+  const typeLabelsRaw = Object.keys(types);
   const typeData = Object.values(types);
-  const typeBgColors = typeLabels.map(t => getTypeColor(t));
+  const typeBgColors = typeLabelsRaw.map(t => getTypeColor(t));
+  const totalTypeVal = typeData.reduce((a, b) => a + b, 0);
+  
+  // Añadimos el % al texto del label
+  const typeLabelsPct = typeLabelsRaw.map((t, i) => {
+      const pct = totalTypeVal > 0 ? ((typeData[i] / totalTypeVal) * 100).toFixed(1) : 0;
+      return `${t} ${pct}%`;
+  });
   
   if (typeChart) typeChart.destroy();
   typeChart = new Chart(c1, {
     type: 'doughnut',
-    data: { labels: typeLabels, datasets: [{ data: typeData, backgroundColor: typeBgColors, borderWidth: 0 }] },
+    data: { labels: typeLabelsPct, datasets: [{ data: typeData, backgroundColor: typeBgColors, borderWidth: 0 }] },
     options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'right', labels: { color: '#a1a1a6', font: { size: 10, family: 'DM Sans' }, boxWidth: 10, padding: 10 } } } }
   });
 
-  // Paleta genérica contrastada para los activos individuales
-  const assetLabels = Object.keys(assets);
+  // PREPARACIÓN DE PORCENTAJES PARA "POR ACTIVO"
+  const assetLabelsRaw = Object.keys(assets);
   const assetData = Object.values(assets);
   const assetCols = ['#8b5cf6', '#3b82f6', '#27ae60', '#f59e0b', '#e74c3c', '#e05a2b', '#1abc9c', '#95a5a6']; 
+  const totalAssetVal = assetData.reduce((a, b) => a + b, 0);
   
+  // Añadimos el % al texto del label
+  const assetLabelsPct = assetLabelsRaw.map((t, i) => {
+      const pct = totalAssetVal > 0 ? ((assetData[i] / totalAssetVal) * 100).toFixed(1) : 0;
+      return `${t} ${pct}%`;
+  });
+
   if (assetChart) assetChart.destroy();
   assetChart = new Chart(c2, {
     type: 'doughnut',
-    data: { labels: assetLabels, datasets: [{ data: assetData, backgroundColor: assetCols, borderWidth: 0 }] },
+    data: { labels: assetLabelsPct, datasets: [{ data: assetData, backgroundColor: assetCols, borderWidth: 0 }] },
     options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'right', labels: { color: '#a1a1a6', font: { size: 10, family: 'DM Sans' }, boxWidth: 10, padding: 10 } } } }
   });
 }
