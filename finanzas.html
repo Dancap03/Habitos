@@ -19,6 +19,7 @@
     </div>
     <div class="scroll">
       
+      <!-- BOTONES DE FILTRO (AHORA VISIBLES) -->
       <div class="fin-tabs">
         <button class="fin-tab on" onclick="setFinPeriod('semana',this)">Semana</button>
         <button class="fin-tab" onclick="setFinPeriod('mes',this)">Mes</button>
@@ -30,7 +31,7 @@
       <div class="card card-full">
         <div class="card-header" style="margin-bottom: 8px;">
             <span class="card-title" id="fin-period-label" style="margin-bottom: 0;">RESUMEN</span>
-            <button class="btn btn-sm" style="background:var(--acc); color:#fff;" onclick="openModalFin('ingreso')">+ Añadir</button>
+            <button class="btn btn-sm" style="background:var(--acc); color:#fff; font-weight:800; padding: 8px 16px;" onclick="openModalFin('ingreso')">+ Añadir</button>
         </div>
         <div class="big-bal" id="fin-bal">€0</div>
         <div style="display:flex; gap:15px; margin-top:4px;">
@@ -63,7 +64,7 @@
         <div style="position:relative;width:100%;height:220px"><canvas id="finChart"></canvas></div>
       </div>
 
-      <!-- LISTAS SIN BOTONES SECUNDARIOS -->
+      <!-- LISTAS LIMPIAS SIN BOTONES -->
       <div class="card">
         <span class="card-title">Ingresos</span>
         <div id="fin-income-list"><div class="empty">Sin ingresos</div></div>
@@ -99,13 +100,13 @@
     <button class="nav-btn" onclick="window.location.href='gym.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 5v14M18 5v14M3 9h18M3 15h18"/></svg><span class="nav-label">Gym</span></button>
   </nav>
 
-  <!-- MODAL: FINANZAS -->
+  <!-- MODAL: FORMULARIO -->
   <div class="overlay" id="modal-fin" onclick="closeModal('modal-fin',event)">
     <div class="modal">
       <div class="modal-handle"></div>
       <div class="modal-title" id="modal-fin-title" style="margin-bottom:20px;">Añadir registro</div>
       
-      <label class="form-label" id="fin-type-label">Tipo</label>
+      <label class="form-label">Tipo</label>
       <select id="fin-type" class="form-input">
          <option value="ingreso">Ingreso</option>
          <option value="gasto">Gasto</option>
@@ -114,7 +115,7 @@
       <label class="form-label">Importe (€)</label>
       <input type="number" id="fin-amount" class="form-input" placeholder="0.00" step="0.01">
       
-      <label class="form-label" id="fin-desc-label">Descripción</label>
+      <label class="form-label">Descripción</label>
       <input type="text" id="fin-desc" class="form-input" placeholder="...">
       
       <label class="form-label">Categoría</label>
@@ -142,7 +143,7 @@
       </div>
       
       <div id="day-wrapper" style="display:none;">
-         <label class="form-label">Día del mes</label>
+         <label class="form-label">Día del mes (Suscripción)</label>
          <input type="number" id="fin-day" class="form-input" placeholder="1-31" min="1" max="31">
       </div>
       
@@ -152,8 +153,8 @@
 
   <div class="toast-container" id="toast-container"></div>
 </div>
-<script src="js/main.js?v=43"></script>
-<script src="js/finanzas.js?v=43"></script>
+<script src="js/main.js?v=44"></script>
+<script src="js/finanzas.js?v=44"></script>
 <script>document.addEventListener('DOMContentLoaded', init);</script>
 </body>
 </html>
