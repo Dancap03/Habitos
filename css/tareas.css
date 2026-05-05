@@ -1,0 +1,38 @@
+/* ─── LISTAS GENERALES DE EVENTOS ─── */
+.list-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.list-item:last-child { border-bottom: none; }
+.check { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line); flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .2s; }
+.check.done { background: var(--acc); border-color: var(--acc); }
+.check.done::after { content: '✓'; color: #fff; font-size: 11px; }
+.item-title { font-size: 14px; font-weight: 500; line-height: 1.4; }
+.item-sub { font-size: 12px; color: var(--t2); margin-top: 3px; }
+.item-title.struck { text-decoration: line-through; color: var(--t3); }
+
+/* ─── KANBAN ─── */
+.kanban-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.kanban-wrap::-webkit-scrollbar { display: none; }
+.kanban-cols { display: flex; gap: 10px; min-width: max-content; padding-bottom: 6px; }
+.k-col { width: 175px; }
+.k-col-title { font-size: 11px; font-weight: 700; letter-spacing: .8px; padding: 6px 0; margin-bottom: 8px; }
+.k-card { background: var(--bg3); border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; margin-bottom: 8px; }
+.k-card-title { font-size: 13px; font-weight: 500; margin-bottom: 7px; line-height: 1.4; }
+.k-card-footer { display: flex; justify-content: space-between; align-items: center; }
+.k-add { font-size: 13px; color: var(--t3); padding: 10px; border: 1px dashed var(--line); border-radius: 10px; text-align: center; cursor: pointer; }
+.k-add:hover { border-color: var(--acc); color: var(--acc); }
+
+/* ─── EISENHOWER ─── */
+.eis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.eis-quad { background: var(--bg3); border-radius: 10px; padding: 12px; border: 1px solid var(--line); min-height: 120px; }
+.eis-label { font-size: 9px; font-weight: 700; letter-spacing: .8px; margin-bottom: 8px; }
+.eis-item { font-size: 12px; color: var(--t2); padding: 4px 0; display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+.eis-item span { flex: 1; }
+
+/* ─── POMODORO ─── */
+.pomo-display { text-align: center; padding: 20px 0; }
+.pomo-num { font-size: 80px; font-weight: 300; letter-spacing: -4px; font-variant-numeric: tabular-nums; font-family: var(--mono); }
+.pomo-label { font-size: 11px; letter-spacing: 2px; color: var(--t3); text-transform: uppercase; margin-bottom: 12px; }
+.pomo-btns { display: flex; gap: 12px; justify-content: center; margin-top: 18px; }
+.pomo-btn { width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer; font-size: 20px; font-family: var(--font); transition: transform .1s; }
+.pomo-btn:active { transform: scale(.92); }
+.pomo-play { background: var(--t1); color: var(--bg); }
+.pomo-reset { background: var(--bg3); color: var(--t2); border: 1px solid var(--line); }
