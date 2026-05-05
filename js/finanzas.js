@@ -1,37 +1,73 @@
+function catEmoji(c) {
+  const m = { nómina:'💼', intereses:'📈', freelance:'💻', dividendos:'🏦', alquiler:'🏠', alimentación:'🛒', transporte:'🚗', suscripciones:'📱', salud:'❤️', ocio:'🎭' };
+  return m[c] || '📌';
+}
+
 function openModalFin(type) {
-  document.getElementById('fin-type').value = type;
-  document.getElementById('modal-fin-title').textContent = type === 'ingreso' ? 'Nuevo ingreso' : 'Nuevo gasto';
-  document.getElementById('fin-date').value = today();
+  const elType = document.getElementById('fin-type');
+  const elTitle = document.getElementById('modal-fin-title');
+  const elDate = document.getElementById('fin-date');
+  
+  if(elType) elType.value = type;
+  if(elTitle) elTitle.textContent = type === 'ingreso' ? 'Nuevo ingreso' : 'Nuevo gasto';
+  if(elDate) elDate.value = today();
+  
   openModal('modal-fin');
 }
 
 function addFinEntry() {
   const amount = parseFloat(document.getElementById('fin-amount').value);
   const desc = document.getElementById('fin-desc').value.trim();
-  if (!amount || !desc) return;
-  S.fin.push({ id: uid(), type: document.getElementById('fin-type').value, amount, desc, cat: document.getElementById('fin-cat').value, date: document.getElementById('fin-date').value || today() });
+  if (!amount || !desc) return showToast('Rellena importe y descripción', 'error');
+  
+  S.fin.push({ 
+    id: uid(), 
+    type: document.getElementById('fin-type').value, 
+    amount, 
+    desc, 
+    cat: document.getElementById('fin-cat').value, 
+    date: document.getElementById('fin-date').value || today() 
+  });
   save(); closeAllModals();
   document.getElementById('fin-amount').value = '';
   document.getElementById('fin-desc').value = '';
   renderFinances();
+  showToast('Registro guardado', 'success');
 }
+
 function delFinEntry(id) {
-  S.fin = S.fin.filter(x => x.id !== id); save(); renderFinances(); renderHome();
+  if(typeof customConfirm === 'function') {
+    customConfirm('Borrar registro', '¿Seguro que quieres borrar este movimiento?', () => {
+      S.fin = S.fin.filter(x => x.id !== id); save(); renderFinances();
+    });
+  } else {
+    if(confirm('¿Borrar?')) { S.fin = S.fin.filter(x => x.id !== id); save(); renderFinances(); }
+  }
 }
+
 function addRecurring() {
   const name = document.getElementById('rec-name').value.trim();
   const amount = parseFloat(document.getElementById('rec-amount').value);
   const day = parseInt(document.getElementById('rec-day').value);
-  if (!name || !amount) return;
+  if (!name || !amount) return showToast('Revisa los datos', 'error');
+  
   S.recurring.push({ id: uid(), name, amount, day, type: document.getElementById('rec-type').value });
   save(); closeAllModals();
   document.getElementById('rec-name').value = '';
   document.getElementById('rec-amount').value = '';
   document.getElementById('rec-day').value = '';
   renderFinances();
+  showToast('Recurrente guardado', 'success');
 }
+
 function delRecurring(id) {
-  S.recurring = S.recurring.filter(x => x.id !== id); save(); renderFinances();
+  if(typeof customConfirm === 'function') {
+    customConfirm('Borrar recurrente', '¿Seguro que quieres borrar este registro recurrente?', () => {
+      S.recurring = S.recurring.filter(x => x.id !== id); save(); renderFinances();
+    });
+  } else {
+    if(confirm('¿Borrar?')) { S.recurring = S.recurring.filter(x => x.id !== id); save(); renderFinances(); }
+  }
 }
 
 function filterByPeriod(entries, period) {
@@ -46,84 +82,106 @@ function filterByPeriod(entries, period) {
 }
 
 function renderFinances() {
-  const period = S.activePeriod;
+  const period = S.activePeriod || 'mes';
   const entries = filterByPeriod(S.fin, period);
   const inc = entries.filter(e => e.type === 'ingreso').reduce((a,e) => a+e.amount, 0);
   const exp = entries.filter(e => e.type === 'gasto').reduce((a,e) => a+e.amount, 0);
   const labels = { mes: 'Mes actual', semana: 'Esta semana', año: 'Este año', total: 'Acumulado total' };
-  document.getElementById('fin-period-label').textContent = labels[period];
-  document.getElementById('fin-chart-label').textContent = 'Evolución — ' + labels[period];
-  document.getElementById('fin-bal').textContent = fmt(inc - exp);
-  document.getElementById('fin-inc').textContent = fmt(inc);
-  document.getElementById('fin-exp').textContent = fmt(exp);
+
+  const pLabel = document.getElementById('fin-period-label');
+  if(pLabel) pLabel.textContent = labels[period];
+  
+  const cLabel = document.getElementById('fin-chart-label');
+  if(cLabel) cLabel.textContent = 'Evolución — ' + labels[period];
+  
+  const balEl = document.getElementById('fin-bal');
+  if(balEl) balEl.textContent = fmt(inc - exp);
+  
+  const incTotEl = document.getElementById('fin-inc');
+  if(incTotEl) incTotEl.textContent = fmt(inc);
+  
+  const expTotEl = document.getElementById('fin-exp');
+  if(expTotEl) expTotEl.textContent = fmt(exp);
 
   const incEntries = entries.filter(e => e.type === 'ingreso');
   const incEl = document.getElementById('fin-income-list');
-  incEl.innerHTML = incEntries.length ? incEntries.map(e => `
-    <div class="fin-row">
-      <div class="row-gap">
-        <div class="icon-box" style="background:rgba(39,174,96,.1)">${catEmoji(e.cat)}</div>
-        <div><div style="font-size:13px;font-weight:500">${e.desc}</div><div class="item-sub">${e.cat} · ${e.date}</div></div>
-      </div>
-      <div style="text-align:right">
-        <div class="fin-amount-pos">${fmt(e.amount)}</div>
-        <button class="btn-danger" onclick="delFinEntry('${e.id}')">✕</button>
-      </div>
-    </div>`).join('') : '<div class="empty">Sin ingresos</div>';
+  if(incEl) {
+    incEl.innerHTML = incEntries.length ? incEntries.map(e => `
+      <div class="fin-row">
+        <div class="row-gap">
+          <div class="icon-box" style="background:rgba(39,174,96,.1)">${catEmoji(e.cat)}</div>
+          <div><div style="font-size:13px;font-weight:500">${e.desc}</div><div class="item-sub">${e.cat} · ${e.date}</div></div>
+        </div>
+        <div style="text-align:right">
+          <div class="fin-amount-pos">${fmt(e.amount)}</div>
+          <button class="btn-danger" onclick="delFinEntry('${e.id}')">✕</button>
+        </div>
+      </div>`).join('') : '<div class="empty">Sin ingresos</div>';
+  }
 
   const expEntries = entries.filter(e => e.type === 'gasto');
   const expEl = document.getElementById('fin-expense-list');
-  expEl.innerHTML = expEntries.length ? expEntries.map(e => `
-    <div class="fin-row">
-      <div class="row-gap">
-        <div class="icon-box" style="background:rgba(231,76,60,.1)">${catEmoji(e.cat)}</div>
-        <div><div style="font-size:13px;font-weight:500">${e.desc}</div><div class="item-sub">${e.cat} · ${e.date}</div></div>
-      </div>
-      <div style="text-align:right">
-        <div class="fin-amount-neg">-${fmt(e.amount)}</div>
-        <button class="btn-danger" onclick="delFinEntry('${e.id}')">✕</button>
-      </div>
-    </div>`).join('') : '<div class="empty">Sin gastos</div>';
+  if(expEl) {
+    expEl.innerHTML = expEntries.length ? expEntries.map(e => `
+      <div class="fin-row">
+        <div class="row-gap">
+          <div class="icon-box" style="background:rgba(231,76,60,.1)">${catEmoji(e.cat)}</div>
+          <div><div style="font-size:13px;font-weight:500">${e.desc}</div><div class="item-sub">${e.cat} · ${e.date}</div></div>
+        </div>
+        <div style="text-align:right">
+          <div class="fin-amount-neg">-${fmt(e.amount)}</div>
+          <button class="btn-danger" onclick="delFinEntry('${e.id}')">✕</button>
+        </div>
+      </div>`).join('') : '<div class="empty">Sin gastos</div>';
+  }
 
   const recEl = document.getElementById('fin-rec-list');
-  recEl.innerHTML = S.recurring.length ? S.recurring.map(r => `
-    <div class="fin-row">
-      <div class="row-gap">
-        <div class="icon-box" style="background:var(--bg4)">🔄</div>
-        <div><div style="font-size:13px;font-weight:500">${r.name}</div><div class="item-sub">Día ${r.day} · ${r.type}</div></div>
-      </div>
-      <div style="text-align:right">
-        <div class="${r.type==='ingreso'?'fin-amount-pos':'fin-amount-neg'}">${r.type==='gasto'?'-':''}${fmt(r.amount)}</div>
-        <button class="btn-danger" onclick="delRecurring('${r.id}')">✕</button>
-      </div>
-    </div>`).join('') : '<div class="empty">Sin recurrentes</div>';
+  if(recEl) {
+    recEl.innerHTML = S.recurring.length ? S.recurring.map(r => `
+      <div class="fin-row">
+        <div class="row-gap">
+          <div class="icon-box" style="background:var(--bg4)">🔄</div>
+          <div><div style="font-size:13px;font-weight:500">${r.name}</div><div class="item-sub">Día ${r.day} · ${r.type}</div></div>
+        </div>
+        <div style="text-align:right">
+          <div class="${r.type==='ingreso'?'fin-amount-pos':'fin-amount-neg'}">${r.type==='gasto'?'-':''}${fmt(r.amount)}</div>
+          <button class="btn-danger" onclick="delRecurring('${r.id}')">✕</button>
+        </div>
+      </div>`).join('') : '<div class="empty">Sin recurrentes</div>';
+  }
 
-  const cats = {};
-  expEntries.forEach(e => { cats[e.cat] = (cats[e.cat]||0) + e.amount; });
-  const total = Object.values(cats).reduce((a,b)=>a+b,0);
+  // Comprueba si existe la caja del gráfico de barras antes de intentar llenarla
   const catEl = document.getElementById('fin-cat-bars');
-  catEl.innerHTML = total === 0 ? '<div class="empty">Sin datos</div>' : Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([c,v]) => `
-    <div style="margin-bottom:10px">
-      <div class="row"><span style="font-size:13px">${c}</span><span style="font-size:13px;font-weight:600">${fmt(v)} <span style="color:var(--t3);font-weight:400">${Math.round(v/total*100)}%</span></span></div>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/total*100)}%;background:${catColor(c)}"></div></div>
-    </div>`).join('');
+  if(catEl) {
+    const cats = {};
+    expEntries.forEach(e => { cats[e.cat] = (cats[e.cat]||0) + e.amount; });
+    const total = Object.values(cats).reduce((a,b)=>a+b,0);
+    catEl.innerHTML = total === 0 ? '<div class="empty">Sin datos</div>' : Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([c,v]) => `
+      <div style="margin-bottom:10px">
+        <div class="row"><span style="font-size:13px">${c}</span><span style="font-size:13px;font-weight:600">${fmt(v)} <span style="color:var(--t3);font-weight:400">${Math.round(v/total*100)}%</span></span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/total*100)}%;background:${catColor(c)}"></div></div>
+      </div>`).join('');
+  }
 
-  document.getElementById('fin-notes').value = S.finNotes || "";
+  const notesEl = document.getElementById('fin-notes');
+  if(notesEl) notesEl.value = S.finNotes || "";
 
   updateFinChart(period);
-  renderHome();
 }
 
 function setFinPeriod(p, btn) {
   document.querySelectorAll('.fin-tab').forEach(t => t.classList.remove('on'));
-  btn.classList.add('on');
+  if(btn) btn.classList.add('on');
   S.activePeriod = p; save();
   renderFinances();
 }
 
 function saveFinNotes() {
-  S.finNotes = document.getElementById('fin-notes').value;
-  save();
+  const notesEl = document.getElementById('fin-notes');
+  if(notesEl) {
+    S.finNotes = notesEl.value;
+    save();
+  }
 }
 
 let finChartInst = null;
@@ -139,8 +197,9 @@ function buildFinChart() {
     ]},
     options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#444',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#444',font:{size:10},callback:v=>'€'+v.toLocaleString()},grid:{color:'rgba(255,255,255,.04)'}}}}
   });
-  updateFinChart(S.activePeriod);
+  updateFinChart(S.activePeriod || 'mes');
 }
+
 function updateFinChart(period) {
   if (!finChartInst) return;
   let labels = [], inc = [], exp = [];
