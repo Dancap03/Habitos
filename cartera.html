@@ -28,15 +28,21 @@
         </div>
       </div>
 
-      <!-- GRÁFICOS APILADOS VERTICALMENTE -->
+      <!-- GRÁFICOS APILADOS CON LEYENDA CUSTOMIZADA -->
       <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:14px;" class="card-full">
          <div class="card" style="margin-bottom:0;">
             <div class="card-title">POR TIPO</div>
-            <div style="position:relative; width:100%; height:160px;"><canvas id="chart-type"></canvas></div>
+            <div style="display:flex; align-items:center; height:160px; gap:16px;">
+                <div style="position:relative; flex:1; height:100%;"><canvas id="chart-type"></canvas></div>
+                <div id="legend-type" style="width:110px; overflow-y:auto; max-height:100%; display:flex; flex-direction:column; gap:12px; padding-right:4px;"></div>
+            </div>
          </div>
          <div class="card" style="margin-bottom:0;">
             <div class="card-title">POR ACTIVO</div>
-            <div style="position:relative; width:100%; height:160px;"><canvas id="chart-asset"></canvas></div>
+            <div style="display:flex; align-items:center; height:160px; gap:16px;">
+                <div style="position:relative; flex:1; height:100%;"><canvas id="chart-asset"></canvas></div>
+                <div id="legend-asset" style="width:110px; overflow-y:auto; max-height:100%; display:flex; flex-direction:column; gap:12px; padding-right:4px;"></div>
+            </div>
          </div>
       </div>
 
@@ -115,8 +121,8 @@
 
   <div class="toast-container" id="toast-container"></div>
 </div>
-<script src="js/main.js?v=39"></script>
-<script src="js/cartera.js?v=39"></script>
+<script src="js/main.js?v=42"></script>
+<script src="js/cartera.js?v=42"></script>
 <script>document.addEventListener('DOMContentLoaded', init);</script>
 </body>
 </html>
