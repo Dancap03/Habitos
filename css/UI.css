@@ -35,7 +35,6 @@
 }
 .form-input:focus { outline: none; border-color: var(--acc); }
 
-/* Flecha personalizada para los selectores */
 select.form-input { 
     appearance: none; -webkit-appearance: none; 
     background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E"); 
@@ -58,7 +57,6 @@ select.form-input {
 .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
 .btn-primary { background: var(--acc); color: #fff; }
 
-/* X Roja Limpia y Universal */
 .btn-danger { 
     background: transparent !important; border: none !important; color: var(--red) !important; 
     font-size: 16px !important; font-weight: bold; cursor: pointer; padding: 4px 8px; 
@@ -66,10 +64,43 @@ select.form-input {
 }
 .btn-danger:hover { opacity: 0.7; }
 
-/* Pestañas (Tabs de Gym y Finanzas) */
-.fin-tabs, .gym-tabs { display: flex; gap: 10px; margin-bottom: 16px; overflow-x: auto; }
-.fin-tab, .gym-tab { background: var(--bg3); color: var(--t2); border: none; padding: 8px 20px; border-radius: 20px; font-weight: 600; font-size: 13px; cursor: pointer; transition: 0.2s; white-space: nowrap; }
-.fin-tab.on, .gym-tab.on { background: var(--acc); color: #fff; }
+/* =========================================
+   PESTAÑAS (TABS) - CORREGIDAS PARA VISIBILIDAD
+   ========================================= */
+.fin-tabs, .gym-tabs { 
+    display: flex; 
+    gap: 10px; 
+    margin-bottom: 16px; 
+    overflow-x: auto; 
+    padding: 4px 0;
+    flex-shrink: 0;
+    scrollbar-width: none;
+}
+.fin-tabs::-webkit-scrollbar { display: none; }
+
+.fin-tab, .gym-tab { 
+    background: var(--bg3); 
+    color: var(--t2); 
+    border: none; 
+    padding: 12px 24px; 
+    border-radius: 25px; 
+    font-weight: 700; 
+    font-size: 13px; 
+    cursor: pointer; 
+    transition: all 0.2s; 
+    white-space: nowrap; 
+    flex-shrink: 0;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fin-tab.on, .gym-tab.on { 
+    background: var(--acc); 
+    color: #fff; 
+    box-shadow: 0 4px 10px rgba(224, 90, 43, 0.3);
+}
 
 /* =========================================
    BARRA DE NAVEGACIÓN INFERIOR (BOTTOM NAV)
