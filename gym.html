@@ -19,11 +19,13 @@
       <div class="topbar-right"><button class="btn btn-sm" onclick="openRoutineModal()">+ Rutina</button></div>
     </div>
     <div class="scroll">
+      <!-- PESTAÑAS NUEVAS -->
       <div class="pill-row" id="gym-routine-pills">
         <span class="pill on" onclick="switchGymView('rutinas',this)">Rutinas</span>
-        <span class="pill" onclick="switchGymView('historial',this)">Historial</span>
+        <span class="pill" onclick="switchGymView('records',this)">Récords</span>
       </div>
       
+      <!-- VISTA 1: RUTINAS Y DÍAS -->
       <div id="gv-rutinas">
         <div id="gym-routine-list"><div class="empty">Crea tu primera rutina</div></div>
         
@@ -44,19 +46,17 @@
         </div>
 
         <div class="card">
-          <div class="card-title">Récords Personales 🏆</div>
-          <div id="gym-prs"><div class="empty">Sin registros aún</div></div>
-        </div>
-
-        <div class="card">
           <div class="card-title">Días de Entrenamiento 📅</div>
           <div id="gym-days"><div class="empty">Sin entrenamientos aún</div></div>
         </div>
       </div>
 
-      <div id="gv-historial" style="display:none">
-        <div id="gym-history-list"></div>
-        <button id="gym-history-more" class="btn btn-sm" style="width:100%; margin-top:10px; display:none;" onclick="loadMoreHistory()">Ver más antiguos</button>
+      <!-- VISTA 2: RÉCORDS PERSONALES -->
+      <div id="gv-records" style="display:none">
+        <div class="card">
+          <div class="card-title">Récords Personales 🏆</div>
+          <div id="gym-prs"><div class="empty">Sin registros aún</div></div>
+        </div>
       </div>
     </div>
   </div>
@@ -106,8 +106,8 @@
   <div class="toast-container" id="toast-container"></div>
 </div>
 
-<script src="js/main.js?v=3"></script>
-<script src="js/gym.js?v=3"></script>
+<script src="js/main.js?v=4"></script>
+<script src="js/gym.js?v=4"></script>
 <script>document.addEventListener('DOMContentLoaded', init);</script>
 </body>
 </html>
