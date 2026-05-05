@@ -115,8 +115,8 @@ function renderEditPurchases(s) {
     const colorClass = isPos ? 'stock-chg-pos' : 'stock-chg-neg';
     const sign = isPos ? '▲' : '▼';
 
-    // Formateo del dinero: Si es exacto pone 6€, si tiene decimales pone 6.30€
-    let formattedInvested = p.invested % 1 === 0 ? p.invested + '€' : p.invested.toFixed(2) + '€';
+    // Aquí está la magia: Formato de Invertido limpio (ej. 6€ o 6.50€)
+    const formattedInvested = p.invested % 1 === 0 ? p.invested + '€' : p.invested.toFixed(2) + '€';
 
     return `
     <div class="fin-row" style="padding: 12px 0; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
@@ -191,7 +191,7 @@ function delStockPurchase(stockId, purchaseId) {
 
 function delStock(id) {
   if (typeof customConfirm === 'function') {
-    customConfirm('Borrar posición', '¿Seguro que quieres borrar esta acción y todas sus compras?', () => {
+    customConfirm('Borrar posición', '¿Seguro que quieres borrar esta posición y todas sus compras?', () => {
       S.stocks = S.stocks.filter(x => x.id !== id);
       save(); closeAllModals(); renderStocks();
     });
