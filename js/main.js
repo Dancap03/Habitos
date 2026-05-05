@@ -87,4 +87,30 @@ function init() {
   if(document.getElementById('pomo-display') && typeof updPomo === 'function') updPomo();
   if(document.getElementById('finChart') && typeof renderFinances === 'function') { setTimeout(initFinChart, 80); renderFinances(); }
   if(document.getElementById('stock-list') && typeof renderStocks === 'function') renderStocks();
+
+  // --- SISTEMA DE CONFIRMACIÓN PERSONALIZADO ---
+let confirmAction = null;
+
+function customConfirm(title, message, callback) {
+  const titleEl = document.getElementById('confirm-title');
+  const msgEl = document.getElementById('confirm-message');
+  if (titleEl) titleEl.textContent = title;
+  if (msgEl) msgEl.textContent = message;
+  
+  confirmAction = callback; // Guardamos la acción para luego
+  openModal('modal-confirm');
+}
+
+function executeConfirm() {
+  if (confirmAction) confirmAction(); // Ejecuta la función de borrar
+  document.getElementById('modal-confirm').classList.remove('on');
+  confirmAction = null;
+}
+
+function cancelConfirm(e, force = false) {
+  if (force || !e || (e.target && e.target.classList.contains('overlay'))) {
+    document.getElementById('modal-confirm').classList.remove('on');
+    confirmAction = null;
+  }
+}
 }
