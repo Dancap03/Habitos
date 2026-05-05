@@ -1,7 +1,9 @@
 // --- SISTEMA DE PESTAÑAS ---
 function switchGymTab(tab, btn) {
-    document.querySelectorAll('.fin-tab').forEach(b => b.classList.remove('on'));
+    document.querySelectorAll('.gym-tab').forEach(b => b.classList.remove('on'));
     btn.classList.add('on');
+    
+    const cont = document.getElementById('active-workout-container');
     
     document.querySelectorAll('.tab-rutinas-item').forEach(el => {
         if(el.id === 'active-workout-container') {
@@ -18,24 +20,21 @@ function switchGymTab(tab, btn) {
 
 // --- RENDERIZADO INICIAL ---
 function renderGymInit() {
-    init(); // Asegura cargar los datos de main.js primero
+    init();
     renderRoutines();
     renderActiveWorkout();
     renderWorkoutLog();
     renderRecords();
 }
 
-// --- RUTINAS ---
+// --- RUTINAS BASE ---
 function addRoutine() {
     const name = document.getElementById('rt-name').value.trim();
-    const exStr = document.getElementById('rt-exercises').value;
     if(!name) return showToast('Pon un nombre a la rutina', 'error');
     
-    const exercises = exStr.split(',').map(e => e.trim()).filter(e => e);
-    S.routines.push({ id: uid(), name, exercises });
-    save(); 
-    closeModal('modal-routine'); 
-    renderRoutines();
+    S.routines.push({ id: uid(), name });
+    save(); closeModal('modal-routine'); renderRoutines();
+    document.getElementById('rt-name').value = '';
     showToast('Rutina guardada');
 }
 
@@ -44,16 +43,13 @@ function renderRoutines() {
     if(!list) return;
     list.innerHTML = S.routines.length ? S.routines.map(r => `
         <div class="list-item" style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--line);">
-            <div>
-                <div style="font-weight:700; font-size:14px;">${r.name}</div>
-                <div style="font-size:11px; color:var(--t2); margin-top:2px;">${r.exercises.join(' · ')}</div>
-            </div>
+            <div style="font-weight:700; font-size:15px;">${r.name}</div>
             <div style="display:flex; gap:8px;">
                 <button class="btn btn-sm" style="background:var(--acc); color:#fff;" onclick="startWorkout('${r.id}')">▶ Empezar</button>
                 <button class="btn-danger" style="background:none; color:var(--red); border:none; padding:8px;" onclick="delRoutine('${r.id}')">✕</button>
             </div>
         </div>
-    `).join('') : '<div class="empty">No tienes rutinas configuradas</div>';
+    `).join('') : '<div class="empty">Crea una rutina para empezar (ej. "Día de Pecho")</div>';
 }
 
 function delRoutine(id) {
@@ -76,12 +72,11 @@ function startWorkout(id) {
         date: today(),
         startTime: formatTime(new Date()),
         endTime: '--:--',
-        exercises: r.exercises.map(name => ({ name, sets: [] }))
+        exercises: [] // Empieza vacío, se añaden sobre la marcha
     };
     save();
     
-    // Cambiar automáticamente a la pestaña de Rutinas si no estaba
-    const btnRutinas = document.querySelector('.fin-tab:first-child');
+    const btnRutinas = document.querySelector('.gym-tab:first-child');
     if(btnRutinas) switchGymTab('rutinas', btnRutinas);
     
     renderActiveWorkout();
@@ -97,57 +92,115 @@ function renderActiveWorkout() {
         return;
     }
     
-    // Si la pestaña seleccionada no es "Rutinas", lo ocultamos
-    const isRutinasTab = document.querySelector('.fin-tab.on').textContent.trim() === 'Rutinas';
+    const isRutinasTab = document.querySelector('.gym-tab.on').textContent.trim() === 'Rutinas';
     cont.style.display = isRutinasTab ? 'block' : 'none';
     
     const w = S.activeRoutine;
     
-    let exHtml = w.exercises.map((ex, exIdx) => `
-        <div style="margin-top:20px; background:var(--bg3); padding:12px; border-radius:12px;">
-            <div style="font-weight:700; color:var(--acc); margin-bottom:12px;">${ex.name}</div>
+    let exHtml = w.exercises.map((ex, exIdx) => {
+        const isPesas = ex.type === 'pesas';
+        
+        // Cabeceras de columnas
+        const headers = isPesas 
+            ? `<div style="flex:1; text-align:center; font-size:10px; color:var(--t3); font-weight:700;">KG</div><div style="flex:1; text-align:center; font-size:10px; color:var(--t3); font-weight:700;">REPS</div>`
+            : `<div style="flex:1; text-align:center; font-size:10px; color:var(--t3); font-weight:700; text-transform:uppercase;">${ex.unit}</div>`;
+
+        // Filas de series
+        const setsHtml = ex.sets.map((set, sIdx) => {
+            const inputs = isPesas
+                ? `<input type="number" placeholder="kg" value="${set.kg||''}" onchange="updateSet(${exIdx}, ${sIdx}, 'kg', this.value)" style="flex:1; min-width:0; padding:10px; background:var(--bg4); border:none; border-radius:8px; color:#fff; text-align:center;">
+                   <input type="number" placeholder="reps" value="${set.reps||''}" onchange="updateSet(${exIdx}, ${sIdx}, 'reps', this.value)" style="flex:1; min-width:0; padding:10px; background:var(--bg4); border:none; border-radius:8px; color:#fff; text-align:center;">`
+                : `<input type="number" placeholder="${ex.unit}" value="${set.val||''}" onchange="updateSet(${exIdx}, ${sIdx}, 'val', this.value)" style="flex:1; min-width:0; padding:10px; background:var(--bg4); border:none; border-radius:8px; color:#fff; text-align:center;">`;
+
+            return `
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <div style="width:24px; text-align:center; font-size:12px; color:var(--t3); font-weight:700;">${sIdx + 1}</div>
+                    ${inputs}
+                    <button class="btn" style="background:${set.done ? 'var(--acc)' : 'var(--bg4)'}; color:${set.done ? '#fff' : 'var(--t2)'}; padding:10px 16px; border-radius:8px; font-weight:700;" onclick="toggleSet(${exIdx}, ${sIdx})">✓</button>
+                </div>
+            `;
+        }).join('');
+
+        return `
+        <div style="margin-top:16px; background:var(--bg3); padding:14px; border-radius:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div style="font-weight:700; font-size:15px; color:var(--acc);">${ex.name} <span style="font-size:10px; color:var(--t3); font-weight:500;">(${isPesas ? 'Pesas' : 'Cardio'})</span></div>
+            </div>
+            
+            <div style="display:flex; gap:8px; padding-left:32px; padding-right:56px; margin-bottom:4px;">
+                ${headers}
+            </div>
             
             <div style="display:flex; flex-direction:column; gap:8px;">
-                ${ex.sets.map((set, sIdx) => `
-                    <div style="display:flex; gap:8px; align-items:center;">
-                        <div style="width:24px; text-align:center; font-size:12px; color:var(--t3); font-weight:700;">${sIdx + 1}</div>
-                        <input type="number" placeholder="kg" value="${set.kg||''}" onchange="updateSet(${exIdx}, ${sIdx}, 'kg', this.value)" style="flex:1; min-width:0; padding:10px; background:var(--bg4); border:none; border-radius:8px; color:#fff; text-align:center;">
-                        <input type="number" placeholder="reps" value="${set.reps||''}" onchange="updateSet(${exIdx}, ${sIdx}, 'reps', this.value)" style="flex:1; min-width:0; padding:10px; background:var(--bg4); border:none; border-radius:8px; color:#fff; text-align:center;">
-                        <button class="btn" style="background:${set.done ? 'var(--acc)' : 'var(--bg4)'}; color:${set.done ? '#fff' : 'var(--t2)'}; padding:10px 16px; border-radius:8px; font-weight:700;" onclick="toggleSet(${exIdx}, ${sIdx})">✓</button>
-                    </div>
-                `).join('')}
+                ${setsHtml}
             </div>
             
-            <button class="btn btn-sm" style="background:rgba(255,255,255,0.05); width:100%; margin-top:12px; color:var(--t2);" onclick="addSet(${exIdx})">+ Añadir Serie</button>
+            <button class="btn btn-sm" style="background:rgba(255,255,255,0.05); width:100%; margin-top:12px; color:var(--t1);" onclick="addSet(${exIdx})">+ Añadir Serie</button>
         </div>
-    `).join('');
+        `;
+    }).join('');
 
     cont.innerHTML = `
-        <div style="font-size:20px; font-weight:800; color:var(--t1);">${w.name}</div>
-        <div style="font-size:12px; color:var(--acc); font-weight:600; margin-bottom:16px;">EN PROGRESO ⏳</div>
-        
-        <div style="display:flex; gap:12px; margin-bottom:8px;">
-            <div style="flex:1;">
-                <div style="font-size:11px; color:var(--t3); margin-bottom:4px; font-weight:600;">Hora Inicio</div>
-                <input type="time" value="${w.startTime}" onchange="S.activeRoutine.startTime=this.value; save();" style="width:100%; padding:10px; background:var(--bg3); border:none; border-radius:8px; color:#fff;">
+        <div class="card" style="border: 1px solid var(--acc);">
+            <div style="font-size:22px; font-weight:800; color:var(--t1);">${w.name}</div>
+            <div style="font-size:12px; color:var(--acc); font-weight:600; margin-bottom:16px; letter-spacing:0.5px;">EN PROGRESO ⏳</div>
+            
+            <div style="display:flex; gap:12px; margin-bottom:16px;">
+                <div style="flex:1;">
+                    <div style="font-size:11px; color:var(--t3); margin-bottom:4px; font-weight:600;">Hora Inicio</div>
+                    <input type="time" value="${w.startTime}" onchange="S.activeRoutine.startTime=this.value; save();" style="width:100%; padding:10px; background:var(--bg3); border:none; border-radius:8px; color:#fff; box-sizing:border-box;">
+                </div>
+                <div style="flex:1;">
+                    <div style="font-size:11px; color:var(--t3); margin-bottom:4px; font-weight:600;">Hora Fin</div>
+                    <input type="time" value="${w.endTime !== '--:--' ? w.endTime : ''}" onchange="S.activeRoutine.endTime=this.value; save();" style="width:100%; padding:10px; background:var(--bg3); border:none; border-radius:8px; color:#fff; box-sizing:border-box;">
+                </div>
             </div>
-            <div style="flex:1;">
-                <div style="font-size:11px; color:var(--t3); margin-bottom:4px; font-weight:600;">Hora Fin</div>
-                <input type="time" value="${w.endTime !== '--:--' ? w.endTime : ''}" onchange="S.activeRoutine.endTime=this.value; save();" style="width:100%; padding:10px; background:var(--bg3); border:none; border-radius:8px; color:#fff;">
+
+            ${exHtml}
+
+            <button class="btn" style="background:var(--bg3); color:var(--t1); width:100%; margin-top:16px; font-size:14px; border: 1px dashed var(--line);" onclick="openAddExerciseModal()">+ Añadir Ejercicio</button>
+
+            <div style="margin-top:24px; display:flex; flex-direction:column; gap:10px;">
+                <button class="btn" style="background:var(--acc); color:#fff; width:100%; font-size:15px;" onclick="finishWorkout()">Finalizar Entreno 💪</button>
+                <button class="btn" style="background:transparent; color:var(--t3); width:100%; font-size:13px;" onclick="cancelWorkout()">Descartar entreno</button>
             </div>
-        </div>
-
-        ${exHtml}
-
-        <div style="margin-top:24px; display:flex; flex-direction:column; gap:10px;">
-            <button class="btn" style="background:var(--acc); color:#fff; width:100%; font-size:16px;" onclick="finishWorkout()">Finalizar Entreno 💪</button>
-            <button class="btn" style="background:rgba(231,76,60,0.1); color:var(--red); width:100%;" onclick="cancelWorkout()">Descartar entreno</button>
         </div>
     `;
 }
 
+// --- LÓGICA DE EJERCICIOS Y SERIES ---
+function openAddExerciseModal() {
+    document.getElementById('ex-name').value = '';
+    document.getElementById('ex-unit').value = '';
+    document.getElementById('ex-type').value = 'pesas';
+    toggleExerciseType();
+    openModal('modal-exercise');
+}
+
+function toggleExerciseType() {
+    const type = document.getElementById('ex-type').value;
+    document.getElementById('ex-unit-container').style.display = type === 'cardio' ? 'block' : 'none';
+}
+
+function addExerciseToWorkout() {
+    const type = document.getElementById('ex-type').value;
+    const name = document.getElementById('ex-name').value.trim();
+    const unit = document.getElementById('ex-unit').value.trim() || 'km';
+
+    if(!name) return showToast('Escribe el nombre del ejercicio', 'error');
+
+    S.activeRoutine.exercises.push({ 
+        type, 
+        name, 
+        unit: type === 'cardio' ? unit : null, 
+        sets: [ { done: false } ] // Empieza con 1 serie vacía por defecto
+    });
+    
+    save(); closeModal('modal-exercise'); renderActiveWorkout();
+}
+
 function addSet(exIdx) {
-    S.activeRoutine.exercises[exIdx].sets.push({ kg: '', reps: '', done: false });
+    S.activeRoutine.exercises[exIdx].sets.push({ done: false });
     save(); renderActiveWorkout();
 }
 
@@ -157,16 +210,27 @@ function updateSet(exIdx, sIdx, field, val) {
 }
 
 function toggleSet(exIdx, sIdx) {
-    const s = S.activeRoutine.exercises[exIdx].sets[sIdx];
+    const ex = S.activeRoutine.exercises[exIdx];
+    const s = ex.sets[sIdx];
     s.done = !s.done;
     
-    // Comprobar si hay nuevo PR
-    if(s.done && s.kg && s.reps) {
-        const exName = S.activeRoutine.exercises[exIdx].name;
-        const weight = parseFloat(s.kg);
-        if(!S.prs[exName] || weight > S.prs[exName].kg) {
-            S.prs[exName] = { kg: weight, reps: parseInt(s.reps), date: today() };
-            showToast(`¡Nuevo PR en ${exName}! 🏆`);
+    // Récords
+    if(s.done) {
+        if(!S.prs) S.prs = {};
+        const key = ex.name;
+        
+        if (ex.type === 'pesas' && s.kg && s.reps) {
+            const weight = parseFloat(s.kg);
+            if(!S.prs[key] || weight > S.prs[key].val) {
+                S.prs[key] = { type: 'pesas', val: weight, reps: parseInt(s.reps), date: today() };
+                showToast(`¡Nuevo PR en ${key}! 🏆`);
+            }
+        } else if (ex.type === 'cardio' && s.val) {
+            const value = parseFloat(s.val);
+            if(!S.prs[key] || value > S.prs[key].val) {
+                S.prs[key] = { type: 'cardio', val: value, unit: ex.unit, date: today() };
+                showToast(`¡Nuevo Récord en ${key}! 🏆`);
+            }
         }
     }
     save(); renderActiveWorkout(); renderRecords();
@@ -184,12 +248,14 @@ function finishWorkout() {
         S.activeRoutine.endTime = formatTime(new Date());
     }
     
-    // Calcular volumen total movido
+    // Volumen total solo suma pesas
     let vol = 0;
     S.activeRoutine.exercises.forEach(ex => {
-        ex.sets.forEach(s => {
-            if(s.done && s.kg && s.reps) vol += parseFloat(s.kg) * parseInt(s.reps);
-        });
+        if(ex.type === 'pesas') {
+            ex.sets.forEach(s => {
+                if(s.done && s.kg && s.reps) vol += parseFloat(s.kg) * parseInt(s.reps);
+            });
+        }
     });
 
     S.workoutLog.push({
@@ -202,17 +268,15 @@ function finishWorkout() {
     });
 
     S.activeRoutine = null;
-    save(); renderActiveWorkout(); renderWorkoutLog(); showToast('Entreno completado y guardado ✅');
+    save(); renderActiveWorkout(); renderWorkoutLog(); showToast('Entreno completado ✅');
 }
 
-// --- HISTORIAL ---
+// --- HISTORIAL Y RÉCORDS ---
 function renderWorkoutLog() {
     const list = document.getElementById('gym-workout-log');
     if(!list) return;
     
-    // Mostrar del más reciente al más antiguo
     const sortedLog = [...S.workoutLog].reverse();
-    
     list.innerHTML = sortedLog.length ? sortedLog.map(w => `
         <div class="list-item" style="padding:12px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
             <div>
@@ -220,8 +284,8 @@ function renderWorkoutLog() {
                 <div style="font-size:11px; color:var(--t2); margin-top:2px;">${w.date} · ⏱️ ${w.startTime} - ${w.endTime}</div>
             </div>
             <div style="text-align:right; display:flex; align-items:center; gap:12px;">
-                <div style="font-size:14px; font-weight:800; color:var(--acc);">${w.volume} <span style="font-size:10px; color:var(--t3);">kg vol.</span></div>
-                <button class="btn-danger" style="background:none; color:var(--red); border:none; padding:4px;" onclick="delWorkoutLog('${w.id}')">✕</button>
+                ${w.volume > 0 ? `<div style="font-size:14px; font-weight:800; color:var(--acc);">${w.volume} <span style="font-size:10px; color:var(--t3);">kg vol.</span></div>` : ''}
+                <button class="btn-danger" style="background:none; color:var(--red); border:none; padding:4px; font-size:16px;" onclick="delWorkoutLog('${w.id}')">✕</button>
             </div>
         </div>
     `).join('') : '<div class="empty">Tu historial de entrenos aparecerá aquí</div>';
@@ -234,25 +298,28 @@ function delWorkoutLog(id) {
     });
 }
 
-// --- RÉCORDS (PRs) ---
 function renderRecords() {
     const list = document.getElementById('gym-records-list');
     if(!list) return;
     
-    const prKeys = Object.keys(S.prs);
+    const prKeys = Object.keys(S.prs || {});
     list.innerHTML = prKeys.length ? prKeys.map(k => {
         const pr = S.prs[k];
+        const isPesas = pr.type === 'pesas';
+        
         return `
-        <div class="list-item" style="padding:16px; background:var(--bg3); border-radius:12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; border-left: 4px solid var(--yel);">
+        <div class="card" style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; border-left: 4px solid var(--yel);">
             <div>
                 <div style="font-weight:700; font-size:15px; color:var(--t1); text-transform:uppercase;">${k}</div>
-                <div style="font-size:11px; color:var(--t3); margin-top:4px;">Conseguido el ${pr.date}</div>
+                <div style="font-size:11px; color:var(--t3); margin-top:4px;">El ${pr.date}</div>
             </div>
             <div style="text-align:right;">
-                <div style="font-size:22px; font-weight:800; color:var(--yel); line-height:1;">${pr.kg} <span style="font-size:12px; color:var(--t2);">kg</span></div>
-                <div style="font-size:12px; color:var(--t1); font-weight:600; margin-top:2px;">x ${pr.reps} reps</div>
+                <div style="font-size:22px; font-weight:800; color:var(--yel); line-height:1;">
+                    ${pr.val} <span style="font-size:12px; color:var(--t2);">${isPesas ? 'kg' : pr.unit}</span>
+                </div>
+                ${isPesas ? `<div style="font-size:12px; color:var(--t1); font-weight:600; margin-top:2px;">x ${pr.reps} reps</div>` : ''}
             </div>
         </div>
         `;
-    }).join('') : '<div class="empty">Completa series para que tus récords aparezcan aquí mágicamente 🥇</div>';
+    }).join('') : '<div class="empty">Tus récords aparecerán al marcar series ✅</div>';
 }
