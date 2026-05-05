@@ -1,16 +1,8 @@
 /* =========================================
     ESTRUCTURA PRINCIPAL Y LAYOUT - CORREGIDO
    ========================================= */
-/* 1. ESTRUCTURA BASE (RESETEO SEGURO) */
-html, body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    overflow: hidden; /* Evita el rebote de toda la página */
-}
-
 .app { 
-    height: 100%; /* Usamos 100% que es lo más compatible */
+    height: 100dvh; /* Cambiado de 100vh a 100dvh */
     width: 100vw; 
     display: flex; 
     flex-direction: column; 
@@ -18,18 +10,19 @@ html, body {
     margin: 0 auto; 
     background: var(--bg1); 
     position: relative;
+    overflow: hidden; /* Evita rebotes extraños fuera de la app */
 }
 
-/* 2. EL ÁREA DE SCROLL (MÁS SIMPLE) */
 .scroll { 
     flex: 1; 
     overflow-y: auto; 
-    /* 150px de espacio al final para que NADA quede tapado */
-    padding: 10px 20px 150px; 
+    /* Aumentamos el padding inferior a 120px o 140px para que el último botón 
+       quede bien arriba de la barra de navegación */
+    padding: 10px 20px 140px; 
     display: flex; 
     flex-direction: column; 
     gap: 16px; 
-    /* Permite scroll fluido en móviles */
+    /* Mejora el scroll en dispositivos iOS */
     -webkit-overflow-scrolling: touch; 
 }
 
@@ -136,36 +129,13 @@ select.form-input {
     transform: translateX(-50%); 
     width: 100%; 
     max-width: 600px;
-    background: #0c0c0c; /* Color sólido para evitar transparencias raras */
+    background: rgba(18, 18, 18, 0.95); /* Un poco más sólida */
+    backdrop-filter: blur(10px); 
     border-top: 1px solid var(--line); 
     display: flex; 
     justify-content: space-around; 
-    /* Padding fijo que funciona en todos los móviles */
-    padding: 12px 0 25px; 
+    padding: 10px 10px 25px; /* 25px de padding abajo para el área segura de los móviles */
     z-index: 100; 
-}
-
-/* 4. BOTONES DEL MENÚ (RESETEO DE COLORES) */
-.nav-btn { 
-    background: none !important; 
-    border: none !important; 
-    box-shadow: none !important;
-    color: var(--t3); 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    gap: 4px; 
-    cursor: pointer; 
-    flex: 1; /* Distribuye los botones equitativamente */
-}
-
-.nav-btn.on { 
-    color: var(--acc); 
-}
-
-.nav-label { 
-    font-size: 10px; 
-    font-weight: 600; 
 }
 
 /* =========================================
