@@ -1,79 +1,37 @@
 :root {
-  --bg: #080808;
+  /* Fondo y tarjetas */
+  --bg1: #080808;
   --bg2: #121212;
   --bg3: #1c1c1e;
   --bg4: #2c2c2e;
-  --line: rgba(255,255,255,0.08);
-  --acc: #e05a2b;
-  --acc-rgb: 224, 90, 43;
+  
+  /* Textos */
   --t1: #ffffff;
   --t2: #a1a1a6;
-  --t3: #636366;
-  --grn: #27ae60;
-  --red: #e74c3c;
-  --blu: #3b82f6;
-  --pur: #8b5cf6;
-  --yel: #f59e0b;
-}
-
-* { margin: 0; padding: 0; box-box: border-box; -webkit-tap-highlight-color: transparent; }
-
-body {
-  background-color: var(--bg);
-  color: var(--t1);
-  font-family: 'DM Sans', sans-serif;
-  line-height: 1.4;
-  overflow: hidden; /* Evita doble scroll */
-}
-
-/* Contenedor principal adaptable */
-.app {
-  width: 100%;
-  max-width: 1200px; /* Ancho máximo para ordenadores */
-  margin: 0 auto;    /* Centrado en pantalla */
-  height: 100vh;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg);
-}
-
-.screen {
-  flex: 1;
-  display: none;
-  flex-direction: column;
-  height: 100%;
-}
-
-.screen.on { display: flex; }
-
-.scroll {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px 16px 100px 16px;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Ajustes Responsive para el scroll */
-@media (min-width: 768px) {
-  .scroll {
-    padding: 24px 40px 40px 40px;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 20px;
-    align-content: start;
-  }
+  --t3: #6e6e73;
   
-  /* Forzamos que ciertas tarjetas ocupen todo el ancho si queremos */
-  .card-full { grid-column: 1 / -1; }
+  /* Colores de acento */
+  --acc: #e05a2b; /* Naranja principal Dancab */
+  --blu: #3b82f6; 
+  --grn: #27ae60; 
+  --red: #e74c3c; 
+  --yel: #f59e0b; 
+  --pur: #8b5cf6;
+  
+  /* Líneas divisorias */
+  --line: rgba(255, 255, 255, 0.08);
 }
 
-.topbar {
-  padding: 20px 16px 10px 16px;
-  background: var(--bg);
-  z-index: 10;
+* { 
+  margin: 0; 
+  padding: 0; 
+  box-sizing: border-box; 
+  -webkit-tap-highlight-color: transparent; 
 }
 
-@media (min-width: 768px) {
-  .topbar { padding: 30px 40px 10px 40px; }
+body { 
+  font-family: 'DM Sans', sans-serif; 
+  background: var(--bg1); 
+  color: var(--t1); 
+  overflow: hidden; 
 }
