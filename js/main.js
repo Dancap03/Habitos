@@ -57,21 +57,6 @@ function formatTime(date) { return String(date.getHours()).padStart(2, '0') + ':
 function fmt(n) { return '€' + (+n).toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2}); }
 function getWeek(d) { const dt = new Date(d), day = dt.getDay() || 7; dt.setDate(dt.getDate() + 4 - day); const y = new Date(dt.getFullYear(), 0, 1); return Math.ceil(((dt - y) / 86400000 + 1) / 7); }
 
-function catTagClass(c) {
-  if (['trabajo','salud','ahorro'].includes(c)) return 'tag-blu';
-  if (['clases','suscripciones'].includes(c)) return 'tag-pur';
-  if (['exámenes','alquiler'].includes(c)) return 'tag-red';
-  if (['gym','transporte'].includes(c)) return 'tag-acc';
-  if (['cumpleaños','ocio','dividendos','intereses'].includes(c)) return 'tag-yel';
-  if (['quedadas','alimentación','nómina','personal'].includes(c)) return 'tag-grn';
-  return 'tag-t3';
-}
-
-function catColor(c) {
-  const m = { ahorro:'var(--blu)', trabajo:'var(--blu)', personal:'var(--grn)', estudios:'var(--pur)', gym:'var(--acc)', nómina:'var(--grn)', intereses:'var(--yel)', dividendos:'var(--yel)', alquiler:'var(--red)', alimentación:'var(--grn)', transporte:'var(--acc)', suscripciones:'var(--pur)', salud:'var(--blu)', ocio:'var(--yel)', clases:'var(--pur)', exámenes:'var(--red)', cumpleaños:'var(--yel)', quedadas:'var(--grn)' };
-  return m[c] || 'var(--t3)';
-}
-
 function setGreeting() {
   const h = new Date().getHours();
   const g = h < 5 ? 'Buenas noches' : h < 12 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches';
@@ -106,6 +91,75 @@ function cancelConfirm(e, force = false) {
   }
 }
 
+// ----------------------------------------
+// MOTOR DEL INICIO (DASHBOARD TOTAL)
+// ----------------------------------------
+function renderHome() {
+  // 1. FINANZAS TOTALES HISTÓRICAS
+  if (S.fin && document.getElementById('home-fin-inc')) {
+    // Calculamos los totales ignorando los periodos (todo el histórico)
+    const trueInc = S.fin.filter(e => e.type === 'ingreso' && e.cat !== 'ahorro').reduce((a,e) => a+e.amount, 0);
+    const trueExp = S.fin.filter(e => e.type === 'gasto' && e.cat !== 'ahorro').reduce((a,e) => a+e.amount, 0);
+    
+    // Cálculo de la hucha
+    const savIn = S.fin.filter(e => e.type === 'gasto' && e.cat === 'ahorro').reduce((a,e) => a+e.amount, 0);
+    const savOut = S.fin.filter(e => e.type === 'ingreso' && e.cat === 'ahorro').reduce((a,e) => a+e.amount, 0);
+    const totalSav = savIn - savOut;
+
+    document.getElementById('home-fin-inc').textContent = fmt(trueInc);
+    document.getElementById('home-fin-exp').textContent = fmt(trueExp);
+    
+    const elSav = document.getElementById('home-fin-sav');
+    if (totalSav < 0) {
+      elSav.textContent = '-' + fmt(Math.abs(totalSav));
+      elSav.style.color = 'var(--red)';
+    } else {
+      elSav.textContent = fmt(totalSav);
+      elSav.style.color = 'var(--blu)';
+    }
+  }
+
+  // 2. CARTERA (VALOR TOTAL)
+  if (S.stocks && document.getElementById('home-port-total')) {
+    let totalValue = 0;
+    let totalInvested = 0;
+
+    S.stocks.forEach(s => {
+      let inv = 0; let shares = 0;
+      if(s.purchases) {
+        s.purchases.forEach(p => { inv += p.invested; shares += p.shares; });
+      }
+      totalValue += shares * s.price;
+      totalInvested += inv;
+    });
+
+    const pnl = totalValue - totalInvested;
+    const pct = totalInvested > 0 ? (pnl / totalInvested) * 100 : 0;
+    const isPos = pnl >= 0;
+
+    document.getElementById('home-port-total').textContent = fmt(totalValue);
+    document.getElementById('home-port-inv').textContent = fmt(totalInvested);
+    
+    const elPnl = document.getElementById('home-port-pnl');
+    elPnl.textContent = `${isPos ? '+' : '-'}${fmt(Math.abs(pnl))} (${pct.toFixed(2)}%)`;
+    elPnl.style.color = isPos ? 'var(--grn)' : 'var(--red)';
+  }
+
+  // 3. CALENDARIO GYM (VER SI HAS ENTRENADO HOY)
+  if (S.workoutLog && document.getElementById('home-gym-status')) {
+    const gymStat = document.getElementById('home-gym-status');
+    const didGymToday = S.workoutLog.some(w => w.date === today());
+    
+    if (didGymToday) {
+      gymStat.textContent = 'Hoy: Sí 💪';
+      gymStat.className = 'tag tag-grn';
+    } else {
+      gymStat.textContent = 'Hoy: No';
+      gymStat.className = 'tag tag-t3';
+    }
+  }
+}
+
 function init() {
   load();
   setGreeting();
@@ -117,8 +171,9 @@ function init() {
   if(document.getElementById('k-todo') && typeof renderKanban === 'function') renderKanban();
   if(document.getElementById('eis-ui') && typeof renderEis === 'function') renderEis();
   if(document.getElementById('gym-routine-list') && typeof renderRoutines === 'function') renderRoutines();
-  if(document.getElementById('home-tasks') && typeof renderHome === 'function') renderHome();
-  if(document.getElementById('pomo-display') && typeof updPomo === 'function') updPomo();
   if(document.getElementById('finChart') && typeof renderFinances === 'function') { setTimeout(initFinChart, 80); renderFinances(); }
   if(document.getElementById('stock-list') && typeof renderStocks === 'function') renderStocks();
+  
+  // Disparamos la nueva función del Dashboard al abrir el Inicio
+  if(document.getElementById('home-fin-inc')) renderHome();
 }
