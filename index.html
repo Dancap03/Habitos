@@ -30,18 +30,6 @@
          </div>
       </div>
 
-      <div class="card" onclick="window.location.href='gym.html'" style="cursor:pointer">
-         <div class="card-header" style="margin-bottom:16px;">
-            <span class="card-title">CALENDARIO GYM</span>
-            <div style="display:flex;gap:10px;align-items:center;">
-               <button class="btn btn-sm" onclick="event.stopPropagation(); changeGymMonth(-1)">◀</button>
-               <span id="gym-cal-month" style="font-size:12px;font-weight:600;min-width:80px;text-align:center;">-</span>
-               <button class="btn btn-sm" onclick="event.stopPropagation(); changeGymMonth(1)">▶</button>
-            </div>
-         </div>
-         <div id="home-gym-calendar" style="display:grid; grid-template-columns:repeat(7, 1fr); gap:8px 4px; text-align:center;"></div>
-      </div>
-
       <div class="card">
          <div class="card-header"><span class="card-title">HOY</span><button class="btn btn-sm" onclick="window.location.href='calendario.html'">+ Evento</button></div>
          <div id="home-events-list"></div>
@@ -58,19 +46,19 @@
             <div class="big-bal" id="home-fin-avail" style="font-size:36px;">€0</div>
          </div>
          <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:6px;">
-            <div class="fin-stat-box" style="background:rgba(39,174,96,.07); border-radius:10px; padding:8px; text-align:center;">
+            <div style="background:rgba(39,174,96,.07); border-radius:10px; padding:8px; text-align:center;">
                <div style="font-size:8px;color:var(--t3);font-weight:700;">ING.</div>
                <div style="font-size:12px;font-weight:700;color:var(--grn)" id="home-fin-inc">€0</div>
             </div>
-            <div class="fin-stat-box" style="background:rgba(231,76,60,.07); border-radius:10px; padding:8px; text-align:center;">
+            <div style="background:rgba(231,76,60,.07); border-radius:10px; padding:8px; text-align:center;">
                <div style="font-size:8px;color:var(--t3);font-weight:700;">GAS.</div>
                <div style="font-size:12px;font-weight:700;color:var(--red)" id="home-fin-exp">€0</div>
             </div>
-            <div class="fin-stat-box" style="background:rgba(59,130,246,.07); border-radius:10px; padding:8px; text-align:center;">
+            <div style="background:rgba(59,130,246,.07); border-radius:10px; padding:8px; text-align:center;">
                <div style="font-size:8px;color:var(--t3);font-weight:700;">AHO.</div>
                <div style="font-size:12px;font-weight:700;color:var(--blu)" id="home-fin-sav">€0</div>
             </div>
-            <div class="fin-stat-box" style="background:rgba(245,158,11,.07); border-radius:10px; padding:8px; text-align:center;">
+            <div style="background:rgba(245,158,11,.07); border-radius:10px; padding:8px; text-align:center;">
                <div style="font-size:8px;color:var(--t3);font-weight:700;">INV.</div>
                <div style="font-size:12px;font-weight:700;color:var(--yel)" id="home-fin-inv">€0</div>
             </div>
@@ -89,8 +77,8 @@
       <div class="card card-full">
          <div class="card-title">SINCRONIZACIÓN EN LA NUBE ☁️</div>
          <div style="display:flex;gap:10px;margin-top:10px">
-            <button class="btn" style="flex:1" onclick="cloudSync('up')">⬆️ Subir</button>
-            <button class="btn" style="flex:1" onclick="cloudSync('down')">⬇️ Bajar</button>
+            <button class="btn" style="flex:1" onclick="cloudSync('up', event)">⬆️ Subir</button>
+            <button class="btn" style="flex:1" onclick="cloudSync('down', event)">⬇️ Bajar</button>
          </div>
       </div>
     </div>
@@ -104,82 +92,61 @@
     <button class="nav-btn" onclick="window.location.href='gym.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 5v14M18 5v14M3 9h18M3 15h18"/></svg><span class="nav-label">Gym</span></button>
   </nav>
 
-  <!-- MODAL DE FINANZAS INTEGRADO EN EL INICIO -->
+  <!-- MODALES INTEGRADOS -->
   <div class="overlay" id="modal-fin-home" onclick="closeModal('modal-fin-home',event)">
     <div class="modal">
       <div class="modal-handle"></div>
       <div class="modal-title" style="margin-bottom:20px;">Añadir registro</div>
-      
       <label class="form-label">Tipo</label>
-      <select id="fin-type-home" class="form-input">
-         <option value="ingreso">Ingreso</option>
-         <option value="gasto">Gasto</option>
-      </select>
-      
+      <select id="fin-type-home" class="form-input"><option value="ingreso">Ingreso</option><option value="gasto">Gasto</option></select>
       <label class="form-label">Importe (€)</label>
       <input type="number" id="fin-amount-home" class="form-input" placeholder="0.00" step="0.01">
-      
       <label class="form-label">Descripción</label>
       <input type="text" id="fin-desc-home" class="form-input" placeholder="...">
-      
       <label class="form-label">Categoría</label>
       <select id="fin-cat-home" class="form-input">
-        <option value="nómina">Nómina</option>
-        <option value="ahorro">Ahorro</option>
-        <option value="inversión">Inversión</option>
-        <option value="compras">Compras</option>
-        <option value="ocio">Ocio</option>
-        <option value="otro">Otro</option>
+        <option value="nómina">Nómina</option><option value="ahorro">Ahorro</option><option value="inversión">Inversión</option><option value="otro">Otro</option>
       </select>
-
       <label class="form-label">Fecha</label>
       <input type="date" id="fin-date-home" class="form-input">
-      
       <button class="btn btn-primary" style="margin-top:16px; width:100%;" onclick="addFinEntryHome()">Guardar</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="modal-pin" onclick="closeModal('modal-pin',event)">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title">Introduce tu PIN</div>
+      <input type="password" id="cloud-pin-input" class="form-input" placeholder="****" inputmode="numeric">
+      <button class="btn btn-primary" style="width:100%" onclick="submitPin()">Confirmar</button>
     </div>
   </div>
 
   <div class="toast-container" id="toast-container"></div>
 </div>
 
-<script src="js/main.js?v=21"></script>
+<script src="js/main.js?v=46"></script>
+<script src="js/nube.js?v=46"></script>
 <script>
-  // LÓGICA PARA GUARDAR DESDE EL INICIO
   function addFinEntryHome() {
     const type = document.getElementById('fin-type-home').value;
     const amount = parseFloat(document.getElementById('fin-amount-home').value);
     const desc = document.getElementById('fin-desc-home').value.trim();
     const cat = document.getElementById('fin-cat-home').value;
     const date = document.getElementById('fin-date-home').value || today();
-
     if(!amount || !desc) return showToast('Rellena importe y descripción', 'error');
-
     const entry = { id: uid(), type, amount, desc, cat, date };
-    
-    // Verificamos que los arrays existan en S para no dar error
-    if(!S.savings) S.savings = [];
-    if(!S.investments) S.investments = [];
-    if(!S.incomes) S.incomes = [];
-    if(!S.expenses) S.expenses = [];
-
     if(cat === 'ahorro') S.savings.push(entry);
     else if(cat === 'inversión') S.investments.push(entry);
     else (type === 'ingreso' ? S.incomes.push(entry) : S.expenses.push(entry));
-
-    save();
-    closeModal('modal-fin-home');
-    if (typeof init === 'function') init(); 
+    save(); closeModal('modal-fin-home'); if (typeof init === 'function') init(); 
     showToast('Registro guardado ✅', 'success');
-    
-    document.getElementById('fin-amount-home').value = '';
-    document.getElementById('fin-desc-home').value = '';
-}
-
-document.addEventListener('DOMContentLoaded', () => {
+  }
+  document.addEventListener('DOMContentLoaded', () => {
     if (typeof init === 'function') init();
     const dateInput = document.getElementById('fin-date-home');
     if (dateInput && typeof today === 'function') dateInput.value = today();
-});
+  });
 </script>
 </body>
 </html>
