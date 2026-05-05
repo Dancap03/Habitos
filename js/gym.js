@@ -1,374 +1,258 @@
-let tempExercises = [];
-
-function switchGymView(v, pill) {
-  document.querySelectorAll('#gym-routine-pills .pill').forEach(p => p.classList.remove('on'));
-  if(pill) pill.classList.add('on');
-  if(document.getElementById('gv-rutinas')) document.getElementById('gv-rutinas').style.display = v === 'rutinas' ? 'block' : 'none';
-  if(document.getElementById('gv-records')) document.getElementById('gv-records').style.display = v === 'records' ? 'block' : 'none';
-  
-  if (v === 'records') renderGymPRs();
-  if (v === 'rutinas') { renderRoutines(); renderGymDays(); }
-}
-
-function openRoutineModal() {
-  tempExercises = [];
-  if(document.getElementById('r-name')) document.getElementById('r-name').value = '';
-  if(document.getElementById('r-type')) document.getElementById('r-type').value = 'pesas';
-  if(document.getElementById('r-ex-name')) document.getElementById('r-ex-name').value = '';
-  if(document.getElementById('r-ex-sets')) document.getElementById('r-ex-sets').value = '';
-  if(document.getElementById('r-cardio-unit')) document.getElementById('r-cardio-unit').value = '';
-  
-  toggleRoutineType();
-  openModal('modal-routine');
-}
-
-function toggleRoutineType() {
-  const typeEl = document.getElementById('r-type');
-  if(!typeEl) return;
-  const type = typeEl.value;
-  tempExercises = []; 
-  renderTempExercises();
-  
-  const pesasUi = document.getElementById('routine-pesas-ui');
-  const cardioUi = document.getElementById('routine-cardio-ui');
-  const exTitle = document.getElementById('temp-exercises-title');
-  const exList = document.getElementById('temp-exercises-list');
-
-  if (type === 'pesas') {
-    if(pesasUi) pesasUi.style.display = 'block';
-    if(cardioUi) cardioUi.style.display = 'none';
-    if(exTitle) exTitle.style.display = 'block';
-    if(exList) exList.style.display = 'block';
-  } else {
-    if(pesasUi) pesasUi.style.display = 'none';
-    if(cardioUi) cardioUi.style.display = 'block';
-    if(exTitle) exTitle.style.display = 'none';
-    if(exList) exList.style.display = 'none';
-  }
-}
-
-function addTempExercise() {
-  const name = document.getElementById('r-ex-name').value.trim();
-  const sets = parseInt(document.getElementById('r-ex-sets').value);
-  if (name && sets > 0) {
-    tempExercises.push({ name, sets });
-    document.getElementById('r-ex-name').value = '';
-    document.getElementById('r-ex-sets').value = '';
-    renderTempExercises();
-  } else { showToast('Añade un nombre y nº de series', 'error'); }
-}
-
-function removeTempExercise(index) {
-  tempExercises.splice(index, 1); renderTempExercises();
-}
-
-function renderTempExercises() {
-   const el = document.getElementById('temp-exercises-list');
-   if(!el) return;
-   if (tempExercises.length === 0) { el.innerHTML = '<div class="empty" style="padding: 10px 0;">Ningún ejercicio añadido</div>'; return; }
-   
-   el.innerHTML = tempExercises.map((ex, i) => `
-     <div class="list-item" style="padding:10px 0;">
-       <div style="flex:1"><div style="font-size:13px;font-weight:600">${ex.name}</div><div class="item-sub">${ex.sets} series</div></div>
-       <button class="btn-danger" style="padding: 2px 8px;" onclick="removeTempExercise(${i})">✕</button>
-     </div>`).join('');
-}
-
-function saveNewRoutine() {
-  const name = document.getElementById('r-name').value.trim();
-  const type = document.getElementById('r-type').value;
-  
-  if (!name) return showToast('Ponle un nombre a la rutina', 'error');
-  
-  let exercisesToSave = [];
-  if (type === 'pesas') {
-    if (tempExercises.length === 0) return showToast('Añade al menos un ejercicio', 'error');
-    exercisesToSave = [...tempExercises];
-  } else {
-    const unitEl = document.getElementById('r-cardio-unit');
-    const unit = unitEl ? unitEl.value.trim() : '';
-    exercisesToSave = [{ name: name, sets: 1, unit: unit }];
-  }
-
-  S.routines.push({ id: uid(), name, type, exercises: exercisesToSave });
-  save(); 
-  closeModal('modal-routine'); 
-  renderRoutines(); 
-  showToast('Rutina creada', 'success');
-}
-
-function deleteRoutine(id) {
-  if (typeof customConfirm === 'function') {
-    customConfirm('Borrar rutina', '¿Seguro que quieres borrar esta rutina? No afectará a tus Días de Entrenamiento.', () => {
-      S.routines = S.routines.filter(r => r.id !== id);
-      if (S.activeRoutine === id) S.activeRoutine = null;
-      save(); renderRoutines();
+// --- SISTEMA DE PESTAÑAS ---
+function switchGymTab(tab, btn) {
+    document.querySelectorAll('.fin-tab').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    
+    document.querySelectorAll('.tab-rutinas-item').forEach(el => {
+        if(el.id === 'active-workout-container') {
+            el.style.display = (tab === 'rutinas' && S.activeRoutine) ? 'block' : 'none';
+        } else {
+            el.style.display = tab === 'rutinas' ? 'block' : 'none';
+        }
     });
-  } else {
-    S.routines = S.routines.filter(r => r.id !== id);
-    if (S.activeRoutine === id) S.activeRoutine = null;
-    save(); renderRoutines();
-  }
+    
+    document.querySelectorAll('.tab-records-item').forEach(el => {
+        el.style.display = tab === 'records' ? 'block' : 'none';
+    });
 }
 
-function startRoutine(id) {
-  S.activeRoutine = id; save();
-  if(document.getElementById('gym-start-time')) document.getElementById('gym-start-time').value = formatTime(new Date());
-  if(document.getElementById('gym-end-time')) document.getElementById('gym-end-time').value = '';
-  renderGymActive();
+// --- RENDERIZADO INICIAL ---
+function renderGymInit() {
+    init(); // Asegura cargar los datos de main.js primero
+    renderRoutines();
+    renderActiveWorkout();
+    renderWorkoutLog();
+    renderRecords();
 }
 
-function cancelWorkout() { S.activeRoutine = null; save(); renderRoutines(); }
+// --- RUTINAS ---
+function addRoutine() {
+    const name = document.getElementById('rt-name').value.trim();
+    const exStr = document.getElementById('rt-exercises').value;
+    if(!name) return showToast('Pon un nombre a la rutina', 'error');
+    
+    const exercises = exStr.split(',').map(e => e.trim()).filter(e => e);
+    S.routines.push({ id: uid(), name, exercises });
+    save(); 
+    closeModal('modal-routine'); 
+    renderRoutines();
+    showToast('Rutina guardada');
+}
 
 function renderRoutines() {
-  renderGymDays();
-
-  const el = document.getElementById('gym-routine-list');
-  const active = document.getElementById('gym-active');
-  if(!el || !active) return;
-
-  if (S.activeRoutine) { 
-    el.style.display='none'; 
-    active.style.display='block'; 
-    renderGymActive(); 
-    return; 
-  }
-  
-  active.style.display = 'none'; 
-  el.style.display = 'block';
-  
-  if (!S.routines || !S.routines.length) { 
-    el.innerHTML = '<div class="empty">Crea tu primera rutina</div>'; 
-    return; 
-  }
-  
-  el.innerHTML = S.routines.map(r => `
-    <div class="card">
-      <div class="card-header">
-        <div><div style="font-size:16px;font-weight:700">${r.name}</div><div style="font-size:11px;color:var(--t2);text-transform:uppercase;margin-top:2px;">${r.type === 'cardio' ? '🏃 Cardio' : '🏋️ Pesas'}</div></div>
-        <div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="startRoutine('${r.id}')">▶ Iniciar</button><button class="btn-danger" onclick="deleteRoutine('${r.id}')">✕</button></div>
-      </div>
-      ${r.type === 'cardio' ? '' : r.exercises.map(e=>`<div class="list-item" style="padding:8px 0"><div class="item-title">${e.name}</div><div class="item-sub">${e.sets} series</div></div>`).join('')}
-    </div>`).join('');
+    const list = document.getElementById('gym-routine-list');
+    if(!list) return;
+    list.innerHTML = S.routines.length ? S.routines.map(r => `
+        <div class="list-item" style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--line);">
+            <div>
+                <div style="font-weight:700; font-size:14px;">${r.name}</div>
+                <div style="font-size:11px; color:var(--t2); margin-top:2px;">${r.exercises.join(' · ')}</div>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-sm" style="background:var(--acc); color:#fff;" onclick="startWorkout('${r.id}')">▶ Empezar</button>
+                <button class="btn-danger" style="background:none; color:var(--red); border:none; padding:8px;" onclick="delRoutine('${r.id}')">✕</button>
+            </div>
+        </div>
+    `).join('') : '<div class="empty">No tienes rutinas configuradas</div>';
 }
 
-function renderGymActive() {
-  const r = S.routines.find(x => x.id === S.activeRoutine);
-  if (!r) { S.activeRoutine = null; save(); renderRoutines(); return; }
-  
-  if(document.getElementById('gym-routine-list')) document.getElementById('gym-routine-list').style.display = 'none';
-  if(document.getElementById('gym-active')) document.getElementById('gym-active').style.display = 'block';
-  if(document.getElementById('gym-active-name')) document.getElementById('gym-active-name').textContent = r.name;
-  if(document.getElementById('gym-active-date')) document.getElementById('gym-active-date').textContent = new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
-  
-  const el = document.getElementById('gym-exercises');
-  if(!el) return;
+function delRoutine(id) {
+    customConfirm('Borrar Rutina', '¿Eliminar esta rutina para siempre?', () => {
+        S.routines = S.routines.filter(x => x.id !== id);
+        save(); renderRoutines();
+    });
+}
 
-  el.innerHTML = r.exercises.map((e,ei) => {
-    const isCardio = r.type === 'cardio';
-    let setsHtml = '';
+// --- ENTRENO ACTIVO ---
+function startWorkout(id) {
+    if(S.activeRoutine) return showToast('Ya tienes un entreno en progreso', 'error');
+    const r = S.routines.find(x => x.id === id);
+    if(!r) return;
     
-    if (isCardio) {
-      const unitPlaceholder = e.unit ? e.unit : 'valor';
-      setsHtml = `<div class="set-row"><input type="number" class="set-field" placeholder="min" id="ex-${ei}-0-reps"><input type="number" class="set-field" placeholder="${unitPlaceholder}" id="ex-${ei}-0-kg" step="0.5"><div class="set-done" onclick="toggleSetDone(this)" id="ex-${ei}-0-done"></div></div>`;
-    } else {
-      setsHtml = Array.from({length:e.sets},(_,si)=>`<div class="set-row"><span class="set-num">${si+1}</span><input type="number" class="set-field" placeholder="reps" id="ex-${ei}-${si}-reps"><input type="number" class="set-field" placeholder="kg" id="ex-${ei}-${si}-kg" step="0.5"><div class="set-done" onclick="toggleSetDone(this)" id="ex-${ei}-${si}-done"></div></div>`).join('');
+    S.activeRoutine = {
+        id: uid(),
+        routineId: r.id,
+        name: r.name,
+        date: today(),
+        startTime: formatTime(new Date()),
+        endTime: '--:--',
+        exercises: r.exercises.map(name => ({ name, sets: [] }))
+    };
+    save();
+    
+    // Cambiar automáticamente a la pestaña de Rutinas si no estaba
+    const btnRutinas = document.querySelector('.fin-tab:first-child');
+    if(btnRutinas) switchGymTab('rutinas', btnRutinas);
+    
+    renderActiveWorkout();
+}
+
+function renderActiveWorkout() {
+    const cont = document.getElementById('active-workout-container');
+    if(!cont) return;
+    
+    if(!S.activeRoutine) {
+        cont.style.display = 'none';
+        cont.innerHTML = '';
+        return;
     }
     
-    const headerHtml = isCardio ? '' : `<div class="row"><span style="font-size:15px;font-weight:600">${e.name}</span><span class="tag tag-blu">${e.sets} series</span></div>`;
-    return `<div style="padding:16px 0;border-bottom:1px solid var(--line)">${headerHtml}${setsHtml}</div>`;
-  }).join('');
+    // Si la pestaña seleccionada no es "Rutinas", lo ocultamos
+    const isRutinasTab = document.querySelector('.fin-tab.on').textContent.trim() === 'Rutinas';
+    cont.style.display = isRutinasTab ? 'block' : 'none';
+    
+    const w = S.activeRoutine;
+    
+    let exHtml = w.exercises.map((ex, exIdx) => `
+        <div style="margin-top:20px; background:var(--bg3); padding:12px; border-radius:12px;">
+            <div style="font-weight:700; color:var(--acc); margin-bottom:12px;">${ex.name}</div>
+            
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                ${ex.sets.map((set, sIdx) => `
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <div style="width:24px; text-align:center; font-size:12px; color:var(--t3); font-weight:700;">${sIdx + 1}</div>
+                        <input type="number" placeholder="kg" value="${set.kg||''}" onchange="updateSet(${exIdx}, ${sIdx}, 'kg', this.value)" style="flex:1; min-width:0; padding:10px; background:var(--bg4); border:none; border-radius:8px; color:#fff; text-align:center;">
+                        <input type="number" placeholder="reps" value="${set.reps||''}" onchange="updateSet(${exIdx}, ${sIdx}, 'reps', this.value)" style="flex:1; min-width:0; padding:10px; background:var(--bg4); border:none; border-radius:8px; color:#fff; text-align:center;">
+                        <button class="btn" style="background:${set.done ? 'var(--acc)' : 'var(--bg4)'}; color:${set.done ? '#fff' : 'var(--t2)'}; padding:10px 16px; border-radius:8px; font-weight:700;" onclick="toggleSet(${exIdx}, ${sIdx})">✓</button>
+                    </div>
+                `).join('')}
+            </div>
+            
+            <button class="btn btn-sm" style="background:rgba(255,255,255,0.05); width:100%; margin-top:12px; color:var(--t2);" onclick="addSet(${exIdx})">+ Añadir Serie</button>
+        </div>
+    `).join('');
+
+    cont.innerHTML = `
+        <div style="font-size:20px; font-weight:800; color:var(--t1);">${w.name}</div>
+        <div style="font-size:12px; color:var(--acc); font-weight:600; margin-bottom:16px;">EN PROGRESO ⏳</div>
+        
+        <div style="display:flex; gap:12px; margin-bottom:8px;">
+            <div style="flex:1;">
+                <div style="font-size:11px; color:var(--t3); margin-bottom:4px; font-weight:600;">Hora Inicio</div>
+                <input type="time" value="${w.startTime}" onchange="S.activeRoutine.startTime=this.value; save();" style="width:100%; padding:10px; background:var(--bg3); border:none; border-radius:8px; color:#fff;">
+            </div>
+            <div style="flex:1;">
+                <div style="font-size:11px; color:var(--t3); margin-bottom:4px; font-weight:600;">Hora Fin</div>
+                <input type="time" value="${w.endTime !== '--:--' ? w.endTime : ''}" onchange="S.activeRoutine.endTime=this.value; save();" style="width:100%; padding:10px; background:var(--bg3); border:none; border-radius:8px; color:#fff;">
+            </div>
+        </div>
+
+        ${exHtml}
+
+        <div style="margin-top:24px; display:flex; flex-direction:column; gap:10px;">
+            <button class="btn" style="background:var(--acc); color:#fff; width:100%; font-size:16px;" onclick="finishWorkout()">Finalizar Entreno 💪</button>
+            <button class="btn" style="background:rgba(231,76,60,0.1); color:var(--red); width:100%;" onclick="cancelWorkout()">Descartar entreno</button>
+        </div>
+    `;
 }
 
-function toggleSetDone(el) {
-  el.classList.toggle('on'); el.textContent = el.classList.contains('on') ? '✓' : '';
+function addSet(exIdx) {
+    S.activeRoutine.exercises[exIdx].sets.push({ kg: '', reps: '', done: false });
+    save(); renderActiveWorkout();
+}
+
+function updateSet(exIdx, sIdx, field, val) {
+    S.activeRoutine.exercises[exIdx].sets[sIdx][field] = val;
+    save();
+}
+
+function toggleSet(exIdx, sIdx) {
+    const s = S.activeRoutine.exercises[exIdx].sets[sIdx];
+    s.done = !s.done;
+    
+    // Comprobar si hay nuevo PR
+    if(s.done && s.kg && s.reps) {
+        const exName = S.activeRoutine.exercises[exIdx].name;
+        const weight = parseFloat(s.kg);
+        if(!S.prs[exName] || weight > S.prs[exName].kg) {
+            S.prs[exName] = { kg: weight, reps: parseInt(s.reps), date: today() };
+            showToast(`¡Nuevo PR en ${exName}! 🏆`);
+        }
+    }
+    save(); renderActiveWorkout(); renderRecords();
+}
+
+function cancelWorkout() {
+    customConfirm('Cancelar Entreno', '¿Estás seguro de descartar este entrenamiento en progreso?', () => {
+        S.activeRoutine = null;
+        save(); renderActiveWorkout();
+    });
 }
 
 function finishWorkout() {
-  const r = S.routines.find(x => x.id === S.activeRoutine);
-  if (!r) return;
-  
-  let endT = document.getElementById('gym-end-time').value;
-  if(!endT) endT = formatTime(new Date());
-  const startT = document.getElementById('gym-start-time').value || formatTime(new Date());
-  
-  const logEntry = { id: uid(), date: today(), routineName: r.name, type: r.type, startTime: startT, endTime: endT, exercises: [] };
-  const isCardio = r.type === 'cardio';
-
-  r.exercises.forEach((e, ei) => {
-    let maxKg = 0; let maxReps = 0;
-    const logEx = { name: e.name, sets: [], unit: e.unit || '' };
-    
-    for (let si = 0; si < e.sets; si++) {
-      const kgEl = document.getElementById(`ex-${ei}-${si}-kg`);
-      const repsEl = document.getElementById(`ex-${ei}-${si}-reps`);
-      const doneEl = document.getElementById(`ex-${ei}-${si}-done`);
-      
-      if (doneEl && doneEl.classList.contains('on')) {
-        const kg = parseFloat(kgEl.value)||0;
-        const reps = parseInt(repsEl.value)||0;
-        logEx.sets.push({kg, reps});
-        
-        if (kg > maxKg || (kg === maxKg && reps > maxReps)) { maxKg = kg; maxReps = reps; }
-      }
+    if(!S.activeRoutine.endTime || S.activeRoutine.endTime === '--:--') {
+        S.activeRoutine.endTime = formatTime(new Date());
     }
     
-    if(logEx.sets.length > 0) logEntry.exercises.push(logEx);
-
-    if (maxKg > 0 || maxReps > 0) {
-      if(!S.prs) S.prs = {};
-      const currentPr = S.prs[e.name];
-      let isNewPr = false;
-      
-      if (!currentPr) {
-          isNewPr = true;
-      } else {
-          if (isCardio) {
-              if (maxKg > currentPr.kg || (maxKg === currentPr.kg && maxReps <= currentPr.reps)) isNewPr = true;
-          } else {
-              if (maxKg > currentPr.kg || (maxKg === currentPr.kg && maxReps >= currentPr.reps)) isNewPr = true;
-          }
-      }
-      
-      if (isNewPr) {
-        S.prs[e.name] = { kg: maxKg, reps: maxReps, date: today(), isCardio: isCardio, unit: e.unit || '' };
-      }
-    }
-  });
-
-  S.workoutLog.unshift(logEntry); 
-  S.activeRoutine = null; 
-  save(); 
-  renderRoutines(); 
-  if(typeof renderHome === 'function') renderHome(); 
-  showToast('¡Entrenamiento guardado! 💪', 'success');
-}
-
-// ----------------------------------------
-// RÉCORDS PERSONALES
-// ----------------------------------------
-function renderGymPRs() {
-  const el = document.getElementById('gym-prs');
-  if(!el) return;
-  
-  if(!S.prs) S.prs = {};
-  const prs = Object.entries(S.prs).map(([name, data]) => ({name, ...data}));
-  
-  if (!prs.length) { el.innerHTML = '<div class="empty">Sin registros aún</div>'; return; }
-  
-  el.innerHTML = prs.sort((a,b) => a.name.localeCompare(b.name)).map(p => {
-    const isCardio = p.isCardio === true;
-    const unitText = p.unit ? ` ${p.unit}` : '';
-    const prText = isCardio ? `${p.kg}${unitText} en ${p.reps} min` : `${p.kg} kg × ${p.reps} reps`;
-    
-    return `
-    <div class="fin-row" style="padding: 12px 0; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
-      <div><div style="font-size:14px; font-weight:500">${p.name}</div><div style="font-size:11px; color:var(--t2)">${p.date}</div></div>
-      <div style="display:flex; align-items:center; gap:10px;">
-        <div style="font-size:15px;font-weight:700;color:var(--yel)">${prText} 🏆</div>
-        <button class="btn-danger" style="padding: 4px 8px;" onclick="deletePR('${p.name}')">✕</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function deletePR(name) {
-  if (typeof customConfirm === 'function') {
-    customConfirm('Borrar Récord', `¿Seguro que quieres borrar el récord de ${name}?`, () => {
-      delete S.prs[name];
-      save();
-      renderGymPRs();
+    // Calcular volumen total movido
+    let vol = 0;
+    S.activeRoutine.exercises.forEach(ex => {
+        ex.sets.forEach(s => {
+            if(s.done && s.kg && s.reps) vol += parseFloat(s.kg) * parseInt(s.reps);
+        });
     });
-  } else {
-    delete S.prs[name];
-    save();
-    renderGymPRs();
-  }
+
+    S.workoutLog.push({
+        id: S.activeRoutine.id,
+        date: S.activeRoutine.date,
+        name: S.activeRoutine.name,
+        startTime: S.activeRoutine.startTime,
+        endTime: S.activeRoutine.endTime,
+        volume: vol
+    });
+
+    S.activeRoutine = null;
+    save(); renderActiveWorkout(); renderWorkoutLog(); showToast('Entreno completado y guardado ✅');
 }
 
-// ----------------------------------------
-// DÍAS DE ENTRENAMIENTO
-// ----------------------------------------
-function renderGymDays() {
-  const el = document.getElementById('gym-days');
-  if(!el) return;
-  if (!S.workoutLog || !S.workoutLog.length) { 
-    el.innerHTML = '<div class="empty">Sin entrenamientos aún</div>'; 
-    return; 
-  }
-  
-  const days = {};
-  S.workoutLog.forEach(w => {
-    if(!days[w.date]) days[w.date] = [];
-    days[w.date].push(w);
-  });
-  
-  const sortedDates = Object.keys(days).sort((a,b) => new Date(b) - new Date(a));
-  
-  el.innerHTML = sortedDates.slice(0, 15).map((date, index) => {
-    const workouts = days[date];
-    const [y, m, d] = date.split('-');
-    const safeDate = new Date(y, m-1, d);
-    let dateStr = safeDate.toLocaleDateString('es-ES', {weekday:'long', day:'numeric', month:'short'});
-    dateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+// --- HISTORIAL ---
+function renderWorkoutLog() {
+    const list = document.getElementById('gym-workout-log');
+    if(!list) return;
     
-    const detailsHtml = workouts.map(w => {
-      const isCardio = w.type === 'cardio';
-      const exHtml = (w.exercises || []).map(ex => {
-        const unitText = ex.unit ? ` ${ex.unit}` : '';
-        const setsHtml = (ex.sets || []).map((s, i) => {
-          if(isCardio) return `<div style="display:flex; justify-content:space-between; font-size:12px; color:var(--t2); padding:2px 0;"><span>Registro</span><span>${s.kg}${unitText} en ${s.reps} min</span></div>`;
-          else return `<div style="display:flex; justify-content:space-between; font-size:12px; color:var(--t2); padding:2px 0;"><span>Serie ${i+1}</span><span>${s.kg} kg × ${s.reps} reps</span></div>`;
-        }).join('');
-        const titleHtml = isCardio ? '' : `<div style="font-size:13px; font-weight:600; color:var(--t1); margin-top:4px;">${ex.name}</div>`;
-        return `<div>${titleHtml}${setsHtml}</div>`;
-      }).join('');
-      
-      return `
-        <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--line);">
-          <div style="font-size:13px; font-weight:700; color:var(--acc); display:flex; justify-content:space-between;">
-            <span>${w.routineName}</span>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span style="font-size:11px; color:var(--t2); font-weight:normal;">${w.startTime} - ${w.endTime}</span>
-              <button class="btn-danger" style="padding: 2px 6px; font-size:10px;" onclick="event.stopPropagation(); deleteWorkoutLog('${w.id}')">✕</button>
+    // Mostrar del más reciente al más antiguo
+    const sortedLog = [...S.workoutLog].reverse();
+    
+    list.innerHTML = sortedLog.length ? sortedLog.map(w => `
+        <div class="list-item" style="padding:12px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div style="font-weight:700; color:var(--t1);">${w.name}</div>
+                <div style="font-size:11px; color:var(--t2); margin-top:2px;">${w.date} · ⏱️ ${w.startTime} - ${w.endTime}</div>
             </div>
-          </div>
-          ${exHtml}
+            <div style="text-align:right; display:flex; align-items:center; gap:12px;">
+                <div style="font-size:14px; font-weight:800; color:var(--acc);">${w.volume} <span style="font-size:10px; color:var(--t3);">kg vol.</span></div>
+                <button class="btn-danger" style="background:none; color:var(--red); border:none; padding:4px;" onclick="delWorkoutLog('${w.id}')">✕</button>
+            </div>
         </div>
-      `;
-    }).join('');
-    
-    return `
-      <div class="history-card" onclick="toggleHistoryDetails('day-${index}')" style="margin-bottom: 8px;">
-        <div class="row">
-          <div style="font-size:14px; font-weight:600;">${dateStr}</div>
-          <div style="font-size:11px; color:var(--t2)">${workouts.length} entreno(s) ▼</div>
-        </div>
-        <div id="day-${index}" style="display:none; cursor:default;" onclick="event.stopPropagation();">
-          ${detailsHtml}
-        </div>
-      </div>
-    `;
-  }).join('');
+    `).join('') : '<div class="empty">Tu historial de entrenos aparecerá aquí</div>';
 }
 
-function toggleHistoryDetails(id) { 
-  const el = document.getElementById(id); 
-  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; 
-}
-
-function deleteWorkoutLog(id) { 
-  if (typeof customConfirm === 'function') {
-    customConfirm('Borrar registro', '¿Seguro que quieres borrar este entrenamiento de tu día?', () => {
-      S.workoutLog = S.workoutLog.filter(w => w.id !== id); 
-      save(); 
-      renderGymDays(); 
-      if(typeof renderHome === 'function') renderHome(); 
+function delWorkoutLog(id) {
+    customConfirm('Borrar Entreno', '¿Eliminar este día del historial?', () => {
+        S.workoutLog = S.workoutLog.filter(x => x.id !== id);
+        save(); renderWorkoutLog();
     });
-  } else {
-    S.workoutLog = S.workoutLog.filter(w => w.id !== id); 
-    save(); 
-    renderGymDays();
-    if(typeof renderHome === 'function') renderHome(); 
-  }
+}
+
+// --- RÉCORDS (PRs) ---
+function renderRecords() {
+    const list = document.getElementById('gym-records-list');
+    if(!list) return;
+    
+    const prKeys = Object.keys(S.prs);
+    list.innerHTML = prKeys.length ? prKeys.map(k => {
+        const pr = S.prs[k];
+        return `
+        <div class="list-item" style="padding:16px; background:var(--bg3); border-radius:12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; border-left: 4px solid var(--yel);">
+            <div>
+                <div style="font-weight:700; font-size:15px; color:var(--t1); text-transform:uppercase;">${k}</div>
+                <div style="font-size:11px; color:var(--t3); margin-top:4px;">Conseguido el ${pr.date}</div>
+            </div>
+            <div style="text-align:right;">
+                <div style="font-size:22px; font-weight:800; color:var(--yel); line-height:1;">${pr.kg} <span style="font-size:12px; color:var(--t2);">kg</span></div>
+                <div style="font-size:12px; color:var(--t1); font-weight:600; margin-top:2px;">x ${pr.reps} reps</div>
+            </div>
+        </div>
+        `;
+    }).join('') : '<div class="empty">Completa series para que tus récords aparezcan aquí mágicamente 🥇</div>';
 }
