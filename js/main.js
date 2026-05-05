@@ -52,7 +52,13 @@ function closeModal(id, e) {
 function closeAllModals() { document.querySelectorAll('.overlay').forEach(o => o.classList.remove('on')); }
 
 function uid() { return Math.random().toString(36).slice(2, 10); }
-function today() { return new Date().toISOString().split('T')[0]; }
+
+// Ajuste para evitar bugs de zona horaria (UTC vs Local)
+function today() { 
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
 function formatTime(date) { return String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0'); }
 function fmt(n) { return '€' + (+n).toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2}); }
 function getWeek(d) { const dt = new Date(d), day = dt.getDay() || 7; dt.setDate(dt.getDate() + 4 - day); const y = new Date(dt.getFullYear(), 0, 1); return Math.ceil(((dt - y) / 86400000 + 1) / 7); }
@@ -97,11 +103,9 @@ function cancelConfirm(e, force = false) {
 function renderHome() {
   // 1. FINANZAS TOTALES HISTÓRICAS
   if (S.fin && document.getElementById('home-fin-inc')) {
-    // Calculamos los totales ignorando los periodos (todo el histórico)
     const trueInc = S.fin.filter(e => e.type === 'ingreso' && e.cat !== 'ahorro').reduce((a,e) => a+e.amount, 0);
     const trueExp = S.fin.filter(e => e.type === 'gasto' && e.cat !== 'ahorro').reduce((a,e) => a+e.amount, 0);
     
-    // Cálculo de la hucha
     const savIn = S.fin.filter(e => e.type === 'gasto' && e.cat === 'ahorro').reduce((a,e) => a+e.amount, 0);
     const savOut = S.fin.filter(e => e.type === 'ingreso' && e.cat === 'ahorro').reduce((a,e) => a+e.amount, 0);
     const totalSav = savIn - savOut;
@@ -145,18 +149,47 @@ function renderHome() {
     elPnl.style.color = isPos ? 'var(--grn)' : 'var(--red)';
   }
 
-  // 3. CALENDARIO GYM (VER SI HAS ENTRENADO HOY)
-  if (S.workoutLog && document.getElementById('home-gym-status')) {
-    const gymStat = document.getElementById('home-gym-status');
-    const didGymToday = S.workoutLog.some(w => w.date === today());
+  // 3. CALENDARIO GYM (SEMANA COMPLETA)
+  const gymCal = document.getElementById('home-gym-calendar');
+  if (S.workoutLog && gymCal) {
+    const dayNames = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+    let calHtml = '';
     
-    if (didGymToday) {
-      gymStat.textContent = 'Hoy: Sí 💪';
-      gymStat.className = 'tag tag-grn';
-    } else {
-      gymStat.textContent = 'Hoy: No';
-      gymStat.className = 'tag tag-t3';
+    const now = new Date();
+    // Ajuste para que la semana empiece el Lunes (1) y termine el Domingo (7)
+    const dayOfWeek = now.getDay() || 7; 
+    now.setHours(0,0,0,0);
+    
+    // Encontramos el Lunes de esta semana
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - dayOfWeek + 1);
+
+    // Dibujamos los 7 días
+    for(let i=0; i<7; i++) {
+      const d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate() + i);
+      
+      // Creamos el string YYYY-MM-DD para comparar con el historial
+      const dStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      const isToday = dStr === today();
+      const didWorkout = S.workoutLog.some(w => w.date === dStr);
+
+      // Estilos según si has entrenado o no
+      let bg = didWorkout ? 'var(--acc)' : 'var(--bg4)';
+      let color = didWorkout ? '#fff' : 'var(--t2)';
+      // Aro blanco sutil para destacar qué día es "HOY"
+      let border = isToday ? '2px solid var(--t1)' : '2px solid transparent';
+
+      calHtml += `
+        <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+           <div style="font-size:10px; color:var(--t3); font-weight:600;">${dayNames[i]}</div>
+           <div style="width:30px; height:30px; border-radius:50%; background:${bg}; border:${border}; display:flex; justify-content:center; align-items:center; font-size:13px; font-weight:700; color:${color};">
+              ${d.getDate()}
+           </div>
+        </div>
+      `;
     }
+    gymCal.innerHTML = calHtml;
   }
 }
 
