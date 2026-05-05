@@ -20,14 +20,17 @@
       <div class="topbar-right"><button class="btn btn-sm" onclick="openModalFin('ingreso')">+ Registro</button></div>
     </div>
     <div class="scroll">
+      
+      <!-- PESTAÑAS ORDENADAS -->
       <div class="fin-tabs">
-        <button class="fin-tab on" onclick="setFinPeriod('mes',this)">Mes</button>
-        <button class="fin-tab" onclick="setFinPeriod('semana',this)">Semana</button>
+        <button class="fin-tab on" onclick="setFinPeriod('semana',this)">Semana</button>
+        <button class="fin-tab" onclick="setFinPeriod('mes',this)">Mes</button>
         <button class="fin-tab" onclick="setFinPeriod('año',this)">Año</button>
         <button class="fin-tab" onclick="setFinPeriod('total',this)">Total</button>
       </div>
+
       <div class="card">
-        <div class="card-title" id="fin-period-label">Mes actual</div>
+        <div class="card-title" id="fin-period-label">Resumen</div>
         <div class="big-bal" id="fin-bal">€0</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
           <div style="background:rgba(39,174,96,.07);border-radius:10px;padding:12px"><div style="font-size:11px;color:var(--t3);margin-bottom:5px">INGRESOS</div><div style="font-size:22px;font-weight:700;color:var(--grn)" id="fin-inc">€0</div></div>
@@ -35,7 +38,7 @@
         </div>
       </div>
       <div class="card">
-        <div class="card-title" id="fin-chart-label">Evolución mensual</div>
+        <div class="card-title" id="fin-chart-label">Evolución</div>
         <div style="position:relative;width:100%;height:180px"><canvas id="finChart"></canvas></div>
       </div>
       <div class="card">
@@ -49,10 +52,6 @@
       <div class="card">
         <div class="card-header"><span class="card-title">Recurrentes</span><button class="btn btn-sm" onclick="openModal('modal-rec')">+ Añadir</button></div>
         <div id="fin-rec-list"><div class="empty">Sin recurrentes</div></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Notas / Segunda mano</div>
-        <textarea id="fin-notes" placeholder="Apunta aquí cosas por vender en Wallapop, ideas, deudas..." oninput="saveFinNotes()" style="min-height: 120px; line-height: 1.5;"></textarea>
       </div>
     </div>
   </div>
