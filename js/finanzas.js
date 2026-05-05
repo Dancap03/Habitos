@@ -82,7 +82,15 @@ function filterByPeriod(entries, period) {
 }
 
 function renderFinances() {
-  const period = S.activePeriod || 'mes';
+  // Por defecto arrancamos en semana si no hay nada guardado
+  const period = S.activePeriod || 'semana';
+  
+  // Iluminamos el botón correcto siempre
+  document.querySelectorAll('.fin-tab').forEach(t => {
+    t.classList.remove('on');
+    if (t.getAttribute('onclick').includes(`'${period}'`)) t.classList.add('on');
+  });
+
   const entries = filterByPeriod(S.fin, period);
   const inc = entries.filter(e => e.type === 'ingreso').reduce((a,e) => a+e.amount, 0);
   const exp = entries.filter(e => e.type === 'gasto').reduce((a,e) => a+e.amount, 0);
@@ -150,38 +158,12 @@ function renderFinances() {
       </div>`).join('') : '<div class="empty">Sin recurrentes</div>';
   }
 
-  // Comprueba si existe la caja del gráfico de barras antes de intentar llenarla
-  const catEl = document.getElementById('fin-cat-bars');
-  if(catEl) {
-    const cats = {};
-    expEntries.forEach(e => { cats[e.cat] = (cats[e.cat]||0) + e.amount; });
-    const total = Object.values(cats).reduce((a,b)=>a+b,0);
-    catEl.innerHTML = total === 0 ? '<div class="empty">Sin datos</div>' : Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([c,v]) => `
-      <div style="margin-bottom:10px">
-        <div class="row"><span style="font-size:13px">${c}</span><span style="font-size:13px;font-weight:600">${fmt(v)} <span style="color:var(--t3);font-weight:400">${Math.round(v/total*100)}%</span></span></div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/total*100)}%;background:${catColor(c)}"></div></div>
-      </div>`).join('');
-  }
-
-  const notesEl = document.getElementById('fin-notes');
-  if(notesEl) notesEl.value = S.finNotes || "";
-
   updateFinChart(period);
 }
 
 function setFinPeriod(p, btn) {
-  document.querySelectorAll('.fin-tab').forEach(t => t.classList.remove('on'));
-  if(btn) btn.classList.add('on');
   S.activePeriod = p; save();
   renderFinances();
-}
-
-function saveFinNotes() {
-  const notesEl = document.getElementById('fin-notes');
-  if(notesEl) {
-    S.finNotes = notesEl.value;
-    save();
-  }
 }
 
 let finChartInst = null;
@@ -197,7 +179,7 @@ function buildFinChart() {
     ]},
     options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#444',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#444',font:{size:10},callback:v=>'€'+v.toLocaleString()},grid:{color:'rgba(255,255,255,.04)'}}}}
   });
-  updateFinChart(S.activePeriod || 'mes');
+  updateFinChart(S.activePeriod || 'semana');
 }
 
 function updateFinChart(period) {
