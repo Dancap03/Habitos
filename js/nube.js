@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbw7Mt5_umJjfWzd-GuYHK5N6hC5spt-s9VYSctAvZHPdoiNQ7-FfXOFKGFNqupH4z_Z/exec"; 
+const API_URL = "https://script.google.com/macros/s/AKfycbx7-VjrjUJkURvGedaUtPHFCfaejZGVNZ3XYXvu5eI2MomjOgMRnMuSHr3gMQ5H74nr/exec"; 
 let pendingSyncAction = null;
 let currentSyncBtn = null;
 
