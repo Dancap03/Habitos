@@ -1,7 +1,7 @@
 const S = {
   tasks: [], fin: [], recurring: [], stocks: [], routines: [], workoutLog: [], prs: {},
   kanban: { todo:[], doing:[], done:[] }, eis: { ui:[], ni:[], un:[], nn:[] },
-  pomo: { sessions: 0 }, activePeriod: 'mes', activeRoutine: null, finNotes: "" 
+  pomo: { sessions: 0 }, activePeriod: 'semana', activeRoutine: null, finNotes: "" 
 };
 
 function save() { localStorage.setItem('dancab_v1', JSON.stringify(S)); }
@@ -58,17 +58,17 @@ function fmt(n) { return '€' + (+n).toLocaleString('es-ES', {minimumFractionDi
 function getWeek(d) { const dt = new Date(d), day = dt.getDay() || 7; dt.setDate(dt.getDate() + 4 - day); const y = new Date(dt.getFullYear(), 0, 1); return Math.ceil(((dt - y) / 86400000 + 1) / 7); }
 
 function catTagClass(c) {
-  if (['trabajo','salud'].includes(c)) return 'tag-blu';
+  if (['trabajo','salud','ahorro'].includes(c)) return 'tag-blu';
   if (['clases','suscripciones'].includes(c)) return 'tag-pur';
   if (['exámenes','alquiler'].includes(c)) return 'tag-red';
-  if (['gym','freelance','transporte'].includes(c)) return 'tag-acc';
+  if (['gym','transporte'].includes(c)) return 'tag-acc';
   if (['cumpleaños','ocio','dividendos','intereses'].includes(c)) return 'tag-yel';
   if (['quedadas','alimentación','nómina','personal'].includes(c)) return 'tag-grn';
   return 'tag-t3';
 }
 
 function catColor(c) {
-  const m = { trabajo:'var(--blu)', personal:'var(--grn)', estudios:'var(--pur)', gym:'var(--acc)', nómina:'var(--grn)', intereses:'var(--yel)', freelance:'var(--acc)', dividendos:'var(--yel)', alquiler:'var(--red)', alimentación:'var(--grn)', transporte:'var(--acc)', suscripciones:'var(--pur)', salud:'var(--blu)', ocio:'var(--yel)', clases:'var(--pur)', exámenes:'var(--red)', cumpleaños:'var(--yel)', quedadas:'var(--grn)' };
+  const m = { ahorro:'var(--blu)', trabajo:'var(--blu)', personal:'var(--grn)', estudios:'var(--pur)', gym:'var(--acc)', nómina:'var(--grn)', intereses:'var(--yel)', dividendos:'var(--yel)', alquiler:'var(--red)', alimentación:'var(--grn)', transporte:'var(--acc)', suscripciones:'var(--pur)', salud:'var(--blu)', ocio:'var(--yel)', clases:'var(--pur)', exámenes:'var(--red)', cumpleaños:'var(--yel)', quedadas:'var(--grn)' };
   return m[c] || 'var(--t3)';
 }
 
@@ -79,7 +79,6 @@ function setGreeting() {
   if(greetEl) greetEl.textContent = g + ' · ' + new Date().toLocaleDateString('es-ES', {weekday:'long', day:'numeric', month:'long'});
 }
 
-// --- SISTEMA DE CONFIRMACIÓN PERSONALIZADO ---
 let confirmAction = null;
 
 function customConfirm(title, message, callback) {
