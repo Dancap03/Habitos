@@ -1,58 +1,73 @@
 function catEmoji(c) {
-  const m = { nómina:'💼', ahorro:'💰', intereses:'📈', dividendos:'🏦', alquiler:'🏠', comida:'🛒', transporte:'🚗', suscripciones:'📱', salud:'❤️', ocio:'🎭' };
+  const m = { nómina:'💼', ahorro:'💰', intereses:'📈', dividendos:'🏦', alquiler:'🏠', alimentación:'🛒', transporte:'🚗', suscripciones:'📱', salud:'❤️', ocio:'🎭' };
   return m[c] || '📌';
 }
 
-// -----------------------------
-// MAGIA DEL DESPLEGABLE
-// -----------------------------
 function toggleFinTypeOptions() {
   const cat = document.getElementById('fin-cat').value;
   const typeEl = document.getElementById('fin-type');
   const typeLabel = document.getElementById('fin-type-label');
+  const dateWrap = document.getElementById('date-wrapper');
+  const dayWrap = document.getElementById('day-wrapper');
+  const descLabel = document.getElementById('fin-desc-label');
+  const descInput = document.getElementById('fin-desc');
+
   if(!typeEl || !typeLabel) return;
   
   if (cat === 'ahorro') {
     typeLabel.textContent = 'Acción';
     typeEl.innerHTML = '<option value="gasto">Ingresar a la hucha</option><option value="ingreso">Sacar de la hucha</option>';
+    dateWrap.style.display = 'block';
+    dayWrap.style.display = 'none';
+    descLabel.textContent = 'Descripción';
+    descInput.placeholder = 'Motivo del ahorro...';
+  } else if (cat === 'suscripciones') {
+    typeLabel.textContent = 'Tipo';
+    typeEl.innerHTML = '<option value="gasto">Gasto</option><option value="ingreso">Ingreso</option>';
+    dateWrap.style.display = 'none';
+    dayWrap.style.display = 'block';
+    descLabel.textContent = 'Nombre de suscripción';
+    descInput.placeholder = 'Netflix, Gimnasio, Alquiler...';
   } else {
     typeLabel.textContent = 'Tipo';
-    const curr = typeEl.value; // Guardamos lo que tenía seleccionado si era ingreso/gasto
+    const curr = typeEl.value;
     typeEl.innerHTML = '<option value="ingreso">Ingreso</option><option value="gasto">Gasto</option>';
     if(curr === 'ingreso' || curr === 'gasto') typeEl.value = curr;
+    dateWrap.style.display = 'block';
+    dayWrap.style.display = 'none';
+    descLabel.textContent = 'Descripción';
+    descInput.placeholder = 'Nómina, supermercado, vacaciones...';
   }
 }
 
-function openModalFin(type) {
+function openModalFin(type, defaultCat = null) {
   const elType = document.getElementById('fin-type');
   const elCat = document.getElementById('fin-cat');
   const elTitle = document.getElementById('modal-fin-title');
   const elDate = document.getElementById('fin-date');
+  const elDay = document.getElementById('fin-day');
   
-  // Si estaba en ahorro, lo sacamos al abrir un registro normal
-  if(elCat && elCat.value === 'ahorro') {
-     elCat.value = type === 'ingreso' ? 'nómina' : 'otro';
+  if(elCat) {
+     if(defaultCat) {
+         elCat.value = defaultCat;
+     } else if(elCat.value === 'ahorro' || elCat.value === 'suscripciones') {
+         elCat.value = type === 'ingreso' ? 'nómina' : 'otro';
+     }
   }
-  toggleFinTypeOptions(); // Reseteamos opciones
+  
+  toggleFinTypeOptions();
   
   if(elType) elType.value = type;
-  if(elTitle) elTitle.textContent = type === 'ingreso' ? 'Nuevo ingreso' : 'Nuevo gasto';
+  if(elTitle) {
+      if (defaultCat === 'suscripciones') elTitle.textContent = 'Nueva Suscripción';
+      else if (defaultCat === 'ahorro') elTitle.textContent = 'Movimiento de Ahorro';
+      else elTitle.textContent = type === 'ingreso' ? 'Nuevo ingreso' : 'Nuevo gasto';
+  }
+  
   if(elDate) elDate.value = today();
-  
-  openModal('modal-fin');
-}
-
-// Botón exclusivo de la tarjeta "Ahorro"
-function openModalFinSav() {
-  const elCat = document.getElementById('fin-cat');
-  const elTitle = document.getElementById('modal-fin-title');
-  const elDate = document.getElementById('fin-date');
-  
-  if(elCat) elCat.value = 'ahorro';
-  toggleFinTypeOptions(); // Esto cambia automáticamente a "Ingresar/Sacar"
-  
-  if(elTitle) elTitle.textContent = 'Movimiento de Ahorro';
-  if(elDate) elDate.value = today();
+  if(elDay) elDay.value = '';
+  if(document.getElementById('fin-amount')) document.getElementById('fin-amount').value = '';
+  if(document.getElementById('fin-desc')) document.getElementById('fin-desc').value = '';
   
   openModal('modal-fin');
 }
@@ -60,21 +75,32 @@ function openModalFinSav() {
 function addFinEntry() {
   const amount = parseFloat(document.getElementById('fin-amount').value);
   const desc = document.getElementById('fin-desc').value.trim();
+  const cat = document.getElementById('fin-cat').value;
+  const type = document.getElementById('fin-type').value;
+
   if (!amount || !desc) return showToast('Rellena importe y descripción', 'error');
   
-  S.fin.push({ 
-    id: uid(), 
-    type: document.getElementById('fin-type').value, 
-    amount, 
-    desc, 
-    cat: document.getElementById('fin-cat').value, 
-    date: document.getElementById('fin-date').value || today() 
-  });
-  save(); closeAllModals();
-  document.getElementById('fin-amount').value = '';
-  document.getElementById('fin-desc').value = '';
+  if (cat === 'suscripciones') {
+    const day = parseInt(document.getElementById('fin-day').value);
+    if (!day || day < 1 || day > 31) return showToast('Introduce un día válido (1-31)', 'error');
+    
+    S.recurring.push({ id: uid(), name: desc, amount: amount, day: day, type: type });
+    showToast('Suscripción guardada', 'success');
+  } else {
+    S.fin.push({ 
+      id: uid(), 
+      type: type, 
+      amount: amount, 
+      desc: desc, 
+      cat: cat, 
+      date: document.getElementById('fin-date').value || today() 
+    });
+    showToast('Registro guardado', 'success');
+  }
+  
+  save(); 
+  closeAllModals();
   renderFinances();
-  showToast('Registro guardado', 'success');
 }
 
 function delFinEntry(id) {
@@ -85,21 +111,6 @@ function delFinEntry(id) {
   } else {
     if(confirm('¿Borrar?')) { S.fin = S.fin.filter(x => x.id !== id); save(); renderFinances(); }
   }
-}
-
-function addRecurring() {
-  const name = document.getElementById('rec-name').value.trim();
-  const amount = parseFloat(document.getElementById('rec-amount').value);
-  const day = parseInt(document.getElementById('rec-day').value);
-  if (!name || !amount) return showToast('Revisa los datos', 'error');
-  
-  S.recurring.push({ id: uid(), name, amount, day, type: document.getElementById('rec-type').value });
-  save(); closeAllModals();
-  document.getElementById('rec-name').value = '';
-  document.getElementById('rec-amount').value = '';
-  document.getElementById('rec-day').value = '';
-  renderFinances();
-  showToast('Suscripción guardada', 'success');
 }
 
 function delRecurring(id) {
@@ -134,40 +145,32 @@ function renderFinances() {
   const entries = filterByPeriod(S.fin, period);
   const labels = { mes: 'Mes actual', semana: 'Esta semana', año: 'Este año', total: 'Acumulado total' };
 
-  // MATEMÁTICA DE LA HUCHA (TODO EL HISTORIAL)
   const totalSavIn = S.fin.filter(e => e.type === 'gasto' && e.cat === 'ahorro').reduce((a,e) => a+e.amount, 0);
   const totalSavOut = S.fin.filter(e => e.type === 'ingreso' && e.cat === 'ahorro').reduce((a,e) => a+e.amount, 0);
   const historicalSavings = totalSavIn - totalSavOut;
 
-  // MATEMÁTICA DEL PERIODO ACTUAL
   const inc = entries.filter(e => e.type === 'ingreso').reduce((a,e) => a+e.amount, 0);
   const exp = entries.filter(e => e.type === 'gasto').reduce((a,e) => a+e.amount, 0);
   
-  // Ingresos y Gastos REALES (ignorando la hucha de ahorro)
   const trueInc = entries.filter(e => e.type === 'ingreso' && e.cat !== 'ahorro').reduce((a,e) => a+e.amount, 0);
   const trueExp = entries.filter(e => e.type === 'gasto' && e.cat !== 'ahorro').reduce((a,e) => a+e.amount, 0);
   
-  // Ahorro generado específicamente en este periodo
   const periodSavIn = entries.filter(e => e.type === 'gasto' && e.cat === 'ahorro').reduce((a,e) => a+e.amount, 0);
   const periodSavOut = entries.filter(e => e.type === 'ingreso' && e.cat === 'ahorro').reduce((a,e) => a+e.amount, 0);
   const periodSavings = periodSavIn - periodSavOut;
 
-  // ACTUALIZACIÓN DE ETIQUETAS
   const pLabel = document.getElementById('fin-period-label');
   if(pLabel) pLabel.textContent = labels[period];
   
   const cLabel = document.getElementById('fin-chart-label');
   if(cLabel) cLabel.textContent = 'Evolución — ' + labels[period];
   
-  // BALANCE FINAL (Incluye el dinero que tienes en el bolsillo contando entradas/salidas de la hucha)
   const balEl = document.getElementById('fin-bal');
   if(balEl) balEl.textContent = fmt(inc - exp);
   
-  // HUCHA TOTAL
   const totalSavEl = document.getElementById('fin-total-sav');
   if(totalSavEl) totalSavEl.textContent = fmt(historicalSavings);
   
-  // CAJAS SUPERIORES REALES
   const incTotEl = document.getElementById('fin-inc');
   if(incTotEl) incTotEl.textContent = fmt(trueInc);
   
@@ -185,7 +188,6 @@ function renderFinances() {
       }
   }
 
-  // --- PINTAR LISTA INGRESOS ---
   const incEntries = entries.filter(e => e.type === 'ingreso' && e.cat !== 'ahorro');
   const incEl = document.getElementById('fin-income-list');
   if(incEl) {
@@ -202,7 +204,6 @@ function renderFinances() {
       </div>`).join('') : '<div class="empty">Sin ingresos</div>';
   }
 
-  // --- PINTAR LISTA GASTOS ---
   const expEntries = entries.filter(e => e.type === 'gasto' && e.cat !== 'ahorro');
   const expEl = document.getElementById('fin-expense-list');
   if(expEl) {
@@ -219,7 +220,6 @@ function renderFinances() {
       </div>`).join('') : '<div class="empty">Sin gastos</div>';
   }
 
-  // --- PINTAR LISTA SUSCRIPCIONES ---
   const recEl = document.getElementById('fin-rec-list');
   if(recEl) {
     recEl.innerHTML = S.recurring.length ? S.recurring.map(r => `
@@ -235,7 +235,6 @@ function renderFinances() {
       </div>`).join('') : '<div class="empty">Sin suscripciones</div>';
   }
 
-  // --- PINTAR LISTA AHORRO ---
   const savEntries = entries.filter(e => e.cat === 'ahorro');
   const savListEl = document.getElementById('fin-sav-list');
   if(savListEl) {
@@ -268,8 +267,10 @@ function buildFinChart() {
   finChartInst = new Chart(ctx, {
     type: 'line',
     data: { labels: [], datasets: [
-      { label:'Ingresos Reales', data:[], borderColor:'#27ae60', backgroundColor:'rgba(39,174,96,.08)', tension:.4, fill:true, pointRadius:3 },
-      { label:'Gastos Reales', data:[], borderColor:'#e74c3c', backgroundColor:'rgba(231,76,60,.06)', tension:.4, fill:true, pointRadius:3, borderDash:[4,4] }
+      { label:'Ingresos', data:[], borderColor:'#27ae60', backgroundColor:'rgba(39,174,96,.08)', tension:.4, fill:true, pointRadius:3 },
+      { label:'Gastos', data:[], borderColor:'#e74c3c', backgroundColor:'rgba(231,76,60,.06)', tension:.4, fill:true, pointRadius:3, borderDash:[4,4] },
+      // ¡AQUÍ ESTÁ LA NUEVA LÍNEA AZUL DE AHORRO!
+      { label:'Ahorrado', data:[], borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.08)', tension:.4, fill:true, pointRadius:3 }
     ]},
     options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#444',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#444',font:{size:10},callback:v=>'€'+v.toLocaleString()},grid:{color:'rgba(255,255,255,.04)'}}}}
   });
@@ -278,30 +279,51 @@ function buildFinChart() {
 
 function updateFinChart(period) {
   if (!finChartInst) return;
-  let labels = [], inc = [], exp = [];
+  let labels = [], inc = [], exp = [], sav = [];
   const now = new Date();
   
   if (period === 'mes') {
     const days = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
     labels = Array.from({length:days}, (_,i)=>String(i+1));
-    inc = labels.map(d => S.fin.filter(e=>e.type==='ingreso' && e.cat!=='ahorro' && e.date===`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`).reduce((a,e)=>a+e.amount,0));
-    exp = labels.map(d => S.fin.filter(e=>e.type==='gasto' && e.cat!=='ahorro' && e.date===`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`).reduce((a,e)=>a+e.amount,0));
+    labels.forEach(d => {
+        const ds = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        inc.push(S.fin.filter(e=>e.type==='ingreso' && e.cat!=='ahorro' && e.date===ds).reduce((a,e)=>a+e.amount,0));
+        exp.push(S.fin.filter(e=>e.type==='gasto' && e.cat!=='ahorro' && e.date===ds).reduce((a,e)=>a+e.amount,0));
+        // Ahorro generado ese día
+        sav.push(S.fin.filter(e=>e.type==='gasto' && e.cat==='ahorro' && e.date===ds).reduce((a,e)=>a+e.amount,0) - S.fin.filter(e=>e.type==='ingreso' && e.cat==='ahorro' && e.date===ds).reduce((a,e)=>a+e.amount,0));
+    });
   } else if (period === 'semana') {
     const wdays = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
     labels = wdays;
-    for (let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-d.getDay()+1+i);const ds=d.toISOString().split('T')[0];inc.push(S.fin.filter(e=>e.type==='ingreso' && e.cat!=='ahorro' && e.date===ds).reduce((a,e)=>a+e.amount,0));exp.push(S.fin.filter(e=>e.type==='gasto' && e.cat!=='ahorro' && e.date===ds).reduce((a,e)=>a+e.amount,0));}
+    for (let i=0;i<7;i++){
+        const d=new Date();d.setDate(d.getDate()-d.getDay()+1+i);const ds=d.toISOString().split('T')[0];
+        inc.push(S.fin.filter(e=>e.type==='ingreso' && e.cat!=='ahorro' && e.date===ds).reduce((a,e)=>a+e.amount,0));
+        exp.push(S.fin.filter(e=>e.type==='gasto' && e.cat!=='ahorro' && e.date===ds).reduce((a,e)=>a+e.amount,0));
+        sav.push(S.fin.filter(e=>e.type==='gasto' && e.cat==='ahorro' && e.date===ds).reduce((a,e)=>a+e.amount,0) - S.fin.filter(e=>e.type==='ingreso' && e.cat==='ahorro' && e.date===ds).reduce((a,e)=>a+e.amount,0));
+    }
   } else if (period === 'año') {
     const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
     labels = months;
-    for (let m=0;m<12;m++){const yr=now.getFullYear(),mo=String(m+1).padStart(2,'0');inc.push(S.fin.filter(e=>e.type==='ingreso' && e.cat!=='ahorro' && e.date.startsWith(`${yr}-${mo}`)).reduce((a,e)=>a+e.amount,0));exp.push(S.fin.filter(e=>e.type==='gasto' && e.cat!=='ahorro' && e.date.startsWith(`${yr}-${mo}`)).reduce((a,e)=>a+e.amount,0));}
+    for (let m=0;m<12;m++){
+        const yr=now.getFullYear(),mo=String(m+1).padStart(2,'0');
+        const prefix = `${yr}-${mo}`;
+        inc.push(S.fin.filter(e=>e.type==='ingreso' && e.cat!=='ahorro' && e.date.startsWith(prefix)).reduce((a,e)=>a+e.amount,0));
+        exp.push(S.fin.filter(e=>e.type==='gasto' && e.cat!=='ahorro' && e.date.startsWith(prefix)).reduce((a,e)=>a+e.amount,0));
+        sav.push(S.fin.filter(e=>e.type==='gasto' && e.cat==='ahorro' && e.date.startsWith(prefix)).reduce((a,e)=>a+e.amount,0) - S.fin.filter(e=>e.type==='ingreso' && e.cat==='ahorro' && e.date.startsWith(prefix)).reduce((a,e)=>a+e.amount,0));
+    }
   } else {
     const years = [...new Set(S.fin.map(e=>e.date.slice(0,4)))].sort();
     labels = years.length ? years : [String(now.getFullYear())];
-    inc = labels.map(y=>S.fin.filter(e=>e.type==='ingreso' && e.cat!=='ahorro' && e.date.startsWith(y)).reduce((a,e)=>a+e.amount,0));
-    exp = labels.map(y=>S.fin.filter(e=>e.type==='gasto' && e.cat!=='ahorro' && e.date.startsWith(y)).reduce((a,e)=>a+e.amount,0));
+    labels.forEach(y => {
+        inc.push(S.fin.filter(e=>e.type==='ingreso' && e.cat!=='ahorro' && e.date.startsWith(y)).reduce((a,e)=>a+e.amount,0));
+        exp.push(S.fin.filter(e=>e.type==='gasto' && e.cat!=='ahorro' && e.date.startsWith(y)).reduce((a,e)=>a+e.amount,0));
+        sav.push(S.fin.filter(e=>e.type==='gasto' && e.cat==='ahorro' && e.date.startsWith(y)).reduce((a,e)=>a+e.amount,0) - S.fin.filter(e=>e.type==='ingreso' && e.cat==='ahorro' && e.date.startsWith(y)).reduce((a,e)=>a+e.amount,0));
+    });
   }
+  
   finChartInst.data.labels = labels;
   finChartInst.data.datasets[0].data = inc;
   finChartInst.data.datasets[1].data = exp;
+  finChartInst.data.datasets[2].data = sav;
   finChartInst.update();
 }
