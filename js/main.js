@@ -39,8 +39,16 @@ function showToast(message, type = 'success') {
   }, 3000);
 }
 
-function openModal(id) { document.getElementById(id).classList.add('on'); }
-function closeModal(id, e) { if (!e || e.target.classList.contains('overlay')) document.getElementById(id).classList.remove('on'); }
+function openModal(id) { 
+  const m = document.getElementById(id);
+  if(m) m.classList.add('on'); 
+}
+function closeModal(id, e) { 
+  if (!e || e.target.classList.contains('overlay')) { 
+    const m = document.getElementById(id); 
+    if(m) m.classList.remove('on'); 
+  } 
+}
 function closeAllModals() { document.querySelectorAll('.overlay').forEach(o => o.classList.remove('on')); }
 
 function uid() { return Math.random().toString(36).slice(2, 10); }
@@ -71,24 +79,7 @@ function setGreeting() {
   if(greetEl) greetEl.textContent = g + ' · ' + new Date().toLocaleDateString('es-ES', {weekday:'long', day:'numeric', month:'long'});
 }
 
-function init() {
-  load();
-  setGreeting();
-  
-  if(document.getElementById('t-date')) document.getElementById('t-date').value = today();
-  if(document.getElementById('fin-date')) document.getElementById('fin-date').value = today();
-
-  // Cargamos solo lo que existe en la página actual
-  if(document.getElementById('task-pending') && typeof renderTasks === 'function') renderTasks();
-  if(document.getElementById('k-todo') && typeof renderKanban === 'function') renderKanban();
-  if(document.getElementById('eis-ui') && typeof renderEis === 'function') renderEis();
-  if(document.getElementById('gym-routine-list') && typeof renderRoutines === 'function') renderRoutines();
-  if(document.getElementById('home-tasks') && typeof renderHome === 'function') renderHome();
-  if(document.getElementById('pomo-display') && typeof updPomo === 'function') updPomo();
-  if(document.getElementById('finChart') && typeof renderFinances === 'function') { setTimeout(initFinChart, 80); renderFinances(); }
-  if(document.getElementById('stock-list') && typeof renderStocks === 'function') renderStocks();
-
-  // --- SISTEMA DE CONFIRMACIÓN PERSONALIZADO ---
+// --- SISTEMA DE CONFIRMACIÓN PERSONALIZADO ---
 let confirmAction = null;
 
 function customConfirm(title, message, callback) {
@@ -97,20 +88,38 @@ function customConfirm(title, message, callback) {
   if (titleEl) titleEl.textContent = title;
   if (msgEl) msgEl.textContent = message;
   
-  confirmAction = callback; // Guardamos la acción para luego
+  confirmAction = callback;
   openModal('modal-confirm');
 }
 
 function executeConfirm() {
-  if (confirmAction) confirmAction(); // Ejecuta la función de borrar
-  document.getElementById('modal-confirm').classList.remove('on');
+  if (confirmAction) confirmAction();
+  const m = document.getElementById('modal-confirm');
+  if(m) m.classList.remove('on');
   confirmAction = null;
 }
 
 function cancelConfirm(e, force = false) {
   if (force || !e || (e.target && e.target.classList.contains('overlay'))) {
-    document.getElementById('modal-confirm').classList.remove('on');
+    const m = document.getElementById('modal-confirm');
+    if(m) m.classList.remove('on');
     confirmAction = null;
   }
 }
+
+function init() {
+  load();
+  setGreeting();
+  
+  if(document.getElementById('t-date')) document.getElementById('t-date').value = today();
+  if(document.getElementById('fin-date')) document.getElementById('fin-date').value = today();
+
+  if(document.getElementById('task-pending') && typeof renderTasks === 'function') renderTasks();
+  if(document.getElementById('k-todo') && typeof renderKanban === 'function') renderKanban();
+  if(document.getElementById('eis-ui') && typeof renderEis === 'function') renderEis();
+  if(document.getElementById('gym-routine-list') && typeof renderRoutines === 'function') renderRoutines();
+  if(document.getElementById('home-tasks') && typeof renderHome === 'function') renderHome();
+  if(document.getElementById('pomo-display') && typeof updPomo === 'function') updPomo();
+  if(document.getElementById('finChart') && typeof renderFinances === 'function') { setTimeout(initFinChart, 80); renderFinances(); }
+  if(document.getElementById('stock-list') && typeof renderStocks === 'function') renderStocks();
 }
