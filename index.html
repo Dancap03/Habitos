@@ -3,541 +3,82 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Dancab">
 <meta name="theme-color" content="#080808">
-<title>Dancab</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<title>Dancab - Inicio</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/UI.css">
-<link rel="stylesheet" href="css/tareas.css">
-<link rel="stylesheet" href="css/finanzas.css">
-<link rel="stylesheet" href="css/cartera.css">
-<link rel="stylesheet" href="css/gym.css">
 </head>
 <body>
 <div class="app">
 
-<!-- INICIO -->
-<div class="screen on" id="s-home">
-  <div class="topbar">
-    <div><div class="logo">Dan<b>cab</b></div><div style="font-size:13px;color:var(--t2);margin-top:3px" id="greeting"></div></div>
-  </div>
-  <div class="scroll">
-    <div class="stat-grid">
-      <div class="stat-box"><div class="stat-num" id="home-tasks">0</div><div class="stat-sub">Eventos pendientes</div></div>
-      <div class="stat-box"><div class="stat-num" style="color:var(--yel)" id="home-streak">0🔥</div><div class="stat-sub">Racha días</div></div>
+  <div class="screen on">
+    <div class="topbar">
+      <div><div class="logo">Dan<b>cab</b></div><div style="font-size:13px;color:var(--t2);margin-top:3px" id="greeting"></div></div>
     </div>
-    
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Calendario Gym</span>
-        <span id="home-gym-today" class="tag tag-t3">Hoy: No</span>
+    <div class="scroll">
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-num" id="home-tasks">0</div><div class="stat-sub">Eventos pendientes</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:var(--yel)" id="home-streak">0🔥</div><div class="stat-sub">Racha días</div></div>
       </div>
-      <div id="home-calendar-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; margin-top: 10px;"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Hoy</span>
-        <button class="btn btn-sm" onclick="openModal('modal-task')">+ Evento</button>
-      </div>
-      <div id="home-task-list"><div class="empty">Sin eventos hoy</div></div>
-    </div>
-
-    <div class="card" onclick="switchTo('finanzas')" style="cursor:pointer">
-      <div class="card-title">Finanzas del mes</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div><div style="font-size:11px;color:var(--t3);margin-bottom:4px">INGRESOS</div><div style="font-size:22px;font-weight:700;color:var(--grn)" id="home-inc">€0</div></div>
-        <div><div style="font-size:11px;color:var(--t3);margin-bottom:4px">GASTOS</div><div style="font-size:22px;font-weight:700;color:var(--red)" id="home-exp">€0</div></div>
-      </div>
-    </div>
-    
-    <div class="card">
-      <div class="card-title">Sincronización en la Nube ☁️</div>
-      <div style="display: flex; gap: 10px;">
-        <button class="btn btn-sm" style="flex: 1;" onclick="syncAction('upload', event)">⬆️ Subir</button>
-        <button class="btn btn-sm" style="flex: 1;" onclick="syncAction('download', event)">⬇️ Bajar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- CALENDARIO / EVENTOS -->
-<div class="screen" id="s-tareas">
-  <div class="topbar">
-    <span class="page-title">Calendario</span>
-    <div class="topbar-right">
-      <button class="btn btn-sm" onclick="openModal('modal-task')">+ Evento</button>
-    </div>
-  </div>
-  <div class="scroll">
-    <div class="pill-row">
-      <span class="pill on" onclick="switchTaskView('agenda',this)">Agenda</span>
-      <span class="pill" onclick="switchTaskView('kanban',this)">Kanban</span>
-      <span class="pill" onclick="switchTaskView('eisenhower',this)">Eisenhower</span>
-      <span class="pill" onclick="switchTaskView('pomo',this)">Pomodoro</span>
-    </div>
-
-    <div id="tv-agenda">
-      <div class="card">
-        <div class="card-title">Pendientes</div>
-        <div id="task-pending"><div class="empty">Sin eventos</div></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Completados</div>
-        <div id="task-done-list"><div class="empty">Ninguno aún</div></div>
-      </div>
-    </div>
-
-    <div id="tv-kanban" style="display:none">
-      <div class="kanban-wrap">
-        <div class="kanban-cols">
-          <div class="k-col">
-            <div class="k-col-title" style="color:var(--t2)">POR HACER</div>
-            <div id="k-todo"></div>
-            <div class="k-add" onclick="openModalKanban('todo')">+ Añadir</div>
-          </div>
-          <div class="k-col">
-            <div class="k-col-title" style="color:var(--acc)">EN PROGRESO</div>
-            <div id="k-doing"></div>
-            <div class="k-add" onclick="openModalKanban('doing')">+ Añadir</div>
-          </div>
-          <div class="k-col">
-            <div class="k-col-title" style="color:var(--grn)">HECHO</div>
-            <div id="k-done"></div>
-            <div class="k-add" onclick="openModalKanban('done')">+ Añadir</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="tv-eisenhower" style="display:none">
-      <div class="eis-grid">
-        <div class="eis-quad">
-          <div class="eis-label" style="color:var(--red)">URGENTE + IMPORTANTE</div>
-          <div id="eis-ui"></div>
-          <div style="font-size:11px;color:var(--t3);margin-top:8px;cursor:pointer" onclick="openModalEis('ui')">+ Añadir</div>
-        </div>
-        <div class="eis-quad">
-          <div class="eis-label" style="color:var(--blu)">NO URGENTE + IMPORTANTE</div>
-          <div id="eis-ni"></div>
-          <div style="font-size:11px;color:var(--t3);margin-top:8px;cursor:pointer" onclick="openModalEis('ni')">+ Añadir</div>
-        </div>
-        <div class="eis-quad">
-          <div class="eis-label" style="color:var(--yel)">URGENTE + NO IMPORTANTE</div>
-          <div id="eis-un"></div>
-          <div style="font-size:11px;color:var(--t3);margin-top:8px;cursor:pointer" onclick="openModalEis('un')">+ Añadir</div>
-        </div>
-        <div class="eis-quad">
-          <div class="eis-label" style="color:var(--t3)">NO URGENTE + NO IMPORTANTE</div>
-          <div id="eis-nn"></div>
-          <div style="font-size:11px;color:var(--t3);margin-top:8px;cursor:pointer" onclick="openModalEis('nn')">+ Añadir</div>
-        </div>
-      </div>
-    </div>
-
-    <div id="tv-pomo" style="display:none">
-      <div class="card">
-        <div class="pill-row">
-          <span class="pill on" onclick="setPomoMode('focus',this)">Enfoque 25m</span>
-          <span class="pill" onclick="setPomoMode('short',this)">Pausa 5m</span>
-          <span class="pill" onclick="setPomoMode('long',this)">Descanso 15m</span>
-        </div>
-        <div class="pomo-display">
-          <div class="pomo-label" id="pomo-label">ENFOQUE</div>
-          <div class="pomo-num" id="pomo-display">25:00</div>
-          <div class="pomo-btns">
-            <button class="pomo-btn pomo-play" onclick="togglePomo()" id="pomo-play">▶</button>
-            <button class="pomo-btn pomo-reset" onclick="resetPomo()">↺</button>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Sesiones hoy</div>
-        <div class="row"><span style="font-size:14px;color:var(--t2)">Completadas</span><span style="font-size:22px;font-weight:700" id="pomo-sessions">0</span></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- FINANZAS -->
-<div class="screen" id="s-finanzas">
-  <div class="topbar">
-    <span class="page-title">Finanzas</span>
-    <div class="topbar-right">
-      <button class="btn btn-sm" onclick="openModal('modal-fin')">+ Registro</button>
-    </div>
-  </div>
-  <div class="scroll">
-    <div class="fin-tabs">
-      <button class="fin-tab on" onclick="setFinPeriod('mes',this)">Mes</button>
-      <button class="fin-tab" onclick="setFinPeriod('semana',this)">Semana</button>
-      <button class="fin-tab" onclick="setFinPeriod('año',this)">Año</button>
-      <button class="fin-tab" onclick="setFinPeriod('total',this)">Total</button>
-    </div>
-    <div class="card">
-      <div class="card-title" id="fin-period-label">Mes actual</div>
-      <div class="big-bal" id="fin-bal">€0</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
-        <div style="background:rgba(39,174,96,.07);border-radius:10px;padding:12px">
-          <div style="font-size:11px;color:var(--t3);margin-bottom:5px">INGRESOS</div>
-          <div style="font-size:22px;font-weight:700;color:var(--grn)" id="fin-inc">€0</div>
-        </div>
-        <div style="background:rgba(231,76,60,.07);border-radius:10px;padding:12px">
-          <div style="font-size:11px;color:var(--t3);margin-bottom:5px">GASTOS</div>
-          <div style="font-size:22px;font-weight:700;color:var(--red)" id="fin-exp">€0</div>
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title" id="fin-chart-label">Evolución mensual</div>
-      <div style="position:relative;width:100%;height:180px">
-        <canvas id="finChart" aria-label="Gráfico evolución financiera"></canvas>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Ingresos</span>
-        <button class="btn btn-sm" onclick="openModalFin('ingreso')">+ Añadir</button>
-      </div>
-      <div id="fin-income-list"><div class="empty">Sin ingresos</div></div>
-    </div>
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Gastos</span>
-        <button class="btn btn-sm" onclick="openModalFin('gasto')">+ Añadir</button>
-      </div>
-      <div id="fin-expense-list"><div class="empty">Sin gastos</div></div>
-    </div>
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Recurrentes</span>
-        <button class="btn btn-sm" onclick="openModal('modal-rec')">+ Añadir</button>
-      </div>
-      <div id="fin-rec-list"><div class="empty">Sin recurrentes</div></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Notas / Segunda mano</div>
-      <textarea id="fin-notes" placeholder="Apunta aquí cosas por vender en Wallapop, ideas, deudas..." oninput="saveFinNotes()" style="min-height: 120px; line-height: 1.5;"></textarea>
-    </div>
-  </div>
-</div>
-
-<!-- CARTERA -->
-<div class="screen" id="s-acciones">
-  <div class="topbar">
-    <span class="page-title">Cartera</span>
-    <div class="topbar-right">
-      <button class="btn btn-sm" onclick="openModal('modal-stock')">+ Acción</button>
-    </div>
-  </div>
-  <div class="scroll">
-    <div class="card">
-      <div class="card-title">Valor total</div>
-      <div class="big-bal" id="port-total">€0</div>
-      <div style="margin-top:8px;display:flex;gap:10px">
-        <span style="font-size:13px;color:var(--t2)">Invertido: <span id="port-inv" style="color:var(--t1);font-weight:600">€0</span></span>
-        <span style="font-size:13px" id="port-pnl">+€0 (0%)</span>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title">Distribución</div>
-      <div style="display:flex;align-items:center;gap:16px">
-        <div style="position:relative;width:100px;height:100px;flex-shrink:0">
-          <canvas id="donutChart" width="100" height="100"></canvas>
-        </div>
-        <div id="port-legend" style="flex:1;font-size:12px"></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title">Posiciones</div>
-      <div id="stock-list"><div class="empty">Sin posiciones</div></div>
-    </div>
-  </div>
-</div>
-
-<!-- GYM -->
-<div class="screen" id="s-gym">
-  <div class="topbar">
-    <span class="page-title">Gym</span>
-    <div class="topbar-right">
-      <button class="btn btn-sm" onclick="openRoutineModal()">+ Rutina</button>
-    </div>
-  </div>
-  <div class="scroll">
-    <div class="pill-row" id="gym-routine-pills">
-      <span class="pill on" onclick="switchGymView('rutinas',this)">Rutinas</span>
-      <span class="pill" onclick="switchGymView('historial',this)">Historial</span>
-    </div>
-    
-    <div id="gv-rutinas">
-      <div id="gym-routine-list"><div class="empty">Crea tu primera rutina</div></div>
       
-      <div id="gym-active" style="display:none">
-        <div class="card" style="border-color:rgba(224,90,43,.3)">
-          <div class="card-header" style="margin-bottom: 20px;">
-            <div>
-              <div style="font-size:18px;font-weight:700" id="gym-active-name">Rutina</div>
-              <div style="font-size:12px;color:var(--t2)" id="gym-active-date"></div>
-            </div>
-            <span class="tag tag-acc">EN PROGRESO</span>
-          </div>
-          <div class="row" style="margin-bottom:20px; gap:10px;">
-            <div style="flex:1"><div class="form-label">Inicio</div><input type="time" id="gym-start-time" class="set-field" style="padding:6px; font-size:14px;"></div>
-            <div style="flex:1"><div class="form-label">Fin</div><input type="time" id="gym-end-time" class="set-field" style="padding:6px; font-size:14px;"></div>
-          </div>
-          <div id="gym-exercises"></div>
-          <button class="btn btn-primary" style="margin-top:20px" onclick="finishWorkout()">Finalizar entreno</button>
-          <button class="btn" style="margin-top:10px; width:100%; color:var(--red); background:rgba(231,76,60,.1)" onclick="cancelWorkout()">Cancelar</button>
-        </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Calendario Gym</span><span id="home-gym-today" class="tag tag-t3">Hoy: No</span></div>
+        <div id="home-calendar-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; margin-top: 10px;"></div>
       </div>
 
       <div class="card">
-        <div class="card-title">Records Personales 🏆</div>
-        <div id="gym-prs"><div class="empty">Sin registros aún</div></div>
+        <div class="card-header"><span class="card-title">Hoy</span><button class="btn btn-sm" onclick="openModal('modal-task')">+ Evento</button></div>
+        <div id="home-task-list"><div class="empty">Sin eventos hoy</div></div>
+      </div>
+
+      <div class="card" onclick="window.location.href='finanzas.html'" style="cursor:pointer">
+        <div class="card-title">Finanzas del mes</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div><div style="font-size:11px;color:var(--t3);margin-bottom:4px">INGRESOS</div><div style="font-size:22px;font-weight:700;color:var(--grn)" id="home-inc">€0</div></div>
+          <div><div style="font-size:11px;color:var(--t3);margin-bottom:4px">GASTOS</div><div style="font-size:22px;font-weight:700;color:var(--red)" id="home-exp">€0</div></div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-title">Sincronización en la Nube ☁️</div>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-sm" style="flex: 1;" onclick="syncAction('upload', event)">⬆️ Subir</button>
+          <button class="btn btn-sm" style="flex: 1;" onclick="syncAction('download', event)">⬇️ Bajar</button>
+        </div>
       </div>
     </div>
-
-    <div id="gv-historial" style="display:none">
-      <div id="gym-history-list"></div>
-      <button id="gym-history-more" class="btn btn-sm" style="width:100%; margin-top:10px; display:none;" onclick="loadMoreHistory()">Ver más antiguos</button>
-    </div>
   </div>
-</div>
 
-<!-- NAVEGACIÓN INFERIOR -->
-<nav class="nav">
-  <button class="nav-btn on" onclick="switchTo('home',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    <span class="nav-label">Inicio</span>
-  </button>
-  <button class="nav-btn" onclick="switchTo('tareas',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-    <span class="nav-label">Calendario</span>
-  </button>
-  <button class="nav-btn" onclick="switchTo('finanzas',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
-    <span class="nav-label">Finanzas</span>
-  </button>
-  <button class="nav-btn" onclick="switchTo('acciones',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-    <span class="nav-label">Cartera</span>
-  </button>
-  <button class="nav-btn" onclick="switchTo('gym',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5v14M18 5v14M3 9h18M3 15h18"/></svg>
-    <span class="nav-label">Gym</span>
-  </button>
-</nav>
+  <nav class="nav">
+    <button class="nav-btn on" onclick="window.location.href='index.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="nav-label">Inicio</span></button>
+    <button class="nav-btn" onclick="window.location.href='calendario.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span class="nav-label">Calendario</span></button>
+    <button class="nav-btn" onclick="window.location.href='finanzas.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg><span class="nav-label">Finanzas</span></button>
+    <button class="nav-btn" onclick="window.location.href='cartera.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Cartera</span></button>
+    <button class="nav-btn" onclick="window.location.href='gym.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5v14M18 5v14M3 9h18M3 15h18"/></svg><span class="nav-label">Gym</span></button>
+  </nav>
 
-<!-- ════════ MODALES GLOBALES ════════ -->
-<!-- Modal Tarea / Evento -->
-<div class="overlay" id="modal-task" onclick="closeModal('modal-task',event)">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Nuevo evento</div>
-    <div class="form-row"><div><div class="form-label">Nombre</div><input type="text" id="t-name" placeholder="Título del evento..."></div></div>
-    <div class="form-row" style="margin-top:10px">
-      <div>
-        <div class="form-label">Categoría</div>
-        <select id="t-cat">
-          <option value="trabajo">Trabajo</option>
-          <option value="clases">Clases</option>
-          <option value="exámenes">Exámenes</option>
-          <option value="gym">Gym</option>
-          <option value="cumpleaños">Cumpleaños</option>
-          <option value="quedadas">Quedadas</option>
-          <option value="otro">Otros</option>
-        </select>
+  <!-- Modal Tarea / Evento -->
+  <div class="overlay" id="modal-task" onclick="closeModal('modal-task',event)">
+    <div class="modal">
+      <div class="modal-handle"></div><div class="modal-title">Nuevo evento</div>
+      <div class="form-row"><div><div class="form-label">Nombre</div><input type="text" id="t-name" placeholder="Título del evento..."></div></div>
+      <div class="form-row" style="margin-top:10px">
+        <div><div class="form-label">Categoría</div><select id="t-cat"><option value="trabajo">Trabajo</option><option value="clases">Clases</option><option value="exámenes">Exámenes</option><option value="gym">Gym</option><option value="cumpleaños">Cumpleaños</option><option value="quedadas">Quedadas</option><option value="otro">Otros</option></select></div>
+        <div><div class="form-label">Hora (opcional)</div><input type="text" id="t-time" placeholder="09:00"></div>
       </div>
-      <div><div class="form-label">Hora (opcional)</div><input type="text" id="t-time" placeholder="09:00"></div>
+      <div style="margin-top:10px"><div class="form-label">Fecha</div><input type="date" id="t-date"></div>
+      <button class="btn btn-primary" style="margin-top:16px" onclick="addTask()">Añadir evento</button>
     </div>
-    <div style="margin-top:10px"><div class="form-label">Fecha</div><input type="date" id="t-date"></div>
-    <button class="btn btn-primary" style="margin-top:16px" onclick="addTask()">Añadir evento</button>
   </div>
-</div>
 
-<!-- Modal Finanzas -->
-<div class="overlay" id="modal-fin" onclick="closeModal('modal-fin',event)">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="modal-fin-title">Nuevo registro</div>
-    <div class="form-row">
-      <div><div class="form-label">Tipo</div><select id="fin-type"><option value="ingreso">Ingreso</option><option value="gasto">Gasto</option></select></div>
-      <div><div class="form-label">Importe (€)</div><input type="number" id="fin-amount" placeholder="0.00" step="0.01"></div>
-    </div>
-    <div style="margin-top:10px"><div class="form-label">Descripción</div><input type="text" id="fin-desc" placeholder="Nómina, supermercado..."></div>
-    <div class="form-row" style="margin-top:10px">
-      <div><div class="form-label">Categoría</div><select id="fin-cat"><option value="nómina">Nómina</option><option value="intereses">Intereses</option><option value="freelance">Freelance</option><option value="dividendos">Dividendos</option><option value="alquiler">Alquiler</option><option value="alimentación">Alimentación</option><option value="transporte">Transporte</option><option value="suscripciones">Suscripciones</option><option value="salud">Salud</option><option value="ocio">Ocio</option><option value="otro">Otro</option></select></div>
-      <div><div class="form-label">Fecha</div><input type="date" id="fin-date"></div>
-    </div>
-    <button class="btn btn-primary" style="margin-top:16px" onclick="addFinEntry()">Guardar</button>
+  <!-- Modal PIN Nube -->
+  <div class="overlay" id="modal-pin" onclick="closeModal('modal-pin',event)">
+    <div class="modal"><div class="modal-handle"></div><div class="modal-title">PIN de Seguridad</div><div class="form-label" id="pin-prompt-text">Introduce tu PIN secreto para acceder a la nube:</div><input type="password" id="cloud-pin-input" placeholder="****" style="margin-top: 10px; font-family: var(--mono); letter-spacing: 4px; text-align: center; font-size: 18px;"><button class="btn btn-primary" style="margin-top:16px" onclick="submitPin()">Aceptar</button></div>
   </div>
+  <div class="toast-container" id="toast-container"></div>
 </div>
-
-<!-- Modal Recurrente -->
-<div class="overlay" id="modal-rec" onclick="closeModal('modal-rec',event)">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Cuenta recurrente</div>
-    <div class="form-label">Nombre</div><input type="text" id="rec-name" placeholder="Netflix, alquiler...">
-    <div class="form-row" style="margin-top:10px">
-      <div><div class="form-label">Importe (€)</div><input type="number" id="rec-amount" placeholder="0.00" step="0.01"></div>
-      <div><div class="form-label">Día del mes</div><input type="number" id="rec-day" placeholder="1-31" min="1" max="31"></div>
-    </div>
-    <div style="margin-top:10px"><div class="form-label">Tipo</div><select id="rec-type"><option value="gasto">Gasto</option><option value="ingreso">Ingreso</option></select></div>
-    <button class="btn btn-primary" style="margin-top:16px" onclick="addRecurring()">Añadir</button>
-  </div>
-</div>
-
-<!-- Modal Acción Nueva -->
-<div class="overlay" id="modal-stock" onclick="closeModal('modal-stock',event)">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Nueva posición</div>
-    <div class="form-row">
-      <div><div class="form-label">Ticker</div><input type="text" id="st-ticker" placeholder="AAPL, VOO..."></div>
-      <div><div class="form-label">Nombre</div><input type="text" id="st-name" placeholder="Apple Inc."></div>
-    </div>
-    <div class="form-row" style="margin-top:10px">
-      <div><div class="form-label">Dinero Invertido (€)</div><input type="number" id="st-invested" placeholder="Ej: 50.00" step="0.01"></div>
-      <div><div class="form-label">Precio de Compra (€)</div><input type="number" id="st-buy-price" placeholder="Ej: 10.00" step="0.01"></div>
-    </div>
-    <div class="form-row" style="margin-top:10px">
-      <div><div class="form-label">Precio actual en Mercado (€)</div><input type="number" id="st-price" placeholder="180.00" step="0.01"></div>
-      <div><div class="form-label">Tipo</div><select id="st-type"><option value="accion">Acción</option><option value="etf">ETF</option><option value="crypto">Crypto</option><option value="bono">Bono</option><option value="otro">Otro</option></select></div>
-    </div>
-    <button class="btn btn-primary" style="margin-top:16px" onclick="addStock()">Crear Posición</button>
-  </div>
-</div>
-
-<!-- Modal Acción Editar -->
-<div class="overlay" id="modal-stock-edit" onclick="closeModal('modal-stock-edit',event)">
-  <div class="modal" style="padding-bottom: 24px;">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="edit-stock-title">Gestionar Posición</div>
-    <input type="hidden" id="edit-st-id">
-    <div class="card" style="margin-bottom:12px; padding:12px;">
-      <div class="form-label">Actualizar Precio Actual (€)</div>
-      <div class="form-row" style="margin-bottom:0;"><input type="number" id="edit-st-price" placeholder="0.00" step="0.01"><button class="btn" style="background:var(--acc); color:#fff; border-radius:10px; font-weight:600; padding:0 14px;" onclick="saveStockPrice()">Actualizar</button></div>
-    </div>
-    <div class="card" style="margin-bottom:12px; padding:12px;">
-      <div class="form-label">Añadir Nueva Compra</div>
-      <div class="form-row" style="margin-bottom:0;"><input type="number" id="edit-st-buy-invested" placeholder="Inversión (€)" step="0.01"><input type="number" id="edit-st-buy-price" placeholder="Precio compra (€)" step="0.01"><button class="btn" style="background:var(--grn); color:#fff; border-radius:10px; font-weight:600; padding:0 14px;" onclick="addStockPurchase()">Añadir</button></div>
-    </div>
-    <div class="card-title" style="margin-top:16px;">Tus Compras (Lotes)</div>
-    <div id="edit-stock-purchases" style="max-height: 250px; overflow-y: auto; padding-right:4px;"></div>
-  </div>
-</div>
-
-<!-- Modal Rutina -->
-<div class="overlay" id="modal-routine" onclick="closeModal('modal-routine',event)">
-  <div class="modal" style="padding-bottom: 24px;">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Nueva rutina</div>
-    
-    <div class="form-row">
-      <div style="flex:2">
-        <div class="form-label">Nombre</div>
-        <input type="text" id="r-name" placeholder="Ej: Pecho, Cinta...">
-      </div>
-      <div style="flex:1">
-        <div class="form-label">Tipo</div>
-        <select id="r-type" onchange="toggleRoutineType()">
-          <option value="pesas">Pesas</option>
-          <option value="cardio">Cardio</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- UI PESAS -->
-    <div class="card" id="routine-pesas-ui" style="margin:12px 0; padding:12px;">
-      <div class="form-label">Añadir Ejercicio</div>
-      <div class="form-row" style="margin-bottom:0;">
-        <input type="text" id="r-ex-name" placeholder="Ej: Press banca" style="flex:2">
-        <input type="number" id="r-ex-sets" placeholder="Series" style="flex:1" min="1">
-        <button class="btn" style="background:var(--grn); color:#fff; border-radius:10px; font-weight:600; padding:0 14px;" onclick="addTempExercise()">Añadir</button>
-      </div>
-    </div>
-
-    <!-- INFO CARDIO -->
-    <div id="routine-cardio-ui" style="display:none; margin:12px 0; text-align:center; color:var(--t2); font-size:12px;">
-      Para cardio no hace falta añadir ejercicios. Se guardará directamente con el nombre de la rutina (Ej: Correr).
-    </div>
-
-    <div class="card-title" id="temp-exercises-title" style="margin-top:16px;">Ejercicios añadidos</div>
-    <div id="temp-exercises-list" style="max-height: 180px; overflow-y: auto; padding-right:4px; margin-bottom: 12px;">
-       <div class="empty" style="padding: 10px 0;">Ningún ejercicio añadido</div>
-    </div>
-
-    <button class="btn btn-primary" onclick="saveNewRoutine()">Crear rutina</button>
-  </div>
-</div>
-
-<!-- Modal Kanban -->
-<div class="overlay" id="modal-kanban" onclick="closeModal('modal-kanban',event)">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="modal-kanban-title">Añadir evento</div>
-    <div class="form-label">Evento</div><input type="text" id="k-title" placeholder="¿Qué evento es?">
-    <div class="form-row" style="margin-top:10px">
-      <div>
-        <div class="form-label">Categoría</div>
-        <select id="k-cat">
-          <option value="trabajo">Trabajo</option>
-          <option value="clases">Clases</option>
-          <option value="exámenes">Exámenes</option>
-          <option value="gym">Gym</option>
-          <option value="cumpleaños">Cumpleaños</option>
-          <option value="quedadas">Quedadas</option>
-          <option value="otro">Otros</option>
-        </select>
-      </div>
-    </div>
-    <input type="hidden" id="k-col-target">
-    <button class="btn btn-primary" style="margin-top:16px" onclick="addKanbanCard()">Añadir</button>
-  </div>
-</div>
-
-<!-- Modal Eisenhower -->
-<div class="overlay" id="modal-eis" onclick="closeModal('modal-eis',event)">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="modal-eis-title">Añadir evento</div>
-    <div class="form-label">Evento</div><input type="text" id="eis-task-text" placeholder="Describe el evento...">
-    <input type="hidden" id="eis-quad-target">
-    <button class="btn btn-primary" style="margin-top:16px" onclick="addEisTask()">Añadir</button>
-  </div>
-</div>
-
-<!-- Modal PIN Nube -->
-<div class="overlay" id="modal-pin" onclick="closeModal('modal-pin',event)">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">PIN de Seguridad</div>
-    <div class="form-label" id="pin-prompt-text">Introduce tu PIN secreto para acceder a la nube:</div>
-    <input type="password" id="cloud-pin-input" placeholder="****" style="margin-top: 10px; font-family: var(--mono); letter-spacing: 4px; text-align: center; font-size: 18px;">
-    <button class="btn btn-primary" style="margin-top:16px" onclick="submitPin()">Aceptar</button>
-  </div>
-</div>
-
-<div class="toast-container" id="toast-container"></div>
-</div>
-
-<!-- SCRIPTS CARGADOS EN ORDEN -->
-<script src="js/main.js"></script>
-<script src="js/nube.js"></script>
-<script src="js/tareas.js"></script>
-<script src="js/finanzas.js"></script>
-<script src="js/cartera.js"></script>
-<script src="js/gym.js"></script>
-
-<script>
-  // Iniciar la app cuando todo el HTML haya cargado
-  document.addEventListener('DOMContentLoaded', init);
-</script>
+<script src="js/main.js"></script><script src="js/nube.js"></script><script src="js/tareas.js"></script><script src="js/finanzas.js"></script>
+<script>document.addEventListener('DOMContentLoaded', init);</script>
 </body>
 </html>
