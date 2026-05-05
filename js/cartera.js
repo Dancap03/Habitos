@@ -1,16 +1,16 @@
-// Función inteligente para asignar el color (ignora si está en mayúscula o minúscula)
+// --- COLORES POR TIPO ---
 function getTypeColor(type) {
-  const colors = {
-    'acción': '#3b82f6', // Azul
-    'etf': '#8b5cf6', // Morado
-    'crypto': '#f59e0b', // Naranja
-    'fondos': '#1abc9c', // Turquesa
-    'bonos': '#27ae60', // Verde
-    'materias primas': '#e74c3c', // Rojo
-    'otro': '#95a5a6' // Gris
-  };
-  if (!type) return colors['otro'];
-  return colors[type.toLowerCase()] || colors['otro'];
+    const colors = {
+        'acción': '#3b82f6', // Azul
+        'etf': '#8b5cf6', // Morado
+        'crypto': '#f59e0b', // Naranja
+        'fondos': '#1abc9c', // Turquesa
+        'bonos': '#27ae60', // Verde
+        'materias primas': '#e74c3c', // Rojo
+        'otro': '#95a5a6' // Gris
+    };
+    if (!type) return colors['otro'];
+    return colors[type.toLowerCase()] || colors['otro'];
 }
 
 function renderStocks() {
@@ -40,13 +40,17 @@ function renderStocks() {
     if (pnl > 0.001) { cStr = 'var(--grn)'; sign = '▲ '; }
     else if (pnl < -0.001) { cStr = 'var(--red)'; sign = '▼ '; }
 
+    // Color del badge según tu función
+    const badgeColor = getTypeColor(s.type);
+    const badgeBg = badgeColor + '1A'; // 1A es ~10% de opacidad en hexadecimal para el fondo
+
     totalVal += curVal;
     totalInv += sInv;
 
     html += `
     <div class="list-item" style="padding:16px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
       <div style="display:flex; align-items:center; gap:12px; cursor:pointer; flex:1;" onclick="openManageStock('${s.id}')">
-        <div style="background:rgba(59,130,246,.1); color:var(--blu); font-weight:700; font-size:10px; padding:10px; border-radius:10px; width:45px; text-align:center;">${s.ticker}</div>
+        <div style="background:${badgeBg}; color:${badgeColor}; font-weight:700; font-size:10px; padding:10px; border-radius:10px; width:45px; text-align:center;">${s.ticker}</div>
         <div>
            <div style="font-weight:700; font-size:15px; color:var(--t1);">${s.name}</div>
            <div style="font-size:11px; color:var(--t2); margin-top:4px;">Precio act: €${s.price.toFixed(2)}</div>
@@ -200,19 +204,27 @@ function updatePortfolioCharts() {
     }
   });
 
-  const cols = ['#8b5cf6', '#3b82f6', '#27ae60', '#f59e0b', '#e74c3c', '#e05a2b'];
+  // Generamos los arrays para el chart de tipos utilizando la función de color
+  const typeLabels = Object.keys(types);
+  const typeData = Object.values(types);
+  const typeBgColors = typeLabels.map(t => getTypeColor(t));
   
   if (typeChart) typeChart.destroy();
   typeChart = new Chart(c1, {
     type: 'doughnut',
-    data: { labels: Object.keys(types), datasets: [{ data: Object.values(types), backgroundColor: cols, borderWidth: 0 }] },
+    data: { labels: typeLabels, datasets: [{ data: typeData, backgroundColor: typeBgColors, borderWidth: 0 }] },
     options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'right', labels: { color: '#a1a1a6', font: { size: 10, family: 'DM Sans' }, boxWidth: 10, padding: 10 } } } }
   });
 
+  // Paleta genérica contrastada para los activos individuales
+  const assetLabels = Object.keys(assets);
+  const assetData = Object.values(assets);
+  const assetCols = ['#8b5cf6', '#3b82f6', '#27ae60', '#f59e0b', '#e74c3c', '#e05a2b', '#1abc9c', '#95a5a6']; 
+  
   if (assetChart) assetChart.destroy();
   assetChart = new Chart(c2, {
     type: 'doughnut',
-    data: { labels: Object.keys(assets), datasets: [{ data: Object.values(assets), backgroundColor: [...cols].reverse(), borderWidth: 0 }] },
+    data: { labels: assetLabels, datasets: [{ data: assetData, backgroundColor: assetCols, borderWidth: 0 }] },
     options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'right', labels: { color: '#a1a1a6', font: { size: 10, family: 'DM Sans' }, boxWidth: 10, padding: 10 } } } }
   });
 }
