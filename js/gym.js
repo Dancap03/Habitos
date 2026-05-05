@@ -131,7 +131,7 @@ function renderRoutines() {
       ${r.type === 'cardio' ? '' : r.exercises.map(e=>`<div class="list-item" style="padding:8px 0"><div class="item-title">${e.name}</div><div class="item-sub">${e.sets} series</div></div>`).join('')}
     </div>`).join('');
     
-  renderGymPRs();
+  renderGymDays();
 }
 
 function renderGymActive() {
@@ -175,10 +175,8 @@ function finishWorkout() {
   const startT = document.getElementById('gym-start-time').value || formatTime(new Date());
   
   const logEntry = { id: uid(), date: today(), routineName: r.name, type: r.type, startTime: startT, endTime: endT, exercises: [] };
-  const isCardio = r.type === 'cardio';
 
   r.exercises.forEach((e, ei) => {
-    let maxKg = 0; let maxReps = 0;
     const logEx = { name: e.name, sets: [], unit: e.unit || '' };
     
     for (let si = 0; si < e.sets; si++) {
@@ -190,28 +188,10 @@ function finishWorkout() {
         const kg = parseFloat(kgEl.value)||0;
         const reps = parseInt(repsEl.value)||0;
         logEx.sets.push({kg, reps});
-        if (kg > maxKg || (kg === maxKg && reps > maxReps)) { maxKg = kg; maxReps = reps; }
       }
     }
     
     if(logEx.sets.length > 0) logEntry.exercises.push(logEx);
-
-    if (maxKg > 0 || maxReps > 0) {
-      const currentPr = S.prs[e.name];
-      let isNewPr = false;
-      if (!currentPr) {
-          isNewPr = true;
-      } else {
-          if (isCardio) {
-              if (maxKg > currentPr.kg || (maxKg === currentPr.kg && maxReps <= currentPr.reps)) isNewPr = true;
-          } else {
-              if (maxKg > currentPr.kg || (maxKg === currentPr.kg && maxReps >= currentPr.reps)) isNewPr = true;
-          }
-      }
-      if (isNewPr) {
-        S.prs[e.name] = { kg: maxKg, reps: maxReps, date: today(), isCardio: isCardio, unit: e.unit || '' };
-      }
-    }
   });
 
   S.workoutLog.unshift(logEntry); 
@@ -222,23 +202,63 @@ function finishWorkout() {
   showToast('¡Entrenamiento guardado! 💪', 'success');
 }
 
-function renderGymPRs() {
-  const el = document.getElementById('gym-prs');
+function renderGymDays() {
+  const el = document.getElementById('gym-days');
   if(!el) return;
-  const prs = Object.entries(S.prs).map(([name, data]) => ({name, ...data}));
+  if (!S.workoutLog || !S.workoutLog.length) { 
+    el.innerHTML = '<div class="empty">Sin entrenamientos aún</div>'; 
+    return; 
+  }
   
-  if (!prs.length) { el.innerHTML = '<div class="empty">Sin registros aún</div>'; return; }
+  const days = {};
+  S.workoutLog.forEach(w => {
+    if(!days[w.date]) days[w.date] = [];
+    days[w.date].push(w);
+  });
   
-  el.innerHTML = prs.sort((a,b) => a.name.localeCompare(b.name)).map(p => {
-    const isCardio = p.isCardio === true;
-    const unitText = p.unit ? ` ${p.unit}` : '';
-    const prText = isCardio ? `${p.kg}${unitText} en ${p.reps} min` : `${p.kg} kg × ${p.reps} reps`;
+  const sortedDates = Object.keys(days).sort((a,b) => new Date(b) - new Date(a));
+  
+  el.innerHTML = sortedDates.slice(0, 10).map((date, index) => {
+    const workouts = days[date];
+    const [y, m, d] = date.split('-');
+    const safeDate = new Date(y, m-1, d);
+    let dateStr = safeDate.toLocaleDateString('es-ES', {weekday:'long', day:'numeric', month:'short'});
+    dateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1); // Primera letra en mayúscula
+    
+    const detailsHtml = workouts.map(w => {
+      const isCardio = w.type === 'cardio';
+      const exHtml = (w.exercises || []).map(ex => {
+        const unitText = ex.unit ? ` ${ex.unit}` : '';
+        const setsHtml = (ex.sets || []).map((s, i) => {
+          if(isCardio) return `<div style="display:flex; justify-content:space-between; font-size:12px; color:var(--t2); padding:2px 0;"><span>Registro</span><span>${s.kg}${unitText} en ${s.reps} min</span></div>`;
+          else return `<div style="display:flex; justify-content:space-between; font-size:12px; color:var(--t2); padding:2px 0;"><span>Serie ${i+1}</span><span>${s.kg} kg × ${s.reps} reps</span></div>`;
+        }).join('');
+        const titleHtml = isCardio ? '' : `<div style="font-size:13px; font-weight:600; color:var(--t1); margin-top:4px;">${ex.name}</div>`;
+        return `<div>${titleHtml}${setsHtml}</div>`;
+      }).join('');
+      
+      return `
+        <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--line);">
+          <div style="font-size:13px; font-weight:700; color:var(--acc); display:flex; justify-content:space-between;">
+            <span>${w.routineName}</span>
+            <span style="font-size:11px; color:var(--t2); font-weight:normal;">${w.startTime} - ${w.endTime}</span>
+          </div>
+          ${exHtml}
+        </div>
+      `;
+    }).join('');
     
     return `
-    <div class="fin-row">
-      <div><div style="font-size:14px; font-weight:500">${p.name}</div><div style="font-size:11px; color:var(--t2)">${p.date}</div></div>
-      <div style="font-size:15px;font-weight:700;color:var(--yel)">${prText} 🏆</div>
-    </div>`;
+      <div class="history-card" onclick="toggleHistoryDetails('day-${index}')" style="margin-bottom: 8px;">
+        <div class="row">
+          <div style="font-size:14px; font-weight:600;">${dateStr}</div>
+          <div style="font-size:11px; color:var(--t2)">${workouts.length} entreno(s) ▼</div>
+        </div>
+        <div id="day-${index}" style="display:none; cursor:default;" onclick="event.stopPropagation();">
+          ${detailsHtml}
+        </div>
+      </div>
+    `;
   }).join('');
 }
 
