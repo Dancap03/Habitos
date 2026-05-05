@@ -17,7 +17,7 @@
   <div class="screen on">
     <div class="topbar">
       <span class="page-title">Cartera</span>
-      <div class="topbar-right"><button class="btn btn-sm" onclick="openModal('modal-stock')">+ Acción</button></div>
+      <div class="topbar-right"><button class="btn btn-sm" onclick="openModal('modal-stock')">+ Posición</button></div>
     </div>
     <div class="scroll">
       <div class="card">
@@ -28,15 +28,27 @@
           <span style="font-size:13px" id="port-pnl">+€0 (0%)</span>
         </div>
       </div>
+      
+      <!-- GRÁFICO 1: POR TIPO DE ACTIVO -->
       <div class="card">
-        <div class="card-title">Distribución</div>
+        <div class="card-title">Distribución por Tipo</div>
         <div style="display:flex;align-items:center;gap:16px">
-          <div style="position:relative;width:100px;height:100px;flex-shrink:0"><canvas id="donutChart" width="100" height="100"></canvas></div>
-          <div id="port-legend" style="flex:1;font-size:12px"></div>
+          <div style="position:relative;width:100px;height:100px;flex-shrink:0"><canvas id="donutChartType" width="100" height="100"></canvas></div>
+          <div id="port-legend-type" style="flex:1;font-size:12px"></div>
         </div>
       </div>
+
+      <!-- GRÁFICO 2: POR ACTIVO INDIVIDUAL -->
       <div class="card">
-        <div class="card-title">Posiciones</div>
+        <div class="card-title">Distribución por Activo</div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="position:relative;width:100px;height:100px;flex-shrink:0"><canvas id="donutChartAsset" width="100" height="100"></canvas></div>
+          <div id="port-legend-asset" style="flex:1;font-size:12px"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Tus Posiciones</div>
         <div id="stock-list"><div class="empty">Sin posiciones</div></div>
       </div>
     </div>
@@ -72,6 +84,7 @@
             <option value="Fondos">Fondos</option>
             <option value="Bonos">Bonos</option>
             <option value="Materias Primas">Materias Primas</option>
+            <option value="Otro">Otro</option>
           </select>
         </div>
       </div>
@@ -110,9 +123,9 @@
 
   <div class="toast-container" id="toast-container"></div>
 </div>
-<!-- Truco para la caché -->
-<script src="js/main.js?v=5"></script>
-<script src="js/cartera.js?v=5"></script>
+
+<script src="js/main.js?v=7"></script>
+<script src="js/cartera.js?v=7"></script>
 <script>document.addEventListener('DOMContentLoaded', init);</script>
 </body>
 </html>
