@@ -43,16 +43,13 @@ function openModalFin(type, defaultCat = null) {
   const elType = document.getElementById('fin-type');
   const elCat = document.getElementById('fin-cat');
   const elTitle = document.getElementById('modal-fin-title');
-  
   if(elCat) {
      if(defaultCat) elCat.value = defaultCat;
      else if(['ahorro','inversión','suscripciones'].includes(elCat.value)) elCat.value = type === 'ingreso' ? 'nómina' : 'otro';
   }
-  
   toggleFinTypeOptions();
   if(elType) elType.value = type;
   if(elTitle) elTitle.textContent = defaultCat ? `Nuevo ${defaultCat}` : (type === 'ingreso' ? 'Nuevo ingreso' : 'Nuevo gasto');
-  
   document.getElementById('fin-date').value = today();
   document.getElementById('fin-amount').value = '';
   document.getElementById('fin-desc').value = '';
@@ -64,9 +61,7 @@ function addFinEntry() {
   const desc = document.getElementById('fin-desc').value.trim();
   const cat = document.getElementById('fin-cat').value;
   const type = document.getElementById('fin-type').value;
-
   if (!amount || !desc) return showToast('Rellena los datos', 'error');
-  
   if (cat === 'suscripciones') {
     const day = parseInt(document.getElementById('fin-day').value);
     if (!day || day < 1 || day > 31) return showToast('Día inválido', 'error');
@@ -74,9 +69,7 @@ function addFinEntry() {
   } else {
     S.fin.push({ id: uid(), type, amount, desc, cat, date: document.getElementById('fin-date').value || today() });
   }
-  
-  save(); closeAllModals(); renderFinances();
-  if(typeof renderHome === 'function') renderHome();
+  save(); closeAllModals(); renderFinances(); if(typeof renderHome === 'function') renderHome();
   showToast('Guardado', 'success');
 }
 
@@ -105,17 +98,14 @@ function renderFinances() {
   });
 
   const entries = filterByPeriod(S.fin, period);
-
-  // Totales Huchas (Históricos)
   const totalSav = S.fin.filter(e => e.cat === 'ahorro').reduce((a,e) => a + (e.type==='gasto'?e.amount:-e.amount), 0);
   const totalInv = S.fin.filter(e => e.cat === 'inversión').reduce((a,e) => a + (e.type==='gasto'?e.amount:-e.amount), 0);
 
-  // Matemática periodo
   const trueInc = entries.filter(e => e.type === 'ingreso' && !['ahorro','inversión'].includes(e.cat)).reduce((a,e) => a+e.amount, 0);
   const trueExp = entries.filter(e => e.type === 'gasto' && !['ahorro','inversión'].includes(e.cat)).reduce((a,e) => a+e.amount, 0);
   const periodSav = entries.filter(e => e.cat === 'ahorro').reduce((a,e) => a + (e.type==='gasto'?e.amount:-e.amount), 0);
+  const periodInv = entries.filter(e => e.cat === 'inversión').reduce((a,e) => a + (e.type==='gasto'?e.amount:-e.amount), 0);
 
-  // Balance disponible (Efectivo en mano)
   const available = S.fin.reduce((a,e) => a + (e.type==='ingreso'?e.amount:-e.amount), 0);
 
   document.getElementById('fin-bal').textContent = fmt(available);
@@ -124,26 +114,18 @@ function renderFinances() {
   document.getElementById('fin-inc').textContent = fmt(trueInc);
   document.getElementById('fin-exp').textContent = fmt(trueExp);
   document.getElementById('fin-sav').textContent = fmt(periodSav);
+  document.getElementById('fin-inv-period').textContent = fmt(periodInv);
 
-  // Listas
   renderList('fin-income-list', entries.filter(e => e.type === 'ingreso' && !['ahorro','inversión'].includes(e.cat)));
   renderList('fin-expense-list', entries.filter(e => e.type === 'gasto' && !['ahorro','inversión'].includes(e.cat)));
   renderList('fin-sav-list', entries.filter(e => e.cat === 'ahorro'), true);
   renderList('fin-inv-list', entries.filter(e => e.cat === 'inversión'), true);
   
-  const recEl = document.getElementById('fin-rec-list');
-  if(recEl) recEl.innerHTML = S.recurring.length ? S.recurring.map(r => `
-    <div class="fin-row">
-      <div class="row-gap"><div class="icon-box" style="background:var(--pur); color:#fff; border-radius:10px;">🔄</div><div><div style="font-size:13px;font-weight:500">${r.name}</div><div class="item-sub">Día ${r.day}</div></div></div>
-      <div style="text-align:right"><div class="fin-amount-neg">-${fmt(r.amount)}</div><button class="btn-danger" onclick="delRecurring('${r.id}')">✕</button></div>
-    </div>`).join('') : '<div class="empty">Vacío</div>';
-
   updateFinChart(period);
 }
 
 function renderList(id, list, isHucha = false) {
-  const el = document.getElementById(id);
-  if(!el) return;
+  const el = document.getElementById(id); if(!el) return;
   el.innerHTML = list.length ? list.map(e => `
     <div class="fin-row">
       <div class="row-gap">
@@ -161,23 +143,23 @@ function setFinPeriod(p, btn) { S.activePeriod = p; save(); renderFinances(); }
 
 let finChartInst = null;
 function initFinChart() {
-  const ctx = document.getElementById('finChart');
-  if (!ctx) return;
+  const ctx = document.getElementById('finChart'); if (!ctx) return;
   finChartInst = new Chart(ctx, {
     type: 'line',
     data: { labels: [], datasets: [
       { label:'Ingresos', data:[], borderColor:'#27ae60', backgroundColor:'rgba(39,174,96,.08)', tension:.4, fill:true },
       { label:'Gastos', data:[], borderColor:'#e74c3c', backgroundColor:'rgba(231,76,60,.06)', tension:.4, fill:true, borderDash:[4,4] },
-      { label:'Ahorrado', data:[], borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.08)', tension:.4, fill:true }
+      { label:'Ahorrado', data:[], borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.08)', tension:.4, fill:true },
+      { label:'Invertido', data:[], borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.08)', tension:.4, fill:true }
     ]},
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#444',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#444',font:{size:10}},grid:{color:'rgba(255,255,255,.03)'}}}}
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#444',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#444',font:{size:10},callback:v=>'€'+v.toLocaleString()},grid:{color:'rgba(255,255,255,.03)'}}}}
   });
   updateFinChart(S.activePeriod || 'semana');
 }
 
 function updateFinChart(period) {
   if (!finChartInst) return;
-  let labels = [], inc = [], exp = [], sav = [];
+  let labels = [], inc = [], exp = [], sav = [], inv = [];
   const now = new Date();
   
   if (period === 'semana') {
@@ -187,12 +169,14 @@ function updateFinChart(period) {
       inc.push(S.fin.filter(e=>e.type==='ingreso' && !['ahorro','inversión'].includes(e.cat) && e.date===ds).reduce((a,e)=>a+e.amount,0));
       exp.push(S.fin.filter(e=>e.type==='gasto' && !['ahorro','inversión'].includes(e.cat) && e.date===ds).reduce((a,e)=>a+e.amount,0));
       sav.push(S.fin.filter(e=>e.cat==='ahorro' && e.date===ds).reduce((a,e)=>a+(e.type==='gasto'?e.amount:-e.amount),0));
+      inv.push(S.fin.filter(e=>e.cat==='inversión' && e.date===ds).reduce((a,e)=>a+(e.type==='gasto'?e.amount:-e.amount),0));
     }
   }
-  // (Mantenemos la lógica para Mes/Año similar)
+  // (Lógica similar para Mes/Año)
   finChartInst.data.labels = labels;
   finChartInst.data.datasets[0].data = inc;
   finChartInst.data.datasets[1].data = exp;
   finChartInst.data.datasets[2].data = sav;
+  finChartInst.data.datasets[3].data = inv;
   finChartInst.update();
 }
