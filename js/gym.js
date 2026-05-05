@@ -24,12 +24,12 @@ function switchGymTab(tab, btn) {
 }
 
 function renderGymInit() {
-    init(); // Asegura cargar S desde main.js
+    init(); 
     
-    // PROTECCIÓN CONTRA BUGS
-    if (!S.routines) S.routines = [];
-    if (!S.workoutLog) S.workoutLog = [];
-    if (!S.prs) S.prs = {};
+    // PROTECCIÓN CONTRA DATOS CORRUPTOS (Vital para que no falle al guardar)
+    if (!Array.isArray(S.routines)) S.routines = [];
+    if (!Array.isArray(S.workoutLog)) S.workoutLog = [];
+    if (typeof S.prs !== 'object' || S.prs === null) S.prs = {};
 
     renderRoutines();
     renderActiveWorkout();
@@ -101,6 +101,15 @@ function addRoutine() {
     let finalExercises = [];
     
     if (type === 'pesas') {
+        // Inteligencia: Si escribió un ejercicio pero se le olvidó darle a "añadir", lo añadimos automáticamente.
+        const pendingExName = document.getElementById('rt-ex-name').value.trim();
+        if (pendingExName) {
+            const sets = parseInt(document.getElementById('rt-ex-sets').value) || 1;
+            tempRtExercises.push({ type: 'pesas', name: pendingExName, sets });
+            document.getElementById('rt-ex-name').value = '';
+            document.getElementById('rt-ex-sets').value = '';
+        }
+
         if(tempRtExercises.length === 0) return showToast('Añade al menos un ejercicio a la lista', 'error');
         finalExercises = [...tempRtExercises];
     } else {
@@ -108,7 +117,9 @@ function addRoutine() {
         finalExercises = [{ type: 'cardio', name: name, unit: unit, sets: 1 }];
     }
     
+    if (!Array.isArray(S.routines)) S.routines = [];
     S.routines.push({ id: uid(), name, type, exercises: finalExercises });
+    
     save(); closeModal('modal-routine'); renderRoutines();
     showToast('Rutina guardada');
 }
@@ -116,7 +127,7 @@ function addRoutine() {
 function renderRoutines() {
     const list = document.getElementById('gym-routine-list');
     if(!list) return;
-    if(!S.routines) S.routines = []; 
+    if(!Array.isArray(S.routines)) S.routines = []; 
     
     list.innerHTML = S.routines.length ? S.routines.map(r => {
         const isCardio = r.type === 'cardio';
@@ -257,7 +268,6 @@ function renderActiveWorkout() {
     `;
 }
 
-// --- EJERCICIOS AD-HOC DENTRO DEL ENTRENO ---
 function openAddExerciseModal() {
     document.getElementById('ex-name').value = '';
     document.getElementById('ex-unit').value = '';
@@ -332,7 +342,7 @@ function finishWorkout() {
         }
     });
     
-    if(!S.workoutLog) S.workoutLog = [];
+    if(!Array.isArray(S.workoutLog)) S.workoutLog = [];
     S.workoutLog.push({ 
         id: S.activeRoutine.id, 
         date: S.activeRoutine.date, 
@@ -350,7 +360,7 @@ function finishWorkout() {
 function renderWorkoutLog() {
     const list = document.getElementById('gym-workout-log');
     if(!list) return;
-    if(!S.workoutLog) S.workoutLog = [];
+    if(!Array.isArray(S.workoutLog)) S.workoutLog = [];
     
     const sortedLog = [...S.workoutLog].reverse();
     list.innerHTML = sortedLog.length ? sortedLog.map(w => `
@@ -380,6 +390,8 @@ function renderRecords() {
     if(!S.prs) S.prs = {};
     
     const prKeys = Object.keys(S.prs);
+    
+    // AQUÍ ESTÁ LA "X" EN LOS RÉCORDS
     list.innerHTML = prKeys.length ? prKeys.map(k => {
         const pr = S.prs[k];
         const isPesas = pr.type === 'pesas';
