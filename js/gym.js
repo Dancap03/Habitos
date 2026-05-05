@@ -113,14 +113,27 @@ function startRoutine(id) {
 function cancelWorkout() { S.activeRoutine = null; save(); renderRoutines(); }
 
 function renderRoutines() {
+  // ¡CAMBIO CLAVE! Pinta los días de entrenamiento lo primero de todo
+  renderGymDays();
+
   const el = document.getElementById('gym-routine-list');
   const active = document.getElementById('gym-active');
   if(!el || !active) return;
 
-  if (S.activeRoutine) { el.style.display='none'; active.style.display='block'; renderGymActive(); return; }
-  active.style.display = 'none'; el.style.display = 'block';
+  if (S.activeRoutine) { 
+    el.style.display='none'; 
+    active.style.display='block'; 
+    renderGymActive(); 
+    return; 
+  }
   
-  if (!S.routines.length) { el.innerHTML = '<div class="empty">Crea tu primera rutina</div>'; return; }
+  active.style.display = 'none'; 
+  el.style.display = 'block';
+  
+  if (!S.routines.length) { 
+    el.innerHTML = '<div class="empty">Crea tu primera rutina</div>'; 
+    return; 
+  }
   
   el.innerHTML = S.routines.map(r => `
     <div class="card">
@@ -130,8 +143,6 @@ function renderRoutines() {
       </div>
       ${r.type === 'cardio' ? '' : r.exercises.map(e=>`<div class="list-item" style="padding:8px 0"><div class="item-title">${e.name}</div><div class="item-sub">${e.sets} series</div></div>`).join('')}
     </div>`).join('');
-    
-  renderGymDays();
 }
 
 function renderGymActive() {
@@ -223,7 +234,7 @@ function renderGymDays() {
     const [y, m, d] = date.split('-');
     const safeDate = new Date(y, m-1, d);
     let dateStr = safeDate.toLocaleDateString('es-ES', {weekday:'long', day:'numeric', month:'short'});
-    dateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1); // Primera letra en mayúscula
+    dateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
     
     const detailsHtml = workouts.map(w => {
       const isCardio = w.type === 'cardio';
