@@ -11,14 +11,13 @@
 <link rel="stylesheet" href="css/UI.css">
 <link rel="stylesheet" href="css/finanzas.css">
 </head>
-  
 <body>
 <div class="app">
 
   <div class="screen on">
     <div class="topbar">
       <span class="page-title">Finanzas</span>
-      <div class="topbar-right"><button class="btn btn-sm" onclick="openModal('modal-fin')">+ Registro</button></div>
+      <div class="topbar-right"><button class="btn btn-sm" onclick="openModalFin('ingreso')">+ Registro</button></div>
     </div>
     <div class="scroll">
       <div class="fin-tabs">
@@ -93,6 +92,20 @@
       <button class="btn btn-primary" style="margin-top:16px" onclick="addRecurring()">Añadir</button>
     </div>
   </div>
+
+  <!-- Modal Confirmación -->
+  <div class="overlay" id="modal-confirm" onclick="cancelConfirm(event)">
+    <div class="modal" style="padding-bottom: 24px;">
+      <div class="modal-handle"></div>
+      <div class="modal-title" id="confirm-title" style="color: var(--red);">¿Estás seguro?</div>
+      <div class="form-label" id="confirm-message" style="margin-bottom: 20px; text-transform: none; font-size: 14px; color: var(--t1); letter-spacing: normal;">¿Quieres borrar esto?</div>
+      <div class="form-row">
+        <button class="btn" style="background:var(--bg3); color:var(--t1);" onclick="cancelConfirm(event, true)">Cancelar</button>
+        <button class="btn" style="background:var(--red); color:#fff;" onclick="executeConfirm()">Borrar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast-container" id="toast-container"></div>
 </div>
 <script src="js/main.js"></script><script src="js/finanzas.js"></script>
