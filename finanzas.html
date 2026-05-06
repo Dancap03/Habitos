@@ -1,92 +1,92 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#080808">
 <title>Dancab - Finanzas</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/UI.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="css/finanzas.css">
 </head>
+
 <body>
 <div class="app">
-
   <div class="screen on">
     <div class="topbar">
-      <div style="font-weight:800;font-size:26px;color:var(--acc);letter-spacing:-0.5px;">Finanzas</div>
+      <span class="page-title">Finanzas</span>
     </div>
-
     <div class="scroll">
+
+      <!-- BOTONES DE FILTRO (AHORA VISIBLES) -->
       <div class="fin-tabs">
-        <button class="fin-tab on">Semana</button>
-        <button class="fin-tab">Mes</button>
-        <button class="fin-tab">Año</button>
-        <button class="fin-tab">Total</button>
+        <button class="fin-tab on" onclick="setFinPeriod('semana',this)">Semana</button>
+        <button class="fin-tab" onclick="setFinPeriod('mes',this)">Mes</button>
+        <button class="fin-tab" onclick="setFinPeriod('año',this)">Año</button>
+        <button class="fin-tab" onclick="setFinPeriod('total',this)">Total</button>
       </div>
 
+      <!-- RESUMEN CON BOTÓN CENTRALIZADO -->
       <div class="card card-full">
         <div class="card-header" style="margin-bottom: 8px;">
-            <span class="card-title" style="margin-bottom: 0;">RESUMEN</span>
-            <button class="btn btn-sm" style="background:var(--acc); color:#fff; font-weight:800;" onclick="openModal('modal-fin')">+ Añadir</button>
+            <span class="card-title" id="fin-period-label" style="margin-bottom: 0;">RESUMEN</span>
+            <button class="btn btn-sm" style="background:var(--acc); color:#fff; font-weight:800; padding: 8px 16px;" onclick="openModalFin('ingreso')">+ Añadir</button>
         </div>
-        
-        <div class="big-bal" id="fin-avail" style="font-size:42px; text-align:left; margin-bottom: 8px;">€0,00</div>
-        
-        <div style="display:flex; gap:15px; margin-bottom:20px; font-size:11px; font-weight:700;">
-           <span style="color:var(--blu)">Hucha ahorro: <span id="fin-total-aho">€0,00</span></span>
-           <span style="color:var(--yel)">Total invertido: <span id="fin-total-inv">€0,00</span></span>
+        <div class="big-bal" id="fin-bal">€0</div>
+        <div style="display:flex; gap:15px; margin-top:4px;">
+           <div style="font-size:12px; color:var(--blu); font-weight:600;">Hucha ahorro: <span id="fin-total-sav">€0</span></div>
+           <div style="font-size:12px; color:var(--yel); font-weight:600;">Total invertido: <span id="fin-total-inv-label">€0</span></div>
         </div>
-
-        <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;">
-          <div style="background:rgba(39,174,96,.07); border-radius:10px; padding:8px; text-align:center;">
-            <div style="font-size:8px; color:var(--t3); font-weight:700;">ING.</div>
-            <div style="font-size:11px; font-weight:700; color:var(--grn)" id="fin-total-inc">€0,00</div>
+        <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:6px;margin-top:16px">
+          <div style="background:rgba(39,174,96,.07);border-radius:10px;padding:8px;text-align:center;">
+            <div style="font-size:8px;color:var(--t3);font-weight:700;">ING.</div>
+            <div style="font-size:13px;font-weight:700;color:var(--grn)" id="fin-inc">€0</div>
           </div>
-          <div style="background:rgba(231,76,60,.07); border-radius:10px; padding:8px; text-align:center;">
-            <div style="font-size:8px; color:var(--t3); font-weight:700;">GAS.</div>
-            <div style="font-size:11px; font-weight:700; color:var(--red)" id="fin-total-exp">€0,00</div>
+          <div style="background:rgba(231,76,60,.07);border-radius:10px;padding:8px;text-align:center;">
+            <div style="font-size:8px;color:var(--t3);font-weight:700;">GAS.</div>
+            <div style="font-size:13px;font-weight:700;color:var(--red)" id="fin-exp">€0</div>
           </div>
-          <div style="background:rgba(59,130,246,.07); border-radius:10px; padding:8px; text-align:center;">
-            <div style="font-size:8px; color:var(--t3); font-weight:700;">AHO.</div>
-            <div style="font-size:11px; font-weight:700; color:var(--blu)" id="fin-total-sav-box">€0,00</div>
+          <div style="background:rgba(59,130,246,.07);border-radius:10px;padding:8px;text-align:center;">
+            <div style="font-size:8px;color:var(--t3);font-weight:700;">AHO.</div>
+            <div style="font-size:13px;font-weight:700;color:var(--blu)" id="fin-sav">€0</div>
           </div>
-          <div style="background:rgba(245,158,11,.07); border-radius:10px; padding:8px; text-align:center;">
-            <div style="font-size:8px; color:var(--t3); font-weight:700;">INV.</div>
-            <div style="font-size:11px; font-weight:700; color:var(--yel)" id="fin-total-inv-box">€0,00</div>
+          <div style="background:rgba(245,158,11,.07);border-radius:10px;padding:8px;text-align:center;">
+            <div style="font-size:8px;color:var(--t3);font-weight:700;">INV.</div>
+            <div style="font-size:13px;font-weight:700;color:var(--yel)" id="fin-inv-period">€0</div>
           </div>
         </div>
       </div>
-
       <div class="card card-full">
-        <div class="card-title">Ingresos</div>
-        <div id="list-incomes"></div>
+        <div class="card-title" id="fin-chart-label">Evolución</div>
+        <div style="position:relative;width:100%;height:220px"><canvas id="finChart"></canvas></div>
       </div>
 
-      <div class="card card-full">
-        <div class="card-title">Gastos</div>
-        <div id="list-expenses"></div>
+      <!-- LISTAS LIMPIAS SIN BOTONES -->
+      <div class="card">
+        <span class="card-title">Ingresos</span>
+        <div id="fin-income-list"><div class="empty">Sin ingresos</div></div>
       </div>
-
-      <div class="card card-full">
-        <div class="card-title">Suscripciones</div>
-        <div id="list-subs"></div>
+      <div class="card">
+        <span class="card-title">Gastos</span>
+        <div id="fin-expense-list"><div class="empty">Sin gastos</div></div>
       </div>
-
-      <div class="card card-full">
-        <div class="card-title">Hucha Ahorro</div>
-        <div id="list-savings"></div>
+      <div class="card">
+        <span class="card-title">Suscripciones</span>
+        <div id="fin-rec-list"><div class="empty">Sin suscripciones</div></div>
       </div>
-
-      <div class="card card-full">
-        <div class="card-title">Capital Invertido</div>
-        <div id="list-investments"></div>
+      <div class="card">
+        <span class="card-title">Hucha Ahorro</span>
+        <div id="fin-sav-list"><div class="empty">Sin movimientos</div></div>
       </div>
-
+      <div class="card">
+        <span class="card-title">Capital Invertido</span>
+        <div id="fin-inv-list"><div class="empty">Sin inversiones</div></div>
+      </div>
     </div>
   </div>
-
   <nav class="nav">
     <button class="nav-btn" onclick="window.location.href='index.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="nav-label">Inicio</span></button>
     <button class="nav-btn" onclick="window.location.href='calendario.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span class="nav-label">Calendario</span></button>
@@ -95,48 +95,54 @@
     <button class="nav-btn" onclick="window.location.href='gym.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 5v14M18 5v14M3 9h18M3 15h18"/></svg><span class="nav-label">Gym</span></button>
   </nav>
 
+  <!-- MODAL: FORMULARIO -->
   <div class="overlay" id="modal-fin" onclick="closeModal('modal-fin',event)">
     <div class="modal">
       <div class="modal-handle"></div>
-      <div class="modal-title" style="margin-bottom:20px;">Nuevo registro</div>
-      
+      <div class="modal-title" id="modal-fin-title" style="margin-bottom:20px;">Añadir registro</div>
       <label class="form-label">Tipo</label>
       <select id="fin-type" class="form-input">
          <option value="ingreso">Ingreso</option>
          <option value="gasto">Gasto</option>
-         <option value="suscripcion">Suscripción</option>
       </select>
-      
       <label class="form-label">Importe (€)</label>
-      <input type="number" id="fin-amount" class="form-input" placeholder="0.00" step="0.01">
-      
+      <input type="number" id="fin-amount" class="form-input" placeholder="0.00" step="0.01"> 
       <label class="form-label">Descripción</label>
-      <input type="text" id="fin-desc" class="form-input" placeholder="Ej: Spotify, Gasolina, Nómina...">
-      
-      <label class="form-label">Categoría (Destino)</label>
-      <select id="fin-cat" class="form-input">
-        <option value="normal">Cuenta Normal</option>
-        <option value="ahorro">Hucha Ahorro</option>
-        <option value="inversión">Inversión (Cartera)</option>
+      <input type="text" id="fin-desc" class="form-input" placeholder="...">
+      <label class="form-label">Categoría</label>
+      <select id="fin-cat" class="form-input" onchange="toggleFinTypeOptions()">
+        <option value="nómina">Nómina</option>
+        <option value="ahorro">Ahorro</option>
+        <option value="inversión">Inversión</option>
+        <option value="intereses">Intereses</option>
+        <option value="dividendos">Dividendos</option>
+        <option value="alquiler">Alquiler</option>
+        <option value="alimentación">Alimentación</option>
+        <option value="transporte">Transporte</option>
+        <option value="suscripciones">Suscripciones</option>
+        <option value="salud">Salud</option>
+        <option value="ocio">Ocio</option>
+        <option value="caprichos">Caprichos</option>
+        <option value="compras">Compras</option>
+        <option value="viajes">Viajes</option>
+        <option value="otro">Otro</option>
       </select>
-
-      <label class="form-label">Fecha</label>
-      <input type="date" id="fin-date" class="form-input">
-      
-      <button class="btn btn-primary" style="margin-top:16px; width:100%;" onclick="saveFinEntry()">Guardar</button>
+      <div id="date-wrapper">
+         <label class="form-label">Fecha</label>
+         <input type="date" id="fin-date" class="form-input">
+      </div>
+      <div id="day-wrapper" style="display:none;">
+         <label class="form-label">Día del mes (Suscripción)</label>
+         <input type="number" id="fin-day" class="form-input" placeholder="1-31" min="1" max="31">
+      </div>
+      <button class="btn btn-primary" style="margin-top:16px; width:100%;" onclick="addFinEntry()">Guardar</button>
     </div>
   </div>
-
   <div class="toast-container" id="toast-container"></div>
 </div>
 
-<script src="js/main.js?v=60"></script>
-<script src="js/finanzas.js?v=60"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        if (typeof setupSwipeToClose === 'function') setupSwipeToClose();
-        document.getElementById('fin-date').value = today();
-    });
-</script>
+<script src="js/main.js?v=44"></script>
+<script src="js/finanzas.js?v=44"></script>
+<script>document.addEventListener('DOMContentLoaded', init);</script>
 </body>
 </html>
