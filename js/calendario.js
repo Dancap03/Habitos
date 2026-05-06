@@ -3,14 +3,16 @@
 // ==========================================
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
-let selectedDateStr = today(); 
-let activeProjectId = null; // Para saber qué proyecto estamos gestionando
+let selectedDateStr = today(); // from main.js
 
 let pomoSec = 25 * 60;
 let pomoRunning = false;
 let pomoInterval = null;
 let pomoMode = 'focus';
 const pomoModes = { focus: 25 * 60, short: 5 * 60, long: 15 * 60 };
+
+// Control de Acordeones de Proyectos
+let openProjects = {}; 
 
 // ==========================================
 // INICIALIZACIÓN DE LA BASE DE DATOS
@@ -192,7 +194,7 @@ function renderTasks() {
                     <div style="font-size:11px; color:var(--t3); margin-top:4px;">${t.time || '--:--'} · ${t.cat}</div>
                 </div>
             </div>
-            <div style="color:var(--red); font-size:16px; cursor:pointer;" onclick="deleteTask('${t.id}')">✕</div>
+            <div style="color:var(--red); font-size:16px; cursor:pointer; padding: 0 8px;" onclick="deleteTask('${t.id}')">✕</div>
         </div>`).join('');
 }
 
@@ -202,32 +204,101 @@ function toggleTask(id) {
 }
 
 function deleteTask(id) {
-    S.tasks = S.tasks.filter(x => x.id !== id); 
-    save(); renderTasks(); renderCalendar();
+    if(confirm("¿Borrar meta?")) {
+        S.tasks = S.tasks.filter(x => x.id !== id); 
+        save(); renderTasks(); renderCalendar();
+    }
 }
 
 // ==========================================
-// VISTA PROYECTOS (ESTRUCTURA DE TAREAS)
+// VISTA PROYECTOS (ACORDEÓN)
 // ==========================================
+function toggleProject(id) {
+    openProjects[id] = !openProjects[id];
+    renderProjects();
+}
+
 function renderProjects() {
     const cont = document.getElementById('projects-container');
     if (!cont) return;
     if (!S.projects || S.projects.length === 0) {
-        cont.innerHTML = '<div style="color:var(--t3); grid-column: span 2; text-align:center; padding:20px; font-size:13px;">Las metas con categoría "Otro" se crearán aquí como proyectos.</div>';
+        cont.innerHTML = '<div style="color:var(--t3); text-align:center; padding:20px; font-size:13px;">Las metas con categoría "Otro" se crearán aquí como proyectos.</div>';
         return;
     }
+    
     cont.innerHTML = S.projects.map(p => {
+        const isOpen = openProjects[p.id];
         const total = (p.tasks || []).length;
         const done = (p.tasks || []).filter(t => t.done).length;
-        return `
-        <div class="project-card" onclick="openProjectTasks('${p.id}')">
-            <div class="project-title">
-                <span>${p.name}</span>
-                <span style="color:var(--t3); font-size:14px;" onclick="event.stopPropagation(); delProject('${p.id}')">✕</span>
+
+        // Html de la lista interna de tareas del proyecto
+        const prioColor = { Alta: '#e74c3c', Media: '#f59e0b', Baja: '#3b82f6' };
+        let tasksHtml = '<div class="empty" style="padding:10px 0;">No hay tareas en este proyecto</div>';
+        
+        if (p.tasks && p.tasks.length > 0) {
+            // Ordenamos: No hechas primero, luego por prioridad
+            const priorityWeight = { 'Alta': 3, 'Media': 2, 'Baja': 1 };
+            const sortedTasks = [...p.tasks].sort((a, b) => {
+                if (a.done !== b.done) return a.done ? 1 : -1; 
+                return priorityWeight[b.priority] - priorityWeight[a.priority]; 
+            });
+
+            tasksHtml = sortedTasks.map(t => `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 3px solid ${prioColor[t.priority] || 'var(--acc)'}; opacity: ${t.done ? '0.6' : '1'};">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div class="check-circle ${t.done ? 'checked' : ''}" onclick="toggleProjectTask('${p.id}', '${t.id}')"></div>
+                        <div>
+                            <div style="font-size:13px; font-weight:700; color:${t.done ? 'var(--t3)' : 'var(--t1)'}; text-decoration:${t.done ? 'line-through' : 'none'};">${t.text}</div>
+                            <div style="font-size:10px; color:var(--t3); margin-top:2px;">Límite: ${t.deadline || '--/--/----'}</div>
+                        </div>
+                    </div>
+                    <button class="btn-danger" style="background:transparent; color:var(--t3); font-size:14px; padding:0 8px;" onclick="delProjectTask('${p.id}', '${t.id}')">✕</button>
+                </div>
+            `).join('');
+        }
+
+        // HTML del cuerpo del acordeón (Formulario + Lista)
+        const bodyHtml = isOpen ? `
+            <div style="padding: 0 16px 16px 16px; border-top: 1px solid var(--line); margin-top: 12px; padding-top: 16px;">
+                <div style="font-size:10px; font-weight:800; color:var(--acc); letter-spacing:0.5px; margin-bottom:8px; text-transform:uppercase;">NUEVA TAREA DEL PROYECTO</div>
+                <input type="text" id="pt-name-${p.id}" class="form-input" placeholder="Nombre de la tarea...">
+
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1;">
+                        <label class="form-label">PRIORIDAD</label>
+                        <select id="pt-priority-${p.id}" class="form-input">
+                            <option value="Alta">Alta 🔴</option>
+                            <option value="Media" selected>Media 🟡</option>
+                            <option value="Baja">Baja 🔵</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;">
+                        <label class="form-label">FECHA LÍMITE</label>
+                        <input type="date" id="pt-deadline-${p.id}" class="form-input">
+                    </div>
+                </div>
+                <button class="btn" style="width:100%; background:var(--acc); color:#fff; font-weight:700; margin-bottom: 24px;" onclick="addProjectTask('${p.id}')">+ Añadir Tarea</button>
+
+                <div style="font-size:10px; font-weight:800; color:var(--acc); letter-spacing:0.5px; margin-bottom:8px; text-transform:uppercase;">LISTA DE TAREAS</div>
+                ${tasksHtml}
             </div>
-            <div class="project-stats">${done}/${total} tareas completadas</div>
-            <div class="project-date">📅 Iniciado: ${p.date}</div>
-        </div>`;
+        ` : '';
+
+        return `
+        <div style="margin-bottom:12px; background:var(--bg2); border-radius:12px; border:1px solid var(--line); overflow:hidden;">
+            <div style="padding:14px 16px; background:var(--bg3); display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleProject('${p.id}')">
+                <div>
+                    <div style="font-weight:800; color:var(--t1); font-size:15px; margin-bottom:4px;">${p.name}</div>
+                    <div style="font-size:11px; color:var(--t3); font-weight:600;">Límite: ${p.date} • ${done}/${total} tareas</div>
+                </div>
+                <div style="display:flex; gap:16px; align-items:center;">
+                    <button class="btn-danger" style="background:transparent; color:var(--red); padding:0;" onclick="event.stopPropagation(); delProject('${p.id}')">✕</button>
+                    <div style="font-size:12px; color:var(--t3); transition:transform 0.2s; transform: rotate(${isOpen ? '180deg' : '0deg'});">▼</div>
+                </div>
+            </div>
+            ${bodyHtml}
+        </div>
+        `;
     }).join('');
 }
 
@@ -238,79 +309,40 @@ function delProject(id) {
     }
 }
 
-// GESTIÓN DE TAREAS DENTRO DEL PROYECTO
-function openProjectTasks(id) {
-    const p = S.projects.find(x => x.id === id);
-    if (!p) return;
-    activeProjectId = id;
-    
-    document.getElementById('project-manage-title').textContent = p.name;
-    document.getElementById('project-manage-date').textContent = `Iniciado: ${p.date}`;
-    document.getElementById('pt-deadline').value = today();
-    
-    renderProjectTasksList();
-    openModal('modal-project-tasks');
-}
+function addProjectTask(projectId) {
+    const name = document.getElementById(`pt-name-${projectId}`).value.trim();
+    const priority = document.getElementById(`pt-priority-${projectId}`).value;
+    const deadline = document.getElementById(`pt-deadline-${projectId}`).value;
 
-function addProjectTask() {
-    const name = document.getElementById('pt-name').value.trim();
-    const priority = document.getElementById('pt-priority').value;
-    const deadline = document.getElementById('pt-deadline').value;
-    
     if (!name) return showToast('Escribe el nombre de la tarea', 'error');
-    
-    const p = S.projects.find(x => x.id === activeProjectId);
+
+    const p = S.projects.find(x => x.id === projectId);
     if (!p.tasks) p.tasks = [];
-    
+
     p.tasks.push({ id: uid(), text: name, priority, deadline, done: false });
-    
+
     save();
-    document.getElementById('pt-name').value = '';
-    renderProjectTasksList();
-    renderProjects(); // Para actualizar el contador (0/1)
+    renderProjects(); 
     showToast('Tarea añadida al proyecto');
 }
 
-function renderProjectTasksList() {
-    const p = S.projects.find(x => x.id === activeProjectId);
-    const list = document.getElementById('project-tasks-list');
-    
-    if (!p.tasks || p.tasks.length === 0) {
-        list.innerHTML = '<div class="empty">No hay tareas en este proyecto</div>';
-        return;
-    }
-
-    const prioColor = { Alta: '#e74c3c', Media: '#f59e0b', Baja: '#3b82f6' };
-
-    list.innerHTML = p.tasks.map(t => `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 3px solid ${prioColor[t.priority] || 'var(--acc)'};">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <div class="check-circle ${t.done ? 'checked' : ''}" onclick="toggleProjectTask('${t.id}')"></div>
-                <div>
-                    <div style="font-size:13px; font-weight:700; color:${t.done ? 'var(--t3)' : 'var(--t1)'}; text-decoration:${t.done ? 'line-through' : 'none'};">${t.text}</div>
-                    <div style="font-size:10px; color:var(--t3);">Límite: ${t.deadline}</div>
-                </div>
-            </div>
-            <button class="btn-danger" style="background:transparent; color:var(--t3); font-size:12px;" onclick="delProjectTask('${t.id}')">✕</button>
-        </div>
-    `).join('');
-}
-
-function toggleProjectTask(taskId) {
-    const p = S.projects.find(x => x.id === activeProjectId);
+function toggleProjectTask(projectId, taskId) {
+    const p = S.projects.find(x => x.id === projectId);
     const t = p.tasks.find(x => x.id === taskId);
     t.done = !t.done;
-    save(); renderProjectTasksList(); renderProjects();
+    save(); renderProjects();
 }
 
-function delProjectTask(taskId) {
-    const p = S.projects.find(x => x.id === activeProjectId);
-    p.tasks = p.tasks.filter(x => x.id !== taskId);
-    save(); renderProjectTasksList(); renderProjects();
+function delProjectTask(projectId, taskId) {
+    if(confirm("¿Borrar esta tarea del proyecto?")) {
+        const p = S.projects.find(x => x.id === projectId);
+        p.tasks = p.tasks.filter(x => x.id !== taskId);
+        save(); renderProjects();
+    }
 }
 
 // ==========================================
-// RECURSOS, POMODORO Y HÁBITOS (RECUADROS FIX)
+// RECURSOS, POMODORO Y HÁBITOS
 // ==========================================
 function renderResources() {
     const list = document.getElementById('resources-list');
