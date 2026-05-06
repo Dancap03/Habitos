@@ -46,6 +46,34 @@ function generateCustomLegend(containerId, labels, data, colors) {
 }
 
 // ==========================================
+// FUNCIÓN MATEMÁTICA SEGURA (EVITA EL NaN)
+// ==========================================
+function getStockValues(s) {
+    // Convierte a número de forma segura, si falla devuelve 0
+    const invested = parseFloat(s.invested) || 0;
+    const buyPrice = parseFloat(s.buyPrice) || 0;
+    const price = parseFloat(s.price || s.currentPrice) || 0;
+    
+    // Si es un registro viejo que usaba 'amount', lo usa. Si no, lo calcula.
+    let amount = parseFloat(s.amount);
+    if (isNaN(amount) || amount === 0) {
+        amount = buyPrice > 0 ? invested / buyPrice : 0;
+    }
+
+    // Calculamos el valor actual y el beneficio
+    const currentVal = amount > 0 ? (price * amount) : invested; // Si no hay precio, asume lo invertido
+    const pnl = currentVal - invested;
+    const pnlPct = invested > 0 ? (pnl / invested) * 100 : 0;
+
+    return { invested, currentVal, pnl, pnlPct, amount, price, buyPrice };
+}
+
+// Helper para formatear moneda
+function formatCurrency(val) {
+    return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(val);
+}
+
+// ==========================================
 // ACTUALIZACIÓN DE GRÁFICOS Y TOTALES
 // ==========================================
 let chartType = null;
@@ -70,17 +98,15 @@ function updatePortfolioPage() {
         return;
     }
 
-    // Calcular Totales y preparar datos para gráficos
+    // Calcular Totales con la función matemática segura
     S.stocks.forEach(s => {
-        // En tu estructura, amount no existe, se calcula como (invested / buyPrice)
-        const amount = s.invested / s.buyPrice;
-        const currentVal = s.price * amount;
+        const vals = getStockValues(s);
 
-        totalVal += currentVal;
-        totalInv += s.invested;
+        totalVal += vals.currentVal;
+        totalInv += vals.invested;
 
-        typeTotals[s.type] = (typeTotals[s.type] || 0) + currentVal;
-        assetTotals[s.ticker] = (assetTotals[s.ticker] || 0) + currentVal;
+        typeTotals[s.type] = (typeTotals[s.type] || 0) + vals.currentVal;
+        assetTotals[s.ticker] = (assetTotals[s.ticker] || 0) + vals.currentVal;
     });
 
     // Actualizar Textos Principales
@@ -125,33 +151,24 @@ function updatePortfolioPage() {
     renderStockList(S.stocks);
 }
 
-// Helper para formatear moneda
-function formatCurrency(val) {
-    return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(val);
-}
-
 // ==========================================
-// RENDERIZADO DE LA LISTA (CON BORRADO/EDICIÓN)
+// RENDERIZADO DE LA LISTA
 // ==========================================
 function renderStockList(stocks) {
     const list = document.getElementById('portfolio-list');
     
     // Ordenar por valor actual (de mayor a menor)
     stocks.sort((a, b) => {
-        const valA = (a.invested / a.buyPrice) * a.price;
-        const valB = (b.invested / b.buyPrice) * b.price;
-        return valB - valA;
+        return getStockValues(b).currentVal - getStockValues(a).currentVal;
     });
 
     list.innerHTML = stocks.map(s => {
-        const amount = s.invested / s.buyPrice;
-        const currentVal = s.price * amount;
-        const pnl = currentVal - s.invested;
-        const pnlPct = (pnl / s.invested) * 100;
+        const v = getStockValues(s); // Valores limpios sin errores
         const color = getTypeColor(s.type);
 
         return `
         <div class="stock-item" style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); position:relative;" onclick="openEditStockModal('${s.id}')">
+            <!-- Izquierda: Ticker y Nombre -->
             <div style="display:flex; align-items:center; gap:12px;">
                 <div style="width:10px; height:30px; border-radius:4px; background-color:${color};"></div>
                 <div>
@@ -160,10 +177,11 @@ function renderStockList(stocks) {
                 </div>
             </div>
             
+            <!-- Derecha: Valor y PnL -->
             <div style="text-align:right; margin-right: 15px;">
-                <div style="font-weight:700; color:var(--t1); font-size:15px;">${formatCurrency(currentVal)}</div>
-                <div style="font-size:12px; font-weight:600; color:${pnl >= 0 ? 'var(--grn)' : 'var(--red)'};">
-                    ${pnl >= 0 ? '+' : ''}${formatCurrency(pnl)} (${pnlPct.toFixed(2)}%)
+                <div style="font-weight:700; color:var(--t1); font-size:15px;">${formatCurrency(v.currentVal)}</div>
+                <div style="font-size:12px; font-weight:600; color:${v.pnl >= 0 ? 'var(--grn)' : 'var(--red)'};">
+                    ${v.pnl >= 0 ? '+' : ''}${formatCurrency(v.pnl)} (${v.pnlPct.toFixed(2)}%)
                 </div>
             </div>
 
@@ -178,38 +196,35 @@ function renderStockList(stocks) {
 function saveStock() {
     const ticker = document.getElementById('stock-ticker').value.toUpperCase().trim();
     const name = document.getElementById('stock-name').value.trim();
-    const invested = parseFloat(document.getElementById('stock-invested').value);
-    const buyPrice = parseFloat(document.getElementById('stock-buy-price').value);
-    const currentPrice = parseFloat(document.getElementById('stock-current-price').value);
+    const invested = parseFloat(document.getElementById('stock-invested').value) || 0;
+    const buyPrice = parseFloat(document.getElementById('stock-buy-price').value) || 0;
+    const currentPrice = parseFloat(document.getElementById('stock-current-price').value) || 0;
     const type = document.getElementById('stock-type').value;
 
-    if (!ticker || !name || isNaN(invested) || isNaN(buyPrice) || isNaN(currentPrice)) {
-        return showToast('Rellena todos los campos correctamente', 'error');
-    }
+    if (!ticker || !name) return showToast('Rellena el Ticker y el Nombre', 'error');
 
     const newStock = {
-        id: uid(), // Función generadora de ID único (debe estar en main.js)
+        id: uid(), 
         ticker,
         name,
         invested,
         buyPrice,
-        price: currentPrice, // Guardamos current como 'price'
+        price: currentPrice, 
         type
     };
 
     if (!S.stocks) S.stocks = [];
     S.stocks.push(newStock);
-    save(); // Guardar en LocalStorage
+    save(); 
     closeModal('modal-add-stock');
     updatePortfolioPage();
     showToast('Posición añadida ✅', 'success');
 
-    // Limpiar formulario
     document.getElementById('modal-add-stock').querySelectorAll('input').forEach(i => i.value = '');
 }
 
 // ==========================================
-// LÓGICA DE EDITAR / BORRAR (NUEVO)
+// LÓGICA DE EDITAR / BORRAR
 // ==========================================
 let currentEditingId = null;
 
@@ -218,14 +233,22 @@ function openEditStockModal(id) {
     const stock = S.stocks.find(s => s.id === id);
     if (!stock) return;
 
-    // Rellenar campos del modal de edición
+    // Calculamos los valores seguros para rellenar el formulario
+    const v = getStockValues(stock);
+
     document.getElementById('edit-stock-id').value = stock.id;
     document.getElementById('edit-stock-ticker').value = stock.ticker;
-    document.getElementById('edit-stock-name').value = stock.name;
-    document.getElementById('edit-stock-invested').value = stock.invested;
-    document.getElementById('edit-stock-buy-price').value = stock.buyPrice;
-    document.getElementById('edit-stock-current-price').value = stock.price;
-    document.getElementById('edit-stock-type').value = stock.type;
+    document.getElementById('edit-stock-name').value = stock.name || '';
+    document.getElementById('edit-stock-invested').value = v.invested > 0 ? v.invested : '';
+    document.getElementById('edit-stock-buy-price').value = v.buyPrice > 0 ? v.buyPrice : '';
+    document.getElementById('edit-stock-current-price').value = v.price > 0 ? v.price : '';
+    
+    // Si el tipo guardado existe en el selector, lo marca
+    const typeSelect = document.getElementById('edit-stock-type');
+    const options = Array.from(typeSelect.options).map(o => o.value.toLowerCase());
+    if (options.includes((stock.type || '').toLowerCase())) {
+        typeSelect.value = stock.type;
+    }
 
     openModal('modal-edit-stock');
 }
@@ -233,23 +256,19 @@ function openEditStockModal(id) {
 function updateStock() {
     if (!currentEditingId) return;
 
-    // Encontrar el índice
     const index = S.stocks.findIndex(s => s.id === currentEditingId);
     if (index === -1) return;
 
-    // Obtener valores nuevos
     const ticker = document.getElementById('edit-stock-ticker').value.toUpperCase().trim();
     const name = document.getElementById('edit-stock-name').value.trim();
-    const invested = parseFloat(document.getElementById('edit-stock-invested').value);
-    const buyPrice = parseFloat(document.getElementById('edit-stock-buy-price').value);
-    const currentPrice = parseFloat(document.getElementById('edit-stock-current-price').value);
+    const invested = parseFloat(document.getElementById('edit-stock-invested').value) || 0;
+    const buyPrice = parseFloat(document.getElementById('edit-stock-buy-price').value) || 0;
+    const currentPrice = parseFloat(document.getElementById('edit-stock-current-price').value) || 0;
     const type = document.getElementById('edit-stock-type').value;
 
-    if (!ticker || !name || isNaN(invested) || isNaN(buyPrice) || isNaN(currentPrice)) {
-        return showToast('Rellena todos los campos correctamente', 'error');
-    }
+    if (!ticker || !name) return showToast('Rellena el Ticker y el Nombre', 'error');
 
-    // Actualizar objeto
+    // Actualizamos el objeto pisando los datos viejos
     S.stocks[index] = {
         id: currentEditingId,
         ticker,
@@ -260,7 +279,7 @@ function updateStock() {
         type
     };
 
-    save(); // Guardar LocalStorage
+    save(); 
     closeModal('modal-edit-stock');
     updatePortfolioPage();
     showToast('Cambios guardados ✅', 'success');
@@ -270,13 +289,11 @@ function updateStock() {
 function deleteStock() {
     if (!currentEditingId) return;
     
-    // Confirmación nativa simple
     if (!confirm('¿Estás seguro de que quieres borrar esta posición?')) return;
 
-    // Filtrar
     S.stocks = S.stocks.filter(s => s.id !== currentEditingId);
 
-    save(); // Guardar LocalStorage
+    save(); 
     closeModal('modal-edit-stock');
     updatePortfolioPage();
     showToast('Posición eliminada 🗑️', 'success');
@@ -285,11 +302,9 @@ function deleteStock() {
 
 // Inicializar al cargar
 document.addEventListener('DOMContentLoaded', () => {
-    // Esperamos a que 'S' y 'save' estén cargados (vienen de main.js)
     if (typeof S !== 'undefined' && typeof save === 'function') {
         updatePortfolioPage();
     } else {
-        // Pequeño reintento si main.js tarda
         setTimeout(() => {
             if (typeof updatePortfolioPage === 'function') updatePortfolioPage();
         }, 100);
