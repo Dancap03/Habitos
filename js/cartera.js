@@ -69,8 +69,8 @@ function renderStocks() {
       </div>
       <div style="text-align:right; display:flex; align-items:center; gap:12px;">
          <div>
-            <div style="font-size:15px; font-weight:700; color:var(--t1);">€${curVal.toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
-            <div style="font-size:11px; font-weight:700; margin-top:4px; color:${cStr};">${sign}€${Math.abs(pnl).toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2})} (${pct.toFixed(2)}%)</div>
+            <div style="font-size:15px; font-weight:700; color:var(--t1);">€${curVal.toFixed(2)}</div>
+            <div style="font-size:11px; font-weight:700; margin-top:4px; color:${cStr};">${sign}€${Math.abs(pnl).toFixed(2)} (${pct.toFixed(2)}%)</div>
          </div>
          <button class="btn-danger" onclick="delStock('${s.id}')">✕</button>
       </div>
@@ -199,36 +199,27 @@ function delPurchase(sid, pid) {
   save(); renderStocks(); openManageStock(sid);
 }
 
-// --- FUNCIÓN PARA PINTAR LEYENDA CUSTOMIZADA (ESTILO CUADRÍCULA) ---
+// --- FUNCIÓN PARA PINTAR LEYENDA CUSTOMIZADA ---
 function generateCustomLegend(containerId, labels, data, colors) {
     const container = document.getElementById(containerId);
     if (!container) return;
-    
     const total = data.reduce((a, b) => a + b, 0);
     
-    // Contenedor principal forzado a cuadrícula
-    container.style.display = 'flex';
-    container.style.flexDirection = 'row';
-    container.style.flexWrap = 'wrap';
-    container.style.justifyContent = 'center';
-    container.style.gap = '16px 12px'; // Espaciado vertical y horizontal
-    container.style.width = '100%';
-    container.style.marginTop = '24px';
-
-    container.innerHTML = labels.map((label, i) => {
+    let html = '';
+    labels.forEach((label, i) => {
         const pct = total > 0 ? ((data[i] / total) * 100).toFixed(1) : 0;
         const color = colors[i];
         
-        // Bloque duro de 90px de ancho para forzar la cuadrícula ordenada
-        return `
-        <div style="display:flex; align-items:center; gap:8px; width: 90px;">
-            <div style="width:10px; height:10px; border-radius:50%; background-color:${color}; flex-shrink:0;"></div>
-            <div style="display:flex; flex-direction:column; align-items:flex-start; width:calc(100% - 18px);">
-                <span style="font-size:9px; color:var(--t3); text-transform:uppercase; font-weight:700; line-height:1; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">${label}</span>
-                <span style="font-size:14px; font-weight:800; color:${color}; line-height:1;">${pct}%</span>
+        html += `
+        <div style="display:flex; align-items:flex-start; gap:8px;">
+            <div style="width:10px; height:10px; border-radius:50%; background-color:${color}; flex-shrink:0; margin-top:4px;"></div>
+            <div>
+                <div style="font-size:10px; color:var(--t3); text-transform:uppercase; font-weight:700; letter-spacing:0.5px; margin-bottom:2px;">${label}</div>
+                <div style="font-size:18px; font-weight:800; color:${color}; line-height:1;">${pct}%</div>
             </div>
         </div>`;
-    }).join('');
+    });
+    container.innerHTML = html;
 }
 
 let typeChart = null, assetChart = null;
@@ -241,7 +232,6 @@ function updatePortfolioCharts() {
   let types = {}, assets = {};
   S.stocks.forEach(s => {
     let val = 0;
-    // IMPORTANTE: Calculamos el valor sumando los lotes exactos (mantenemos tu matemática)
     if (s.purchases) s.purchases.forEach(p => val += p.shares * s.price);
     if (val > 0) {
       types[s.type] = (types[s.type] || 0) + val;
@@ -258,7 +248,7 @@ function updatePortfolioCharts() {
   typeChart = new Chart(c1, {
     type: 'doughnut',
     data: { labels: typeLabelsRaw, datasets: [{ data: typeData, backgroundColor: typeBgColors, borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false } } }
+    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false } } } // Apagamos la original
   });
   
   // Dibujamos nuestra propia leyenda
@@ -268,13 +258,13 @@ function updatePortfolioCharts() {
   const assetLabelsRaw = Object.keys(assets);
   const assetData = Object.values(assets);
   const assetColsRaw = ['#8b5cf6', '#3b82f6', '#27ae60', '#f59e0b', '#e74c3c', '#e05a2b', '#1abc9c', '#95a5a6']; 
-  const assetCols = assetLabelsRaw.map((_, i) => assetColsRaw[i % assetColsRaw.length]);
+  const assetCols = assetLabelsRaw.map((_, i) => assetColsRaw[i % assetColsRaw.length]); // Para que los colores den la vuelta si hay muchos activos
   
   if (assetChart) assetChart.destroy();
   assetChart = new Chart(c2, {
     type: 'doughnut',
     data: { labels: assetLabelsRaw, datasets: [{ data: assetData, backgroundColor: assetCols, borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false } } }
+    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false } } } // Apagamos la original
   });
 
   // Dibujamos nuestra propia leyenda
