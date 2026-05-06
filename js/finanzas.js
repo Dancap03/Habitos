@@ -132,22 +132,63 @@ function filterByPeriod(entries, period) {
 
 function setFinPeriod(p, btn) { S.activePeriod = p; renderFinances(); }
 
-function delFinEntry(id) { 
-    if (confirm('¿Seguro que quieres borrar este registro?')) {
-        S.fin = S.fin.filter(x => String(x.id) !== String(id)); 
-        save(); 
-        renderFinances(); 
-        if (typeof showToast === 'function') showToast('Registro eliminado 🗑️', 'success');
+// ==========================================
+// SISTEMA DE CONFIRMACIÓN PERSONALIZADO
+// ==========================================
+let confirmCallback = null;
+
+function customConfirm(title, message, callback) {
+    // 1. Rellenamos los textos del modal
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-msg').textContent = message;
+    
+    // 2. Guardamos lo que tiene que hacer si pulsa "Borrar"
+    confirmCallback = callback;
+    
+    // 3. Abrimos el modal
+    openModal('modal-confirm');
+}
+
+// Escuchamos el clic del botón rojo de borrar dentro del modal
+document.addEventListener('DOMContentLoaded', () => {
+    const btnBorrar = document.getElementById('confirm-btn');
+    if (btnBorrar) {
+        btnBorrar.addEventListener('click', () => {
+            if (confirmCallback) confirmCallback(); // Ejecuta el borrado
+            closeModal('modal-confirm'); // Cierra la ventana
+            confirmCallback = null; // Limpia la memoria
+        });
     }
+});
+
+// ==========================================
+// FUNCIONES DE BORRADO USANDO EL MODAL BONITO
+// ==========================================
+function delFinEntry(id) { 
+    customConfirm(
+        'Borrar registro', 
+        '¿Seguro que quieres borrar este movimiento?', 
+        () => {
+            S.fin = S.fin.filter(x => String(x.id) !== String(id)); 
+            save(); 
+            renderFinances(); // Usa updateFinanzasPage() si es así como se llama en tu código actual
+            if(typeof renderHome === 'function') renderHome(); 
+            if(typeof showToast === 'function') showToast('Registro eliminado 🗑️', 'success');
+        }
+    );
 }
 
 function delRecurring(id) { 
-    if (confirm('¿Seguro que quieres borrar esta suscripción?')) {
-        S.recurring = S.recurring.filter(x => String(x.id) !== String(id)); 
-        save(); 
-        renderFinances(); 
-        if (typeof showToast === 'function') showToast('Suscripción eliminada 🗑️', 'success');
-    }
+    customConfirm(
+        'Borrar suscripción', 
+        '¿Seguro que quieres borrar esta suscripción?', 
+        () => {
+            S.recurring = S.recurring.filter(x => String(x.id) !== String(id)); 
+            save(); 
+            renderFinances(); // Usa updateFinanzasPage() si es así como se llama en tu código actual
+            if(typeof showToast === 'function') showToast('Suscripción eliminada 🗑️', 'success');
+        }
+    );
 }
 
 let finChartInst = null;
