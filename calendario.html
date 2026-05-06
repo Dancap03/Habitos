@@ -199,6 +199,10 @@
     <button class="nav-btn" onclick="window.location.href='gym.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 5v14M18 5v14M3 9h18M3 15h18"/></svg><span class="nav-label">Gym</span></button>
   </nav>
 
+  <!-- ============================================== -->
+  <!-- MODALES -->
+  <!-- ============================================== -->
+
   <!-- MODAL: AÑADIR TAREA -->
   <div class="overlay" id="modal-task" onclick="closeModal('modal-task',event)">
     <div class="modal">
@@ -245,19 +249,19 @@
       </div>
       <div style="font-size:11px; color:var(--t3); margin-top:-8px; margin-bottom:12px;">*Las repeticiones por defecto se crean hasta final de mes.</div>
 
-      <!-- PANEL PERSONALIZADO (OCULTO POR DEFECTO) -->
+      <!-- PANEL PERSONALIZADO -->
       <div id="custom-recurrence-options" style="display:none; background:var(--bg2); padding:16px; border-radius:12px; margin-bottom:16px; border:1px solid var(--line);">
-          <label class="form-label" style="font-size:11px; margin-top:0;">Días a repetir</label>
+          <label class="form-label" style="font-size:11px; margin-top:0;">Días de la semana</label>
           <div style="display:flex; gap:4px; margin-bottom:16px; justify-content:space-between;">
-              <button class="btn btn-sm custom-day-btn" data-day="1" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0;" onclick="toggleCustomDay(this)">L</button>
-              <button class="btn btn-sm custom-day-btn" data-day="2" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0;" onclick="toggleCustomDay(this)">M</button>
-              <button class="btn btn-sm custom-day-btn" data-day="3" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0;" onclick="toggleCustomDay(this)">X</button>
-              <button class="btn btn-sm custom-day-btn" data-day="4" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0;" onclick="toggleCustomDay(this)">J</button>
-              <button class="btn btn-sm custom-day-btn" data-day="5" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0;" onclick="toggleCustomDay(this)">V</button>
-              <button class="btn btn-sm custom-day-btn" data-day="6" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0;" onclick="toggleCustomDay(this)">S</button>
-              <button class="btn btn-sm custom-day-btn" data-day="0" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0;" onclick="toggleCustomDay(this)">D</button>
+              <button class="btn btn-sm custom-day-btn" data-day="1" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 11px;" onclick="toggleCustomDay(this)">Lun</button>
+              <button class="btn btn-sm custom-day-btn" data-day="2" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 11px;" onclick="toggleCustomDay(this)">Mar</button>
+              <button class="btn btn-sm custom-day-btn" data-day="3" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 11px;" onclick="toggleCustomDay(this)">Mié</button>
+              <button class="btn btn-sm custom-day-btn" data-day="4" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 11px;" onclick="toggleCustomDay(this)">Jue</button>
+              <button class="btn btn-sm custom-day-btn" data-day="5" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 11px;" onclick="toggleCustomDay(this)">Vie</button>
+              <button class="btn btn-sm custom-day-btn" data-day="6" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 11px;" onclick="toggleCustomDay(this)">Sáb</button>
+              <button class="btn btn-sm custom-day-btn" data-day="0" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 11px;" onclick="toggleCustomDay(this)">Dom</button>
           </div>
-          <label class="form-label" style="font-size:11px;">Repetir hasta (Opcional)</label>
+          <label class="form-label" style="font-size:11px;">Fecha de fin de repetición</label>
           <input type="date" id="t-recurrence-end" class="form-input" style="margin-bottom:0;">
       </div>
 
@@ -326,7 +330,7 @@
   <div class="toast-container" id="toast-container"></div>
 </div>
 
-<script src="js/main.js?v=73"></script>
-<script src="js/calendario.js?v=73"></script>
+<script src="js/main.js?v=76"></script>
+<script src="js/calendario.js?v=76"></script>
 </body>
 </html>
