@@ -82,13 +82,13 @@
             </div>
           </div>
 
-          <!-- GOAL SETTING (METAS) -->
+          <!-- EVENTOS DEL DÍA -->
           <div class="card card-full">
             <div class="card-header" style="margin-bottom:12px;">
-                <span class="card-title" style="margin-bottom:0;">TAREAS DEL DÍA</span>
-                <button class="btn btn-sm" style="background:var(--acc); color:var(--t1);" onclick="openModal('modal-task')">+ Eventos</button>
+                <span class="card-title" style="margin-bottom:0;">EVENTOS DEL DÍA</span>
+                <button class="btn btn-sm" style="background:var(--bg3); color:var(--t1);" onclick="openModal('modal-task')">+ Evento</button>
             </div>
-            <div style="font-size:12px; color:var(--t3); margin-bottom:16px;">Aquí verás tus metas del día y las tareas de proyectos con fecha límite hoy.</div>
+            <div style="font-size:12px; color:var(--t3); margin-bottom:16px;">Aquí verás tus eventos del día y las tareas de proyectos con fecha límite hoy.</div>
             <div id="tasks-list"></div>
           </div>
 
@@ -97,7 +97,7 @@
               <div class="card-header" style="margin-bottom:12px;">
                   <span class="card-title" style="margin-bottom:0;">PROYECTOS</span>
               </div>
-              <div style="font-size:12px; color:var(--t3); margin-bottom:16px;">Crea una Meta con categoría "Otro" para añadir un proyecto aquí.</div>
+              <div style="font-size:12px; color:var(--t3); margin-bottom:16px;">Crea un Nuevo Evento con categoría "Otro" para añadir un proyecto aquí.</div>
               <div id="projects-container">
                   <!-- Se rellena con JS -->
               </div>
@@ -140,13 +140,17 @@
     </div>
   </div>
 
-  <!-- MODAL: AÑADIR META / PROYECTO -->
+  <!-- MODAL: AÑADIR EVENTO / PROYECTO -->
   <div class="overlay" id="modal-task" onclick="closeModal('modal-task',event)">
     <div class="modal">
       <div class="modal-handle"></div>
-      <div class="modal-title" style="margin-bottom:20px;">Nueva Meta</div>
+      <div class="modal-title" style="margin-bottom:20px;">Nuevo Evento</div>
+      
       <label class="form-label">¿Qué quieres lograr?</label>
       <input type="text" id="t-name" class="form-input" placeholder="...">
+      
+      <label class="form-label">Descripción (Opcional)</label>
+      <textarea id="t-desc" class="form-input" style="min-height:60px;resize:none;" placeholder="Detalles del evento o proyecto..."></textarea>
       
       <div style="display:flex; gap:10px;">
           <div style="flex:1;">
@@ -196,7 +200,7 @@
           <input type="date" id="t-recurrence-end" class="form-input" style="margin-bottom:0;">
       </div>
 
-      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="addTask()">Guardar Meta / Proyecto</button>
+      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="addTask()">Guardar Evento / Proyecto</button>
     </div>
   </div>
 
@@ -211,11 +215,11 @@
     </div>
   </div>
 
-  <!-- MODAL: EDITAR META DIARIA -->
+  <!-- MODAL: EDITAR EVENTO DIARIO -->
   <div class="overlay" id="modal-edit-daily-task" onclick="closeModal('modal-edit-daily-task',event)">
     <div class="modal">
       <div class="modal-handle"></div>
-      <div class="modal-title" style="margin-bottom:20px;">Editar Meta</div>
+      <div class="modal-title" style="margin-bottom:20px;">Editar Evento</div>
       
       <input type="hidden" id="edit-dt-id">
       
@@ -300,7 +304,7 @@
   <div class="toast-container" id="toast-container"></div>
 </div>
 
-<script src="js/main.js?v=108"></script>
-<script src="js/calendario.js?v=108"></script>
+<script src="js/main.js?v=113"></script>
+<script src="js/calendario.js?v=113"></script>
 </body>
 </html>
