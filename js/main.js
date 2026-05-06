@@ -69,8 +69,24 @@ function cancelConfirm(e, force = false) {
 }
 
 // 6. DASHBOARD E INICIO
+// ==========================================
+// LÓGICA DE LA PANTALLA INICIO (HOY)
+// ==========================================
+
+function toggleTaskHome(id) {
+    const t = S.tasks.find(x => x.id === id);
+    if (t) { t.done = !t.done; save(); renderHome(); }
+}
+
+function toggleProjectTaskHome(projectId, taskId) {
+    const p = S.projects.find(x => x.id === projectId);
+    if (p) {
+        const t = p.tasks.find(x => x.id === taskId);
+        if (t) { t.done = !t.done; save(); renderHome(); }
+    }
+}
+
 function renderHome() {
-    // 1. Calculamos la fecha de hoy EXACTA (formato YYYY-MM-DD para igualar a la base de datos)
     const d = new Date();
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -80,14 +96,12 @@ function renderHome() {
     let pendingCount = 0;
     let combined = [];
 
-    // 2. Buscar metas diarias normales de hoy
     if (S.tasks) {
         S.tasks.forEach(t => {
             if (t.date === hoyStr) combined.push({ ...t, isProject: false });
         });
     }
 
-    // 3. Buscar tareas de proyectos cuya fecha límite sea hoy
     if (S.projects) {
         S.projects.forEach(p => {
             if (p.tasks) {
@@ -100,7 +114,6 @@ function renderHome() {
         });
     }
 
-    // 4. Ordenar: Primero las NO hechas, luego por prioridad de Eisenhower
     const pWeight = { ui: 4, ni: 3, un: 2, nn: 1 };
     combined.sort((a, b) => {
         if (a.done !== b.done) return a.done ? 1 : -1;
@@ -109,16 +122,13 @@ function renderHome() {
         return wB - wA; 
     });
 
-    // 5. Contar cuántas no están tachadas (pendientes)
     combined.forEach(t => {
         if (!t.done) pendingCount++;
     });
 
-    // 6. Actualizar el recuadro gigante extendido
     const countEl = document.getElementById('home-pending-count');
     if (countEl) countEl.textContent = pendingCount;
 
-    // 7. Renderizar la lista
     const listEl = document.getElementById('home-tasks-list');
     if (listEl) {
         if (combined.length === 0) {
@@ -131,13 +141,19 @@ function renderHome() {
         listEl.innerHTML = combined.map(t => {
             const color = t.isProject ? (prioColor[t.priority] || 'var(--acc)') : 'var(--acc)';
             const title = t.isProject ? t.text : t.name;
-            const sub = t.isProject ? `Proyecto: ${t.projectName}` : (t.time ? `${t.time} · ${t.cat}` : t.cat);
             
+            // Si la tarea tiene hora, la mostramos. Si no, no.
+            let timeStr = t.time ? `${t.time} · ` : '';
+            const sub = t.isProject ? `Proyecto: ${t.projectName}` : `${timeStr}${t.cat}`;
+            
+            // Acciones para marcar el check sin redirigir
+            const toggleAction = t.isProject ? `toggleProjectTaskHome('${t.projectId}', '${t.id}')` : `toggleTaskHome('${t.id}')`;
+
             return `
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 4px solid ${color}; opacity: ${t.done ? '0.6' : '1'}; cursor:pointer;" onclick="window.location.href='calendario.html'">
-                <div style="display:flex; align-items:center; gap:12px;">
-                    <div class="check-circle ${t.done ? 'checked' : ''}"></div>
-                    <div style="flex:1">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 4px solid ${color}; opacity: ${t.done ? '0.6' : '1'};">
+                <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                    <div class="check-circle ${t.done ? 'checked' : ''}" onclick="event.stopPropagation(); ${toggleAction}"></div>
+                    <div style="flex:1; cursor:pointer;" onclick="window.location.href='calendario.html'">
                         <div style="font-size:14px; font-weight:600; color:${t.done ? 'var(--t3)' : 'var(--t1)'}; text-decoration:${t.done ? 'line-through' : 'none'};">${title}</div>
                         <div style="font-size:11px; color:var(--t3); margin-top:4px;">${sub}</div>
                     </div>
@@ -146,6 +162,101 @@ function renderHome() {
         }).join('');
     }
 }
+
+// ==========================================
+// FORMULARIO DE AÑADIR META DESDE INICIO
+// ==========================================
+function toggleCustomRecurrenceHome() {
+    const val = document.getElementById('h-recurrence').value;
+    document.getElementById('home-custom-recurrence-options').style.display = (val === 'custom') ? 'block' : 'none';
+}
+
+function toggleCustomDayHome(btn) {
+    btn.classList.toggle('on');
+    btn.style.background = btn.classList.contains('on') ? 'var(--acc)' : 'var(--bg3)';
+    btn.style.color = btn.classList.contains('on') ? '#fff' : 'var(--t1)';
+}
+
+function addTaskHome() {
+    const name = document.getElementById('h-name').value.trim();
+    const desc = document.getElementById('h-desc').value.trim(); 
+    if (!name) return showToast('Escribe un nombre', 'error');
+    
+    const cat = document.getElementById('h-cat').value;
+    const time = document.getElementById('h-time').value;
+    const recurrence = document.getElementById('h-recurrence').value;
+    
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hoyStr = `${y}-${m}-${day}`;
+    
+    const tDate = document.getElementById('h-start-date').value || hoyStr;
+
+    if (cat === "Otro") {
+        if (!S.projects.some(p => p.name === name)) {
+            S.projects.push({ id: uid(), name: name, desc: desc, date: tDate, tasks: [] });
+            save(); closeModal('modal-task-home'); renderHome(); 
+            return showToast('Proyecto creado con éxito ✅');
+        } else {
+            return showToast('Ese proyecto ya existe', 'error');
+        }
+    }
+
+    const createSingleTask = (dateStr) => {
+        S.tasks.push({ id: uid(), name, cat, time, date: dateStr, desc: desc, done: false });
+    };
+
+    if (recurrence === 'none') {
+        createSingleTask(tDate);
+    } else {
+        const [y2, m2, d2] = tDate.split('-');
+        let currDate = new Date(y2, m2 - 1, d2);
+        let endLimit = new Date(currDate.getFullYear(), currDate.getMonth() + 1, 0); 
+        let selectedCustomDays = [];
+
+        if (recurrence === 'custom') {
+            const customEnd = document.getElementById('h-recurrence-end').value;
+            if (customEnd) {
+                const [ey, em, ed] = customEnd.split('-');
+                endLimit = new Date(ey, em - 1, ed); 
+            } else { endLimit = new Date(currDate.getFullYear(), currDate.getMonth() + 3, 0); }
+            document.querySelectorAll('#home-custom-recurrence-options .custom-day-btn.on').forEach(btn => selectedCustomDays.push(parseInt(btn.dataset.day)));
+        }
+
+        while (currDate <= endLimit) {
+            const dStr = `${currDate.getFullYear()}-${String(currDate.getMonth() + 1).padStart(2, '0')}-${String(currDate.getDate()).padStart(2, '0')}`;
+            let shouldAdd = false;
+            const dayOfWeek = currDate.getDay(); 
+            if (recurrence === 'daily') shouldAdd = true;
+            else if (recurrence === 'weekdays' && dayOfWeek !== 0 && dayOfWeek !== 6) shouldAdd = true; 
+            else if (recurrence === 'weekly' && dayOfWeek === new Date(y2, m2 - 1, d2).getDay()) shouldAdd = true;
+            else if (recurrence === 'custom' && selectedCustomDays.includes(dayOfWeek)) shouldAdd = true;
+
+            if (shouldAdd) createSingleTask(dStr);
+            currDate.setDate(currDate.getDate() + 1);
+        }
+    }
+    
+    save(); 
+    closeModal('modal-task-home');
+    
+    document.getElementById('h-name').value = '';
+    document.getElementById('h-desc').value = '';
+    document.getElementById('h-time').value = '';
+    document.getElementById('h-recurrence').value = 'none';
+    document.getElementById('home-custom-recurrence-options').style.display = 'none';
+    document.querySelectorAll('#home-custom-recurrence-options .custom-day-btn').forEach(btn => {
+        btn.classList.remove('on');
+        btn.style.background = 'var(--bg3)';
+        btn.style.color = 'var(--t1)';
+    });
+
+    renderHome(); 
+    showToast('Evento guardado ✅');
+}
+
  
 
 function changeGymMonth(dir) { currGymMonth += dir; if(currGymMonth<0){currGymMonth=11;currGymYear--;} else if(currGymMonth>11){currGymMonth=0;currGymYear++;} renderGymCalendar(); }
