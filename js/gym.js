@@ -467,7 +467,7 @@ function finishWorkout() {
     });
     
     S.activeRoutine = null;
-    save(); renderActiveWorkout(); renderWorkoutLog(); showToast('Entreno completado ✅');
+    save(); renderActiveWorkout(); renderWorkoutLog(); renderRecords(); showToast('Entreno completado ✅');
 }
 
 // --- HISTORIAL ACORDEÓN ---
