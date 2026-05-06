@@ -1,21 +1,20 @@
-function catEmoji(c) {
-    const m = { nómina:'💼', 
-               ahorro:'💰',
-               inversión:'📈', 
-               intereses:'📊', 
-               dividendos:'🏦',
-               comida:'🛒', 
-               transporte:'🚗', 
-               suscripciones:'📱', 
-               salud:'❤️', 
-               ocio:'🎭', 
-               caprichos:'🎁', 
-               compras:'🛍️', 
-               viajes:'✈️'
-    };
-   return m[c] || '📌'; // Icono por defecto
-}
+// ==========================================
+// VARIABLES DE ESTADO PARA LA EDICIÓN
+// ==========================================
+let editFinId = null;
+let editFinIsRec = false;
 
+// ==========================================
+// CONFIGURACIÓN BÁSICA
+// ==========================================
+function catEmoji(c) {
+    const m = { 
+        nómina:'💼', ahorro:'💰', inversión:'📈', intereses:'📊', dividendos:'🏦',
+        comida:'🛒', transporte:'🚗', suscripciones:'📱', salud:'❤️', ocio:'🎭', 
+        caprichos:'🎁', compras:'🛍️', viajes:'✈️'
+    };
+    return m[c] || '📌'; // Icono por defecto
+}
 
 function toggleFinTypeOptions() {
   const cat = document.getElementById('fin-cat').value;
@@ -37,7 +36,11 @@ function toggleFinTypeOptions() {
   }
 }
 
+// Abre el modal para CREAR uno NUEVO
 function openModalFin(type, defaultCat = null) {
+  editFinId = null; // Reiniciamos el estado para que sea "Añadir"
+  editFinIsRec = false;
+  
   const elCat = document.getElementById('fin-cat');
   const elType = document.getElementById('fin-type');
   const elTitle = document.getElementById('modal-fin-title');
@@ -52,72 +55,153 @@ function openModalFin(type, defaultCat = null) {
   openModal('modal-fin');
 }
 
+// Abre el modal para EDITAR uno EXISTENTE
+function openEditFin(id, isRec) {
+    editFinId = id;
+    editFinIsRec = isRec;
+    const elTitle = document.getElementById('modal-fin-title');
+    
+    if (isRec) {
+        const item = S.recurring.find(r => String(r.id) === String(id));
+        if(!item) return;
+        
+        document.getElementById('fin-cat').value = 'suscripciones';
+        toggleFinTypeOptions();
+        document.getElementById('fin-type').value = item.type;
+        document.getElementById('fin-amount').value = item.amount;
+        document.getElementById('fin-desc').value = item.name;
+        document.getElementById('fin-day').value = item.day;
+        elTitle.textContent = 'Editar suscripción';
+    } else {
+        const item = S.fin.find(e => String(e.id) === String(id));
+        if(!item) return;
+        
+        document.getElementById('fin-cat').value = item.cat;
+        toggleFinTypeOptions();
+        document.getElementById('fin-type').value = item.type;
+        document.getElementById('fin-amount').value = item.amount;
+        document.getElementById('fin-desc').value = item.desc;
+        document.getElementById('fin-date').value = item.date;
+        elTitle.textContent = 'Editar registro';
+    }
+    openModal('modal-fin');
+}
+
+// Guarda (Nuevo o Edición)
 function addFinEntry() {
   const amount = parseFloat(document.getElementById('fin-amount').value);
   const desc = document.getElementById('fin-desc').value.trim();
   const cat = document.getElementById('fin-cat').value;
   const type = document.getElementById('fin-type').value;
+  
   if (!amount || !desc) return showToast('Rellena los datos', 'error');
-  if (cat === 'suscripciones') {
-    const day = parseInt(document.getElementById('fin-day').value);
-    if (!day || day < 1 || day > 31) return showToast('Día inválido', 'error');
-    S.recurring.push({ id: uid(), name: desc, amount, day, type: 'gasto' });
+  
+  if (editFinId) {
+      // ESTAMOS EDITANDO
+      if (editFinIsRec) {
+          if (cat !== 'suscripciones') {
+              // Lo ha sacado de suscripciones a un pago normal
+              S.recurring = S.recurring.filter(r => String(r.id) !== String(editFinId));
+              S.fin.push({ id: editFinId, type, amount, desc, cat, date: document.getElementById('fin-date').value || today() });
+          } else {
+              // Sigue siendo suscripción
+              const day = parseInt(document.getElementById('fin-day').value);
+              if (!day || day < 1 || day > 31) return showToast('Día inválido', 'error');
+              const idx = S.recurring.findIndex(r => String(r.id) === String(editFinId));
+              if (idx > -1) S.recurring[idx] = { ...S.recurring[idx], name: desc, amount, day, type: 'gasto' };
+          }
+      } else {
+          if (cat === 'suscripciones') {
+              // Lo ha cambiado de pago normal a suscripción mensual
+              const day = parseInt(document.getElementById('fin-day').value);
+              if (!day || day < 1 || day > 31) return showToast('Día inválido', 'error');
+              S.fin = S.fin.filter(e => String(e.id) !== String(editFinId));
+              S.recurring.push({ id: editFinId, name: desc, amount, day, type: 'gasto' });
+          } else {
+              // Sigue siendo un pago normal
+              const idx = S.fin.findIndex(e => String(e.id) === String(editFinId));
+              if (idx > -1) S.fin[idx] = { ...S.fin[idx], type, amount, desc, cat, date: document.getElementById('fin-date').value || today() };
+          }
+      }
+      editFinId = null;
+      editFinIsRec = false;
   } else {
-    S.fin.push({ id: uid(), type, amount, desc, cat, date: document.getElementById('fin-date').value || today() });
+      // ESTAMOS AÑADIENDO UNO NUEVO
+      if (cat === 'suscripciones') {
+        const day = parseInt(document.getElementById('fin-day').value);
+        if (!day || day < 1 || day > 31) return showToast('Día inválido', 'error');
+        S.recurring.push({ id: uid(), name: desc, amount, day, type: 'gasto' });
+      } else {
+        S.fin.push({ id: uid(), type, amount, desc, cat, date: document.getElementById('fin-date').value || today() });
+      }
   }
-  save(); closeAllModals(); renderFinances(); if(typeof renderHome === 'function') renderHome(); showToast('Guardado');
+  
+  save(); 
+  if(typeof closeAllModals === 'function') closeAllModals(); else closeModal('modal-fin');
+  renderFinances(); 
+  if(typeof renderHome === 'function') renderHome(); 
+  showToast('Guardado ✅', 'success');
 }
+
+// ==========================================
+// RENDERIZADO
+// ==========================================
 function renderFinances() {
   const period = S.activePeriod || 'semana';
   document.querySelectorAll('.fin-tab').forEach(t => {
     t.classList.remove('on');
     if (t.textContent.toLowerCase().includes(period)) t.classList.add('on');
   });
+  
   const entries = filterByPeriod(S.fin, period);
   const totalSav = S.fin.filter(e => e.cat === 'ahorro').reduce((a,e) => a + (e.type==='gasto'?e.amount:-e.amount), 0);
   const totalInv = S.fin.filter(e => e.cat === 'inversión').reduce((a,e) => a + (e.type==='gasto'?e.amount:-e.amount), 0);
   const available = S.fin.reduce((a,e) => a + (e.type==='ingreso'?e.amount:-e.amount), 0);
+
   document.getElementById('fin-bal').textContent = fmt(available);
   document.getElementById('fin-total-sav').textContent = fmt(totalSav);
   document.getElementById('fin-total-inv-label').textContent = fmt(totalInv);
+  
   document.getElementById('fin-inc').textContent = fmt(entries.filter(e => e.type==='ingreso' && !['ahorro','inversión'].includes(e.cat)).reduce((a,e)=>a+e.amount,0));
   document.getElementById('fin-exp').textContent = fmt(entries.filter(e => e.type==='gasto' && !['ahorro','inversión'].includes(e.cat)).reduce((a,e)=>a+e.amount,0));
   document.getElementById('fin-sav').textContent = fmt(entries.filter(e => e.cat==='ahorro').reduce((a,e)=>a+(e.type==='gasto'?e.amount:-e.amount),0));
   document.getElementById('fin-inv-period').textContent = fmt(entries.filter(e => e.cat==='inversión').reduce((a,e)=>a+(e.type==='gasto'?e.amount:-e.amount),0));
+
   renderList('fin-income-list', entries.filter(e => e.type === 'ingreso' && !['ahorro','inversión'].includes(e.cat)));
   renderList('fin-expense-list', entries.filter(e => e.type === 'gasto' && !['ahorro','inversión'].includes(e.cat)));
   renderList('fin-sav-list', entries.filter(e => e.cat === 'ahorro'), true);
   renderList('fin-inv-list', entries.filter(e => e.cat === 'inversión'), true);
+  
   const recEl = document.getElementById('fin-rec-list');
   if(recEl) recEl.innerHTML = S.recurring.length ? S.recurring.map(r => `
-    <div class="fin-row" style="padding:10px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+    <div class="fin-row" style="padding:10px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="openEditFin('${r.id}', true)">
       <div style="display:flex; align-items:center; gap:10px;">
         <div class="icon-box" style="background:var(--pur); color:#fff; padding:8px; border-radius:8px;">🔄</div>
         <div><div style="font-size:13px;font-weight:600">${r.name}</div><div class="item-sub" style="font-size:11px;color:var(--t2)">Día ${r.day}</div></div>
       </div>
       <div style="text-align:right; display:flex; align-items:center; gap:8px;">
          <div style="font-weight:700; color:var(--red)">-${fmt(r.amount)}</div>
-         <button class="btn-danger" onclick="delRecurring('${r.id}')">✕</button>
+         <button class="btn-danger" onclick="event.stopPropagation(); delRecurring('${r.id}')">✕</button>
       </div>
     </div>`).join('') : '<div class="empty">Vacío</div>';
+
   updateFinChart(period);
 }
 
 function renderList(id, list, h=false) {
   const el = document.getElementById(id); if(!el) return;
   el.innerHTML = list.length ? list.map(e => `
-    <div class="fin-row" style="padding:10px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+    <div class="fin-row" style="padding:10px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="openEditFin('${e.id}', false)">
       <div style="display:flex; align-items:center; gap:10px;">
         <div class="icon-box" style="background:${h ? (e.cat==='ahorro'?'rgba(59,130,246,0.1)':'rgba(245,158,11,0.1)') : 'rgba(255,255,255,0.05)'}; padding:8px; border-radius:8px;">${catEmoji(e.cat)}</div>
         <div><div style="font-size:13px;font-weight:600">${e.desc}</div><div class="item-sub" style="font-size:11px;color:var(--t2)">${e.date}</div></div>
       </div>
       <div style="text-align:right; display:flex; align-items:center; gap:8px;">
         <div style="font-weight:700; color:${e.type==='ingreso'?'var(--grn)':'var(--red)'}">${e.type==='gasto'?'-':'+'}${fmt(e.amount)}</div>
-        <button class="btn-danger" onclick="delFinEntry('${e.id}')">✕</button>
+        <button class="btn-danger" onclick="event.stopPropagation(); delFinEntry('${e.id}')">✕</button>
       </div>
     </div>`).join('') : '<div class="empty">Vacío</div>';
 }
-
 
 function filterByPeriod(entries, period) {
   const now = new Date();
@@ -133,37 +217,28 @@ function filterByPeriod(entries, period) {
 function setFinPeriod(p, btn) { S.activePeriod = p; renderFinances(); }
 
 // ==========================================
-// SISTEMA DE CONFIRMACIÓN PERSONALIZADO
+// SISTEMA DE CONFIRMACIÓN Y BORRADO
 // ==========================================
 let confirmCallback = null;
 
 function customConfirm(title, message, callback) {
-    // 1. Rellenamos los textos del modal
     document.getElementById('confirm-title').textContent = title;
     document.getElementById('confirm-msg').textContent = message;
-    
-    // 2. Guardamos lo que tiene que hacer si pulsa "Borrar"
     confirmCallback = callback;
-    
-    // 3. Abrimos el modal
     openModal('modal-confirm');
 }
 
-// Escuchamos el clic del botón rojo de borrar dentro del modal
 document.addEventListener('DOMContentLoaded', () => {
     const btnBorrar = document.getElementById('confirm-btn');
     if (btnBorrar) {
         btnBorrar.addEventListener('click', () => {
-            if (confirmCallback) confirmCallback(); // Ejecuta el borrado
-            closeModal('modal-confirm'); // Cierra la ventana
-            confirmCallback = null; // Limpia la memoria
+            if (confirmCallback) confirmCallback(); 
+            closeModal('modal-confirm'); 
+            confirmCallback = null; 
         });
     }
 });
 
-// ==========================================
-// FUNCIONES DE BORRADO USANDO EL MODAL BONITO
-// ==========================================
 function delFinEntry(id) { 
     customConfirm(
         'Borrar registro', 
@@ -171,7 +246,7 @@ function delFinEntry(id) {
         () => {
             S.fin = S.fin.filter(x => String(x.id) !== String(id)); 
             save(); 
-            renderFinances(); // Usa updateFinanzasPage() si es así como se llama en tu código actual
+            renderFinances(); 
             if(typeof renderHome === 'function') renderHome(); 
             if(typeof showToast === 'function') showToast('Registro eliminado 🗑️', 'success');
         }
@@ -185,12 +260,15 @@ function delRecurring(id) {
         () => {
             S.recurring = S.recurring.filter(x => String(x.id) !== String(id)); 
             save(); 
-            renderFinances(); // Usa updateFinanzasPage() si es así como se llama en tu código actual
+            renderFinances(); 
             if(typeof showToast === 'function') showToast('Suscripción eliminada 🗑️', 'success');
         }
     );
 }
 
+// ==========================================
+// GRÁFICOS
+// ==========================================
 let finChartInst = null;
 function initFinChart() {
   const ctx = document.getElementById('finChart'); if (!ctx) return;
