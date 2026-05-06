@@ -1,272 +1,339 @@
-// --- COLORES POR TIPO ---
+// ==========================================
+// CONFIGURACIÓN DE COLORES POR TIPO
+// ==========================================
 function getTypeColor(type) {
     const colors = {
-        'acción': '#3b82f6', // Azul
-        'etf': '#8b5cf6', // Morado
-        'crypto': '#f59e0b', // Naranja
-        'fondos': '#1abc9c', // Turquesa
-        'bonos': '#27ae60', // Verde
-        'materias primas': '#e74c3c', // Rojo
-        'otro': '#95a5a6' // Gris
+        'acción': '#3b82f6', 
+        'etf': '#8b5cf6', 
+        'crypto': '#f59e0b', 
+        'fondos': '#1abc9c', 
+        'bonos': '#27ae60', 
+        'materias primas': '#e74c3c', 
+        'otro': '#95a5a6'
     };
-    if (!type) return colors['otro'];
-    return colors[type.toLowerCase()] || colors['otro'];
+    return colors[(type || 'otro').toLowerCase()] || colors['otro'];
 }
 
+// ==========================================
+// GENERADOR DE LEYENDAS (FIX CUADRÍCULA FLUIDA)
+// ==========================================
+function generateCustomLegend(containerId, labels, data, colors) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    const total = data.reduce((a, b) => a + b, 0);
+    
+    // Forzamos dirección fila y que envuelva (wrap) al quedarse sin espacio
+    container.style.display = 'flex';
+    container.style.flexDirection = 'row';
+    container.style.flexWrap = 'wrap';
+    container.style.justifyContent = 'center';
+    container.style.alignItems = 'flex-start';
+    container.style.gap = '12px 24px'; // 12px de hueco vertical, 24px horizontal
+    container.style.width = '100%';
+    container.style.marginTop = '24px';
+
+    container.innerHTML = labels.map((label, i) => {
+        const pct = total > 0 ? ((data[i] / total) * 100).toFixed(1) : 0;
+        const color = colors[i];
+        
+        // flex: 0 0 auto permite que cada elemento ocupe solo lo que necesita
+        return `
+        <div style="display:flex; align-items:center; gap:8px; flex: 0 0 auto;">
+            <div style="width:10px; height:10px; border-radius:50%; background-color:${color}; flex-shrink:0;"></div>
+            <div style="display:flex; flex-direction:column; align-items:flex-start;">
+                <span style="font-size:9px; color:var(--t3); text-transform:uppercase; font-weight:700; line-height:1; margin-bottom:4px;">${label}</span>
+                <span style="font-size:14px; font-weight:800; color:${color}; line-height:1;">${pct}%</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ==========================================
+// FUNCIÓN MATEMÁTICA SEGURA (ANTI-ERRORES)
+// ==========================================
+function safeFloat(val) {
+    if (val === undefined || val === null || val === '') return 0;
+    if (typeof val === 'number') return val;
+    return parseFloat(String(val).replace(',', '.')) || 0;
+}
+
+function getStockValues(s) {
+    const invested = safeFloat(s.invested);
+    const buyPrice = safeFloat(s.buyPrice);
+    const price = safeFloat(s.price || s.currentPrice);
+    
+    let amount = safeFloat(s.amount);
+    
+    if (amount === 0) {
+        if (buyPrice > 0) {
+            amount = invested / buyPrice;
+        } else {
+            amount = 1; 
+        }
+    }
+
+    const currentVal = amount > 0 ? (price * amount) : invested;
+    const pnl = currentVal - invested;
+    const pnlPct = invested > 0 ? (pnl / invested) * 100 : 0;
+
+    return { invested, currentVal, pnl, pnlPct, amount, price, buyPrice };
+}
+
+function formatCurrency(val) {
+    return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
+}
+
+// ==========================================
+// ACTUALIZACIÓN DE GRÁFICOS Y TOTALES
+// ==========================================
+let chartType = null;
+let chartAsset = null;
+
+function updatePortfolioPage() {
+    if (!S.stocks) S.stocks = [];
+    S.stocks = S.stocks.filter(s => s && typeof s === 'object' && s.ticker);
+
+    let totalVal = 0;
+    let totalInv = 0;
+    const typeTotals = {};
+    const assetTotals = {};
+
+    if (S.stocks.length === 0) {
+        document.getElementById('stock-list').innerHTML = `<div style="text-align:center;color:var(--t3);padding:20px;font-size:14px;">Tu cartera está vacía</div>`;
+        document.getElementById('port-total').textContent = "0,00 €";
+        document.getElementById('port-invested').textContent = "0,00 €";
+        document.getElementById('port-pnl').textContent = "+0,00 € (0%)";
+        if(chartType) chartType.destroy();
+        if(chartAsset) chartAsset.destroy();
+        return;
+    }
+
+    S.stocks.forEach(s => {
+        const vals = getStockValues(s);
+        totalVal += vals.currentVal;
+        totalInv += vals.invested;
+
+        typeTotals[s.type || 'Otro'] = (typeTotals[s.type || 'Otro'] || 0) + vals.currentVal;
+        assetTotals[s.ticker] = (assetTotals[s.ticker] || 0) + vals.currentVal;
+    });
+
+    const pnl = totalVal - totalInv;
+    const pnlPct = totalInv > 0 ? (pnl / totalInv) * 100 : 0;
+    
+    document.getElementById('port-total').textContent = formatCurrency(totalVal);
+    document.getElementById('port-invested').textContent = formatCurrency(totalInv);
+    const pnlEl = document.getElementById('port-pnl');
+    pnlEl.textContent = `${pnl >= 0 ? '+' : ''}${formatCurrency(pnl)} (${pnlPct.toFixed(2)}%)`;
+    pnlEl.style.color = pnl >= 0 ? 'var(--grn)' : 'var(--red)';
+
+    const typeLabels = Object.keys(typeTotals);
+    const typeData = Object.values(typeTotals);
+    const typeColors = typeLabels.map(label => getTypeColor(label));
+
+    if (chartType) chartType.destroy();
+    const ctxType = document.getElementById('chart-type').getContext('2d');
+    chartType = new Chart(ctxType, {
+        type: 'doughnut',
+        data: { datasets: [{ data: typeData, backgroundColor: typeColors, borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false } } }
+    });
+    generateCustomLegend('legend-type', typeLabels, typeData, typeColors);
+
+    const assetLabels = Object.keys(assetTotals);
+    const assetData = Object.values(assetTotals);
+    const assetColors = assetLabels.map((_, i) => `hsl(${(i * 137) % 360}, 65%, 60%)`);
+
+    if (chartAsset) chartAsset.destroy();
+    const ctxAsset = document.getElementById('chart-asset').getContext('2d');
+    chartAsset = new Chart(ctxAsset, {
+        type: 'doughnut',
+        data: { datasets: [{ data: assetData, backgroundColor: assetColors, borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false } } }
+    });
+    generateCustomLegend('legend-asset', assetLabels, assetData, assetColors);
+
+    renderStockList(S.stocks);
+}
+
+// ==========================================
+// RENDERIZADO DE LA LISTA
+// ==========================================
+function renderStockList(stocks) {
+    const list = document.getElementById('stock-list');
+    
+    stocks.sort((a, b) => getStockValues(b).currentVal - getStockValues(a).currentVal);
+
+    list.innerHTML = stocks.map(s => {
+        const v = getStockValues(s);
+        const color = getTypeColor(s.type);
+
+        return `
+        <div class="stock-item" style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); position:relative;" onclick="openEditStockModal('${s.id}')">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:10px; height:30px; border-radius:4px; background-color:${color};"></div>
+                <div>
+                    <div style="font-weight:700; color:var(--t1); font-size:15px;">${s.ticker}</div>
+                    <div style="font-size:11px; color:var(--t3); text-transform:uppercase;">${s.type || 'Otro'}</div>
+                </div>
+            </div>
+            
+            <div style="text-align:right; margin-right: 15px;">
+                <div style="font-weight:700; color:var(--t1); font-size:15px;">${formatCurrency(v.currentVal)}</div>
+                <div style="font-size:12px; font-weight:600; color:${v.pnl >= 0 ? 'var(--grn)' : 'var(--red)'};">
+                    ${v.pnl >= 0 ? '+' : ''}${formatCurrency(v.pnl)} (${v.pnlPct.toFixed(2)}%)
+                </div>
+            </div>
+            <div style="color:var(--bg4); font-size:12px; position:absolute; right:0;">▶</div>
+        </div>`;
+    }).join('');
+}
+
+// ==========================================
+// LÓGICA DE AÑADIR NUEVA POSICIÓN
+// ==========================================
 function openNewStockModal() {
-    // Vaciamos los campos de texto antes de abrir
+    currentEditingId = null;
+    document.getElementById('modal-stock').querySelector('.modal-title').textContent = 'Nueva posición';
     document.getElementById('s-ticker').value = '';
     document.getElementById('s-name').value = '';
     document.getElementById('s-invested').value = '';
     document.getElementById('s-price').value = '';
     document.getElementById('s-current').value = '';
-    document.getElementById('s-type').value = 'Acción'; // Reiniciamos el desplegable
+    document.getElementById('s-type').value = 'Acción';
+    
+    // Configuramos el botón para añadir
+    const btn = document.querySelector('#modal-stock .btn-primary');
+    btn.textContent = 'Crear Posición';
+    btn.onclick = addStock;
+
     openModal('modal-stock');
 }
 
-function renderStocks() {
-  const el = document.getElementById('stock-list');
-  if (!el) return;
-  if (!S.stocks) S.stocks = [];
-
-  let html = '';
-  let totalVal = 0, totalInv = 0;
-
-  S.stocks.forEach(s => {
-    let sInv = 0, sShares = 0;
-    if (s.purchases) {
-      s.purchases.forEach(p => {
-        sInv += p.invested;
-        sShares += p.shares;
-      });
-    }
-
-    const curVal = sShares * s.price;
-    const pnl = curVal - sInv;
-    const pct = sInv > 0 ? (pnl / sInv) * 100 : 0;
-    
-    // Lógica estricta de color para individual
-    let cStr = 'var(--t3)';
-    let sign = '';
-    if (pnl > 0.001) { cStr = 'var(--grn)'; sign = '▲ '; }
-    else if (pnl < -0.001) { cStr = 'var(--red)'; sign = '▼ '; }
-
-    // Color del badge según tu función
-    const badgeColor = getTypeColor(s.type);
-    const badgeBg = badgeColor + '1A'; // 1A es ~10% de opacidad en hexadecimal para el fondo
-
-    totalVal += curVal;
-    totalInv += sInv;
-
-    html += `
-    <div class="list-item" style="padding:16px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
-      <div style="display:flex; align-items:center; gap:12px; cursor:pointer; flex:1;" onclick="openManageStock('${s.id}')">
-        <div style="background:${badgeBg}; color:${badgeColor}; font-weight:700; font-size:10px; padding:10px; border-radius:10px; width:45px; text-align:center;">${s.ticker}</div>
-        <div>
-           <div style="font-weight:700; font-size:15px; color:var(--t1);">${s.name}</div>
-           <div style="font-size:11px; color:var(--t2); margin-top:4px;">Precio act: €${s.price.toFixed(2)}</div>
-        </div>
-      </div>
-      <div style="text-align:right; display:flex; align-items:center; gap:12px;">
-         <div>
-            <div style="font-size:15px; font-weight:700; color:var(--t1);">€${curVal.toFixed(2)}</div>
-            <div style="font-size:11px; font-weight:700; margin-top:4px; color:${cStr};">${sign}€${Math.abs(pnl).toFixed(2)} (${pct.toFixed(2)}%)</div>
-         </div>
-         <button class="btn-danger" onclick="delStock('${s.id}')">✕</button>
-      </div>
-    </div>`;
-  });
-
-  el.innerHTML = html || '<div class="empty">Tu cartera está vacía</div>';
-
-  const tPnl = totalVal - totalInv;
-  const tPct = totalInv > 0 ? (tPnl / totalInv) * 100 : 0;
-  
-  document.getElementById('port-total').textContent = '€' + totalVal.toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2});
-  document.getElementById('port-invested').textContent = '€' + totalInv.toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2});
-  
-  // Lógica de color para el VALOR TOTAL
-  const elPnl = document.getElementById('port-pnl');
-  let tColor = 'var(--t3)';
-  let tSign = '';
-  if (tPnl > 0.001) { tColor = 'var(--grn)'; tSign = '+'; }
-  else if (tPnl < -0.001) { tColor = 'var(--red)'; tSign = '-'; }
-  
-  elPnl.textContent = `${tSign}€${Math.abs(tPnl).toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2})} (${tPct.toFixed(2)}%)`;
-  elPnl.style.color = tColor;
-
-  updatePortfolioCharts();
-}
-
 function addStock() {
-  const ticker = document.getElementById('s-ticker').value.trim().toUpperCase();
-  const name = document.getElementById('s-name').value.trim();
-  const invested = parseFloat(document.getElementById('s-invested').value);
-  const buyPrice = parseFloat(document.getElementById('s-price').value);
-  const curPrice = parseFloat(document.getElementById('s-current').value);
-  const type = document.getElementById('s-type').value;
+    const ticker = document.getElementById('s-ticker').value.toUpperCase().trim();
+    const name = document.getElementById('s-name').value.trim();
+    const invested = safeFloat(document.getElementById('s-invested').value);
+    const buyPrice = safeFloat(document.getElementById('s-price').value);
+    const currentPrice = safeFloat(document.getElementById('s-current').value);
+    const type = document.getElementById('s-type').value;
 
-  if (!ticker || !name || !invested || !buyPrice || !curPrice) return showToast('Rellena todos los campos', 'error');
+    if (!ticker) return showToast('El Ticker es obligatorio', 'error');
 
-  const shares = invested / buyPrice;
-  S.stocks.push({
-    id: uid(),
-    ticker, name, type, price: curPrice,
-    purchases: [{ id: uid(), date: today(), invested, price: buyPrice, shares }]
-  });
+    const newStock = { id: uid(), ticker, name, invested, buyPrice, price: currentPrice, type };
 
-  save(); closeModal('modal-stock'); renderStocks(); showToast('Posición creada');
+    if (!S.stocks) S.stocks = [];
+    S.stocks.push(newStock);
+    save(); 
+    closeModal('modal-stock');
+    updatePortfolioPage();
+    if(typeof renderHome === 'function') renderHome();
+    showToast('Posición añadida ✅', 'success');
 }
 
-function delStock(id) {
-  customConfirm('Borrar Activo', '¿Eliminar toda la posición de la cartera?', () => {
-    S.stocks = S.stocks.filter(s => s.id !== id);
-    save(); renderStocks();
-  });
-}
+// ==========================================
+// LÓGICA DE EDITAR / BORRAR
+// ==========================================
+let currentEditingId = null;
 
-function openManageStock(id) {
-  const s = S.stocks.find(x => x.id === id);
-  if (!s) return;
+function openEditStockModal(id) {
+    currentEditingId = id;
+    const stock = S.stocks.find(s => s.id === id);
+    if (!stock) return;
 
-  let pHtml = s.purchases.map(p => {
-    const val = p.shares * s.price;
-    const pnl = val - p.invested;
-    const pct = (pnl / p.invested) * 100;
+    const v = getStockValues(stock);
+
+    document.getElementById('modal-stock').querySelector('.modal-title').textContent = 'Editar posición';
+    document.getElementById('s-ticker').value = stock.ticker;
+    document.getElementById('s-name').value = stock.name || '';
+    document.getElementById('s-invested').value = v.invested > 0 ? v.invested : '';
+    document.getElementById('s-price').value = v.buyPrice > 0 ? v.buyPrice : '';
+    document.getElementById('s-current').value = v.price > 0 ? v.price : '';
     
-    // Lógica de color de lotes individuales
-    let pColor = 'var(--t3)';
-    let pSign = '';
-    if (pnl > 0.001) { pColor = 'var(--grn)'; pSign = '▲ '; }
-    else if (pnl < -0.001) { pColor = 'var(--red)'; pSign = '▼ '; }
+    const typeSelect = document.getElementById('s-type');
+    const options = Array.from(typeSelect.options).map(o => o.value.toLowerCase());
+    if (options.includes((stock.type || '').toLowerCase())) typeSelect.value = stock.type;
 
-    return `
-    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--line);">
-       <div>
-          <div style="font-size:12px; font-weight:700;">Invertido: €${p.invested.toFixed(2)}</div>
-          <div style="font-size:10px; color:var(--t3);">${p.date}</div>
-       </div>
-       <div style="display:flex; align-items:center; gap:12px;">
-          <div style="font-size:11px; font-weight:700; color:${pColor};">${pSign}€${Math.abs(pnl).toFixed(2)} (${pct.toFixed(2)}%)</div>
-          <button class="btn-danger" onclick="delPurchase('${s.id}', '${p.id}')">✕</button>
-       </div>
-    </div>`;
-  }).join('');
-
-  document.getElementById('manage-stock-content').innerHTML = `
-    <div class="modal-handle"></div>
-    <div class="modal-title" style="margin-bottom:20px;">Gestionar ${s.ticker}</div>
+    // Cambiamos la función del botón al de actualizar y añadimos botón borrar
+    const btnContainer = document.querySelector('#modal-stock .btn-primary').parentElement;
     
-    <label class="form-label">Actualizar Precio Actual (€)</label>
-    <div style="display:flex; gap:10px; margin-bottom:16px;">
-       <input type="number" id="update-price-${s.id}" class="form-input" style="margin-bottom:0;" value="${s.price.toFixed(2)}" step="0.01">
-       <button class="btn" style="background:var(--acc); color:#fff; border-radius:10px; padding:0 20px; border:none; cursor:pointer;" onclick="updatePrice('${s.id}')">Actualizar</button>
-    </div>
-
-    <label class="form-label">Añadir Lote de Compra</label>
-    <div style="display:flex; gap:10px; margin-bottom:24px;">
-       <input type="number" id="add-inv-${s.id}" class="form-input" style="margin-bottom:0;" placeholder="Inversión (€)" step="0.01">
-       <input type="number" id="add-px-${s.id}" class="form-input" style="margin-bottom:0;" placeholder="Precio compra (€)" step="0.01">
-       <button class="btn" style="background:var(--grn); color:#fff; border-radius:10px; padding:0 20px; border:none; cursor:pointer;" onclick="addPurchase('${s.id}')">Añadir</button>
-    </div>
-
-    <label class="form-label">TUS COMPRAS (LOTES)</label>
-    <div>${pHtml || '<div class="empty">Sin compras</div>'}</div>
-  `;
-  openModal('modal-manage-stock');
-}
-
-function updatePrice(id) {
-  const s = S.stocks.find(x => x.id === id);
-  const px = parseFloat(document.getElementById(`update-price-${id}`).value);
-  if (!px || px <= 0) return showToast('Precio inválido', 'error');
-  s.price = px;
-  save(); renderStocks(); openManageStock(id); showToast('Precio actualizado');
-}
-
-function addPurchase(id) {
-  const s = S.stocks.find(x => x.id === id);
-  const inv = parseFloat(document.getElementById(`add-inv-${id}`).value);
-  const px = parseFloat(document.getElementById(`add-px-${id}`).value);
-  if (!inv || !px) return showToast('Rellena inversión y precio', 'error');
-  s.purchases.push({ id: uid(), date: today(), invested: inv, price: px, shares: inv / px });
-  save(); renderStocks(); openManageStock(id); showToast('Compra añadida');
-}
-
-function delPurchase(sid, pid) {
-  const s = S.stocks.find(x => x.id === sid);
-  s.purchases = s.purchases.filter(p => p.id !== pid);
-  save(); renderStocks(); openManageStock(sid);
-}
-
-// --- FUNCIÓN PARA PINTAR LEYENDA CUSTOMIZADA ---
-function generateCustomLegend(containerId, labels, data, colors) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    const total = data.reduce((a, b) => a + b, 0);
+    btnContainer.innerHTML = `
+        <label class="form-label">Tipo</label>
+        <select id="s-type" class="form-input">
+            <option value="Acción">Acción</option>
+            <option value="ETF">ETF</option>
+            <option value="Crypto">Crypto</option>
+            <option value="Fondos">Fondos</option>
+            <option value="Bonos">Bonos</option>
+            <option value="Materias primas">Materias primas</option>
+            <option value="Otro">Otro</option>
+        </select>
+        <div style="display:flex; gap:10px; margin-top:10px;">
+            <button class="btn" style="flex:1; background:var(--red); color:#fff;" onclick="deleteStock()">Borrar</button>
+            <button class="btn btn-primary" style="flex:1;" onclick="updateStock()">Guardar</button>
+        </div>
+    `;
     
-    let html = '';
-    labels.forEach((label, i) => {
-        const pct = total > 0 ? ((data[i] / total) * 100).toFixed(1) : 0;
-        const color = colors[i];
-        
-        html += `
-        <div style="display:flex; align-items:flex-start; gap:8px;">
-            <div style="width:10px; height:10px; border-radius:50%; background-color:${color}; flex-shrink:0; margin-top:4px;"></div>
-            <div>
-                <div style="font-size:10px; color:var(--t3); text-transform:uppercase; font-weight:700; letter-spacing:0.5px; margin-bottom:2px;">${label}</div>
-                <div style="font-size:18px; font-weight:800; color:${color}; line-height:1;">${pct}%</div>
-            </div>
-        </div>`;
-    });
-    container.innerHTML = html;
+    // Volvemos a setear el valor del selector porque al reescribir el HTML se reinicia
+    document.getElementById('s-type').value = stock.type || 'Otro';
+
+    openModal('modal-stock');
 }
 
-let typeChart = null, assetChart = null;
+function updateStock() {
+    if (!currentEditingId) return;
+    const index = S.stocks.findIndex(s => s.id === currentEditingId);
+    if (index === -1) return;
 
-function updatePortfolioCharts() {
-  const c1 = document.getElementById('chart-type');
-  const c2 = document.getElementById('chart-asset');
-  if (!c1 || !c2 || !S.stocks) return;
+    const ticker = document.getElementById('s-ticker').value.toUpperCase().trim();
+    const name = document.getElementById('s-name').value.trim();
+    const invested = safeFloat(document.getElementById('s-invested').value);
+    const buyPrice = safeFloat(document.getElementById('s-price').value);
+    const currentPrice = safeFloat(document.getElementById('s-current').value);
+    const type = document.getElementById('s-type').value;
 
-  let types = {}, assets = {};
-  S.stocks.forEach(s => {
-    let val = 0;
-    if (s.purchases) s.purchases.forEach(p => val += p.shares * s.price);
-    if (val > 0) {
-      types[s.type] = (types[s.type] || 0) + val;
-      assets[s.ticker] = (assets[s.ticker] || 0) + val;
+    if (!ticker) return showToast('El Ticker es obligatorio', 'error');
+
+    S.stocks[index] = { id: currentEditingId, ticker, name, invested, buyPrice, price: currentPrice, type };
+
+    save(); 
+    closeModal('modal-stock');
+    updatePortfolioPage();
+    if(typeof renderHome === 'function') renderHome();
+    showToast('Cambios guardados ✅', 'success');
+    currentEditingId = null;
+}
+
+function deleteStock() {
+    if (!currentEditingId) return;
+    
+    // Usamos el confirm personalizado de main.js o el nativo por si acaso
+    if (typeof customConfirm === 'function') {
+        customConfirm('Borrar posición', '¿Seguro que quieres borrar este activo?', () => {
+            S.stocks = S.stocks.filter(s => s.id !== currentEditingId);
+            save(); 
+            closeModal('modal-stock');
+            updatePortfolioPage();
+            if(typeof renderHome === 'function') renderHome();
+            showToast('Posición eliminada 🗑️', 'success');
+            currentEditingId = null;
+        });
+    } else {
+        if (!confirm('¿Seguro que quieres borrar esta posición?')) return;
+        S.stocks = S.stocks.filter(s => s.id !== currentEditingId);
+        save(); 
+        closeModal('modal-stock');
+        updatePortfolioPage();
+        if(typeof renderHome === 'function') renderHome();
+        showToast('Posición eliminada 🗑️', 'success');
+        currentEditingId = null;
     }
-  });
-
-  // PREPARACIÓN "POR TIPO"
-  const typeLabelsRaw = Object.keys(types);
-  const typeData = Object.values(types);
-  const typeBgColors = typeLabelsRaw.map(t => getTypeColor(t));
-  
-  if (typeChart) typeChart.destroy();
-  typeChart = new Chart(c1, {
-    type: 'doughnut',
-    data: { labels: typeLabelsRaw, datasets: [{ data: typeData, backgroundColor: typeBgColors, borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false } } } // Apagamos la original
-  });
-  
-  // Dibujamos nuestra propia leyenda
-  generateCustomLegend('legend-type', typeLabelsRaw, typeData, typeBgColors);
-
-  // PREPARACIÓN "POR ACTIVO"
-  const assetLabelsRaw = Object.keys(assets);
-  const assetData = Object.values(assets);
-  const assetColsRaw = ['#8b5cf6', '#3b82f6', '#27ae60', '#f59e0b', '#e74c3c', '#e05a2b', '#1abc9c', '#95a5a6']; 
-  const assetCols = assetLabelsRaw.map((_, i) => assetColsRaw[i % assetColsRaw.length]); // Para que los colores den la vuelta si hay muchos activos
-  
-  if (assetChart) assetChart.destroy();
-  assetChart = new Chart(c2, {
-    type: 'doughnut',
-    data: { labels: assetLabelsRaw, datasets: [{ data: assetData, backgroundColor: assetCols, borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false } } } // Apagamos la original
-  });
-
-  // Dibujamos nuestra propia leyenda
-  generateCustomLegend('legend-asset', assetLabelsRaw, assetData, assetCols);
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof S !== 'undefined' && typeof save === 'function') {
+        updatePortfolioPage();
+    } else {
+        setTimeout(() => { if (typeof updatePortfolioPage === 'function') updatePortfolioPage(); }, 100);
+    }
+});
