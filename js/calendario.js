@@ -3,7 +3,7 @@
 // ==========================================
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
-let selectedDateStr = today(); // from main.js
+let selectedDateStr = today(); 
 
 let pomoSec = 25 * 60;
 let pomoRunning = false;
@@ -16,14 +16,22 @@ let openProjects = {};
 const prioColor = { ui: '#e74c3c', ni: '#3b82f6', un: '#f59e0b', nn: '#95a5a6', acc: '#8b5cf6' };
 const prioText = { ui: 'Urgente + Imp 🔴', ni: 'No Urg + Imp 🔵', un: 'Urg + No Imp 🟡', nn: 'No Urg + No Imp ⚪' };
 
-// Función segura de borrado (por si falla customConfirm en main.js)
-function safeDelete(title, msg, callback) {
-    if (typeof customConfirm === 'function') {
-        customConfirm(title, msg, callback);
-    } else {
-        if (confirm(msg)) callback();
-    }
+// ==========================================
+// SISTEMA DE CONFIRMACIÓN DE BORRADO SEGURO
+// ==========================================
+let confirmDeleteAction = null;
+
+function showDeleteConfirm(title, msg, callback) {
+    document.getElementById('confirm-del-title').textContent = title;
+    document.getElementById('confirm-del-msg').textContent = msg;
+    confirmDeleteAction = callback;
+    openModal('modal-confirm-delete');
 }
+
+document.getElementById('confirm-del-btn').addEventListener('click', () => {
+    if (confirmDeleteAction) confirmDeleteAction();
+    closeModal('modal-confirm-delete');
+});
 
 // ==========================================
 // INICIALIZACIÓN
@@ -246,7 +254,10 @@ function renderTasks() {
                         <div style="font-size:11px; color:var(--t3); margin-top:4px;">Proyecto: ${t.projectName}</div>
                     </div>
                 </div>
-                <button class="btn-danger" onclick="event.stopPropagation(); delProjectTask('${t.projectId}', '${t.id}')">✕</button>
+                <div style="display:flex; align-items:center; gap:4px;">
+                    <button class="btn-sm" style="background:transparent; color:var(--t2); font-size:14px; padding:4px 8px; border:none;" onclick="event.stopPropagation(); viewTaskDetails('project', '${t.projectId}', '${t.id}')">👁️</button>
+                    <button class="btn-danger" style="background:transparent; color:var(--red); padding:4px 8px; border:none; font-size:16px;" onclick="event.stopPropagation(); delProjectTask('${t.projectId}', '${t.id}')">✕</button>
+                </div>
             </div>`;
         } else {
             return `
@@ -258,7 +269,10 @@ function renderTasks() {
                         <div style="font-size:11px; color:var(--t3); margin-top:4px;">${t.time || '--:--'} · ${t.cat}</div>
                     </div>
                 </div>
-                <button class="btn-danger" onclick="event.stopPropagation(); deleteTask('${t.id}')">✕</button>
+                <div style="display:flex; align-items:center; gap:4px;">
+                    <button class="btn-sm" style="background:transparent; color:var(--t2); font-size:14px; padding:4px 8px; border:none;" onclick="event.stopPropagation(); viewTaskDetails('normal', '${t.id}')">👁️</button>
+                    <button class="btn-danger" style="background:transparent; color:var(--red); padding:4px 8px; border:none; font-size:16px;" onclick="event.stopPropagation(); deleteTask('${t.id}')">✕</button>
+                </div>
             </div>`;
         }
     }).join('');
@@ -270,7 +284,7 @@ function toggleTask(id) {
 }
 
 function deleteTask(id) {
-    safeDelete("Borrar Meta", "¿Borrar meta diaria?", () => {
+    showDeleteConfirm("Borrar Meta", "¿Seguro que quieres borrar esta meta diaria?", () => {
         S.tasks = S.tasks.filter(x => x.id !== id); 
         save(); renderCalendar(); renderDayContent();
     });
@@ -315,7 +329,10 @@ function renderProjects() {
                             <div style="font-size:10px; color:var(--t3); margin-top:2px;">Límite: ${t.deadline || '--/--/----'}</div>
                         </div>
                     </div>
-                    <button class="btn-danger" onclick="event.stopPropagation(); delProjectTask('${p.id}', '${t.id}')">✕</button>
+                    <div style="display:flex; align-items:center; gap:4px;">
+                        <button class="btn-sm" style="background:transparent; color:var(--t2); font-size:14px; padding:4px 8px; border:none;" onclick="event.stopPropagation(); viewTaskDetails('project', '${p.id}', '${t.id}')">👁️</button>
+                        <button class="btn-danger" style="background:transparent; color:var(--red); padding:4px 8px; border:none; font-size:16px;" onclick="event.stopPropagation(); delProjectTask('${p.id}', '${t.id}')">✕</button>
+                    </div>
                 </div>
             `).join('');
         }
@@ -359,7 +376,7 @@ function renderProjects() {
                     <div style="font-size:11px; color:var(--t3); font-weight:600;">Límite/Inicio: ${p.date} • ${done}/${total} tareas</div>
                 </div>
                 <div style="display:flex; gap:16px; align-items:center;">
-                    <button class="btn-danger" onclick="event.stopPropagation(); delProject('${p.id}')">✕</button>
+                    <button class="btn-danger" style="background:transparent; color:var(--red); padding:0; border:none; font-size:16px;" onclick="event.stopPropagation(); delProject('${p.id}')">✕</button>
                     <div style="font-size:12px; color:var(--t3); transition:transform 0.2s; transform: rotate(${isOpen ? '180deg' : '0deg'});">▼</div>
                 </div>
             </div>
@@ -395,7 +412,7 @@ function toggleProjectTask(projectId, taskId) {
 }
 
 function delProjectTask(projectId, taskId) {
-    safeDelete("Borrar Tarea", "¿Borrar esta tarea del proyecto?", () => {
+    showDeleteConfirm("Borrar Tarea", "¿Seguro que quieres borrar esta tarea del proyecto?", () => {
         const p = S.projects.find(x => x.id === projectId);
         p.tasks = p.tasks.filter(x => x.id !== taskId);
         save(); renderCalendar(); renderDayContent();
@@ -403,7 +420,7 @@ function delProjectTask(projectId, taskId) {
 }
 
 function delProject(id) {
-    safeDelete("Borrar Proyecto", "¿Eliminar este proyecto y todas sus tareas?", () => {
+    showDeleteConfirm("Borrar Proyecto", "Se eliminará el proyecto y todas sus tareas. ¿Continuar?", () => {
         S.projects = S.projects.filter(p => p.id !== id);
         save(); renderCalendar(); renderDayContent();
     });
@@ -492,6 +509,31 @@ function saveEditProjectTask() {
 }
 
 // ==========================================
+// VISUALIZADOR DE DETALLES DE TAREAS
+// ==========================================
+function viewTaskDetails(type, id1, id2) {
+    let title = '', meta = '', desc = '';
+    
+    if (type === 'project') {
+        const p = S.projects.find(x => x.id === id1);
+        const t = p.tasks.find(x => x.id === id2);
+        title = t.text;
+        meta = `PROYECTO: ${p.name} <br> LÍMITE: ${t.deadline || 'Sin límite'} <br> PRIORIDAD: ${prioText[t.priority] || ''}`;
+        desc = t.desc || 'No hay descripción adjunta para esta tarea.';
+    } else {
+        const t = S.tasks.find(x => x.id === id1);
+        title = t.name;
+        meta = `META DIARIA <br> FECHA: ${t.date} ${t.time ? '· HORA: '+t.time : ''}`;
+        desc = t.desc || 'No hay descripción adjunta.';
+    }
+    
+    document.getElementById('vt-title').textContent = title;
+    document.getElementById('vt-meta').innerHTML = meta;
+    document.getElementById('vt-desc').textContent = desc;
+    openModal('modal-view-task');
+}
+
+// ==========================================
 // RECURSOS Y POMODORO
 // ==========================================
 function renderResources() {
@@ -503,7 +545,7 @@ function renderResources() {
                 <a href="${r.url.startsWith('http') ? r.url : 'https://'+r.url}" target="_blank" style="color:var(--t1); font-weight:700; text-decoration:none; display:block; margin-bottom:4px; font-size:14px;">🔗 ${r.title}</a>
                 <span class="tag" style="background:var(--bg3); color:var(--t3); font-size:10px; padding:2px 6px; border-radius:4px;">${r.cat}</span>
             </div>
-            <button class="btn-danger" onclick="delResource('${r.id}')">✕</button>
+            <button class="btn-danger" style="background:transparent; color:var(--red); border:none; padding:4px 8px; font-size:16px;" onclick="delResource('${r.id}')">✕</button>
         </div>`).join('') : '<div class="empty">Vacío</div>';
 }
 
@@ -517,7 +559,7 @@ function addResource() {
 }
 
 function delResource(id) { 
-    safeDelete("Borrar Recurso", "¿Borrar este recurso?", () => {
+    showDeleteConfirm("Borrar Recurso", "¿Seguro que quieres borrar este enlace?", () => {
         S.resources = S.resources.filter(r => r.id !== id); 
         save(); renderResources();
     });
