@@ -14,6 +14,10 @@ const pomoModes = { focus: 25 * 60, short: 5 * 60, long: 15 * 60 };
 // Control de Acordeones de Proyectos
 let openProjects = {}; 
 
+// Colores de la Matriz Eisenhower para las tareas
+const prioColor = { ui: '#e74c3c', ni: '#3b82f6', un: '#f59e0b', nn: '#95a5a6', acc: '#8b5cf6' };
+const prioText = { ui: 'Urgente + Imp 🔴', ni: 'No Urg + Imp 🔵', un: 'Urg + No Imp 🟡', nn: 'No Urg + No Imp ⚪' };
+
 // ==========================================
 // INICIALIZACIÓN DE LA BASE DE DATOS
 // ==========================================
@@ -22,14 +26,10 @@ function initAgendaData() {
     if (!S.pomo) S.pomo = { sessions: 0 };
     if (!S.resources) S.resources = [];
     if (!S.projects) S.projects = []; 
-    
-    if (!S.agenda) S.agenda = {};
-    if (!S.agenda.habits) S.agenda.habits = [];
-    if (!S.agenda.habitLogs) S.agenda.habitLogs = {};
 }
 
 // ==========================================
-// LÓGICA DEL CALENDARIO
+// LÓGICA DEL CALENDARIO CON PUNTITOS DE COLOR
 // ==========================================
 function renderCalendar() {
     const daysContainer = document.getElementById('cal-days');
@@ -53,8 +53,37 @@ function renderCalendar() {
         let classes = ['cal-day'];
         if (dStr === hoyStr) classes.push('today');
         if (dStr === selectedDateStr) classes.push('selected');
-        if (S.tasks.some(t => t.date === dStr && !t.done)) classes.push('has-task');
-        daysContainer.innerHTML += `<div class="${classes.join(' ')}" onclick="selectDate('${dStr}')">${day}</div>`;
+        
+        // Recopilar prioridades para pintar los puntitos correctos
+        let dayPriorities = new Set();
+        
+        // Comprobar tareas normales
+        if (S.tasks.some(t => t.date === dStr && !t.done)) dayPriorities.add('acc'); 
+        
+        // Comprobar tareas de proyectos
+        S.projects.forEach(p => {
+            if(p.tasks) {
+                p.tasks.forEach(t => {
+                    if (t.deadline === dStr && !t.done) {
+                        dayPriorities.add(t.priority);
+                    }
+                });
+            }
+        });
+
+        let dotsHtml = '';
+        if (dayPriorities.size > 0) {
+            dotsHtml = '<div style="display:flex; justify-content:center; gap:3px; margin-top:3px; height:4px;">';
+            dayPriorities.forEach(prio => {
+                dotsHtml += `<div style="width:4px; height:4px; border-radius:50%; background:${prioColor[prio] || 'var(--acc)'};"></div>`;
+            });
+            dotsHtml += '</div>';
+        }
+
+        daysContainer.innerHTML += `<div class="${classes.join(' ')}" onclick="selectDate('${dStr}')">
+            <div>${day}</div>
+            ${dotsHtml}
+        </div>`;
     }
 }
 
@@ -80,21 +109,20 @@ function selectDate(dStr) {
 
 function renderDayContent() {
     renderTasks();
-    renderHabits();
+    renderProjects();
 }
 
 function switchTaskView(v, pill) {
     document.querySelectorAll('#s-tareas .ag-pill').forEach(p => p.classList.remove('on'));
     pill.classList.add('on');
-    ['agenda', 'proyectos', 'resources'].forEach(id => {
+    ['agenda', 'resources'].forEach(id => {
         const el = document.getElementById('tv-' + id);
         if (el) el.style.display = id === v ? 'block' : 'none';
     });
-    if (v === 'proyectos') renderProjects();
 }
 
 // ==========================================
-// GOAL SETTING (METAS)
+// GOAL SETTING (LISTA MEZCLADA DIARIA)
 // ==========================================
 function addTask() {
     const name = document.getElementById('t-name').value.trim();
@@ -109,11 +137,15 @@ function addTask() {
     if (cat === "Otro") {
         if (!S.projects.some(p => p.name === name)) {
             S.projects.push({ id: uid(), name: name, date: tDate, tasks: [] });
+            save(); resetTaskForm(); renderCalendar(); renderDayContent(); 
+            return showToast('Proyecto creado con éxito ✅');
+        } else {
+            return showToast('Ese proyecto ya existe', 'error');
         }
     }
 
     const createSingleTask = (dateStr) => {
-        S.tasks.push({ id: uid(), name, cat, time, date: dateStr, done: false });
+        S.tasks.push({ id: uid(), name, cat, time, date: dateStr, desc: '', done: false });
     };
 
     if (recurrence === 'none') {
@@ -149,7 +181,7 @@ function addTask() {
     
     save(); closeModal('modal-task');
     resetTaskForm();
-    renderCalendar(); renderTasks(); renderProjects(); 
+    renderCalendar(); renderDayContent(); 
     showToast('Meta guardada ✅');
 }
 
@@ -178,40 +210,82 @@ function toggleCustomDay(btn) {
 
 function renderTasks() {
     const list = document.getElementById('tasks-list');
-    const dayTasks = S.tasks.filter(t => t.date === selectedDateStr);
-    dayTasks.sort((a, b) => (a.done === b.done) ? 0 : a.done ? 1 : -1);
-    
-    if (dayTasks.length === 0) {
-        list.innerHTML = `<div style="color:var(--t3); font-size:13px; text-align:center; padding:10px;">Nada para hoy.</div>`;
+    let combined = [];
+
+    // Tareas Normales
+    S.tasks.forEach(t => {
+        if (t.date === selectedDateStr) combined.push({ ...t, isProject: false });
+    });
+
+    // Tareas de Proyectos cuya fecha límite es hoy
+    S.projects.forEach(p => {
+        if (p.tasks) {
+            p.tasks.forEach(t => {
+                if (t.deadline === selectedDateStr) {
+                    combined.push({ ...t, isProject: true, projectId: p.id, projectName: p.name });
+                }
+            });
+        }
+    });
+
+    if (combined.length === 0) {
+        list.innerHTML = `<div style="color:var(--t3); font-size:13px; text-align:center; padding:10px;">Nada para hoy. Disfruta tu día libre.</div>`;
         return;
     }
-    list.innerHTML = dayTasks.map(t => `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 4px solid var(--acc); opacity: ${t.done ? '0.6' : '1'};">
-            <div style="display:flex; align-items:center; gap:12px;">
-                <div class="check-circle ${t.done ? 'checked' : ''}" onclick="toggleTask('${t.id}')"></div>
-                <div style="flex:1">
-                    <div style="font-size:14px; font-weight:600; color:${t.done ? 'var(--t3)' : 'var(--t1)'}; text-decoration:${t.done ? 'line-through' : 'none'};">${t.name}</div>
-                    <div style="font-size:11px; color:var(--t3); margin-top:4px;">${t.time || '--:--'} · ${t.cat}</div>
+
+    // Ordenar: primero las no hechas. Luego por prioridad de Eisenhower (para proyectos)
+    const pWeight = { ui: 4, ni: 3, un: 2, nn: 1 };
+    combined.sort((a, b) => {
+        if (a.done !== b.done) return a.done ? 1 : -1;
+        let wA = a.isProject ? (pWeight[a.priority] || 0) : 0; 
+        let wB = b.isProject ? (pWeight[b.priority] || 0) : 0;
+        return wB - wA; 
+    });
+
+    list.innerHTML = combined.map(t => {
+        if (t.isProject) {
+            const color = prioColor[t.priority] || 'var(--acc)';
+            return `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 4px solid ${color}; opacity: ${t.done ? '0.6' : '1'}; cursor:pointer;" onclick="viewTaskDetails('project', '${t.projectId}', '${t.id}')">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div class="check-circle ${t.done ? 'checked' : ''}" onclick="event.stopPropagation(); toggleProjectTask('${t.projectId}', '${t.id}')"></div>
+                    <div style="flex:1">
+                        <div style="font-size:14px; font-weight:600; color:${t.done ? 'var(--t3)' : 'var(--t1)'}; text-decoration:${t.done ? 'line-through' : 'none'};">${t.text}</div>
+                        <div style="font-size:11px; color:var(--t3); margin-top:4px;">Proyecto: ${t.projectName}</div>
+                    </div>
                 </div>
-            </div>
-            <div style="color:var(--red); font-size:16px; cursor:pointer; padding: 0 8px;" onclick="deleteTask('${t.id}')">✕</div>
-        </div>`).join('');
+                <div style="color:var(--red); font-size:16px; padding: 0 8px;" onclick="event.stopPropagation(); delProjectTask('${t.projectId}', '${t.id}')">✕</div>
+            </div>`;
+        } else {
+            return `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 4px solid var(--acc); opacity: ${t.done ? '0.6' : '1'}; cursor:pointer;" onclick="viewTaskDetails('normal', '${t.id}')">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div class="check-circle ${t.done ? 'checked' : ''}" onclick="event.stopPropagation(); toggleTask('${t.id}')"></div>
+                    <div style="flex:1">
+                        <div style="font-size:14px; font-weight:600; color:${t.done ? 'var(--t3)' : 'var(--t1)'}; text-decoration:${t.done ? 'line-through' : 'none'};">${t.name}</div>
+                        <div style="font-size:11px; color:var(--t3); margin-top:4px;">${t.time || '--:--'} · ${t.cat}</div>
+                    </div>
+                </div>
+                <div style="color:var(--red); font-size:16px; padding: 0 8px;" onclick="event.stopPropagation(); deleteTask('${t.id}')">✕</div>
+            </div>`;
+        }
+    }).join('');
 }
 
 function toggleTask(id) {
     const t = S.tasks.find(x => x.id === id);
-    if (t) { t.done = !t.done; save(); renderTasks(); renderCalendar(); }
+    if (t) { t.done = !t.done; save(); renderCalendar(); renderDayContent(); }
 }
 
 function deleteTask(id) {
-    if(confirm("¿Borrar meta?")) {
+    if(confirm("¿Borrar meta diaria?")) {
         S.tasks = S.tasks.filter(x => x.id !== id); 
-        save(); renderTasks(); renderCalendar();
+        save(); renderCalendar(); renderDayContent();
     }
 }
 
 // ==========================================
-// VISTA PROYECTOS (ESTILO ACORDEÓN CON MATRIZ EISENHOWER)
+// VISTA PROYECTOS (INTEGRADO EN AGENDA)
 // ==========================================
 function toggleProject(id) {
     openProjects[id] = !openProjects[id];
@@ -222,7 +296,7 @@ function renderProjects() {
     const cont = document.getElementById('projects-container');
     if (!cont) return;
     if (!S.projects || S.projects.length === 0) {
-        cont.innerHTML = '<div style="color:var(--t3); text-align:center; padding:20px; font-size:13px;">Las metas con categoría "Otro" se crearán aquí como proyectos.</div>';
+        cont.innerHTML = '<div style="color:var(--t3); text-align:center; padding:10px; font-size:13px;">No hay proyectos.</div>';
         return;
     }
     
@@ -230,14 +304,10 @@ function renderProjects() {
         const isOpen = openProjects[p.id];
         const total = (p.tasks || []).length;
         const done = (p.tasks || []).filter(t => t.done).length;
-
-        // Diccionario de colores estilo Eisenhower
-        const prioColor = { ui: '#e74c3c', ni: '#3b82f6', un: '#f59e0b', nn: '#95a5a6' };
         
-        let tasksHtml = '<div class="empty" style="padding:10px 0;">No hay tareas en este proyecto</div>';
+        let tasksHtml = '<div class="empty" style="padding:10px 0;">No hay tareas asignadas</div>';
         
         if (p.tasks && p.tasks.length > 0) {
-            // Ordenamos: No hechas primero, luego por peso de prioridad
             const priorityWeight = { 'ui': 4, 'ni': 3, 'un': 2, 'nn': 1 };
             const sortedTasks = [...p.tasks].sort((a, b) => {
                 if (a.done !== b.done) return a.done ? 1 : -1; 
@@ -245,24 +315,27 @@ function renderProjects() {
             });
 
             tasksHtml = sortedTasks.map(t => `
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 3px solid ${prioColor[t.priority] || 'var(--acc)'}; opacity: ${t.done ? '0.6' : '1'};">
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 3px solid ${prioColor[t.priority] || 'var(--acc)'}; opacity: ${t.done ? '0.6' : '1'}; cursor:pointer;" onclick="viewTaskDetails('project', '${p.id}', '${t.id}')">
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <div class="check-circle ${t.done ? 'checked' : ''}" onclick="toggleProjectTask('${p.id}', '${t.id}')"></div>
+                        <div class="check-circle ${t.done ? 'checked' : ''}" onclick="event.stopPropagation(); toggleProjectTask('${p.id}', '${t.id}')"></div>
                         <div>
                             <div style="font-size:13px; font-weight:700; color:${t.done ? 'var(--t3)' : 'var(--t1)'}; text-decoration:${t.done ? 'line-through' : 'none'};">${t.text}</div>
                             <div style="font-size:10px; color:var(--t3); margin-top:2px;">Límite: ${t.deadline || '--/--/----'}</div>
                         </div>
                     </div>
-                    <button class="btn-danger" style="background:transparent; color:var(--t3); font-size:14px; padding:0 8px;" onclick="delProjectTask('${p.id}', '${t.id}')">✕</button>
+                    <button class="btn-danger" style="background:transparent; color:var(--t3); font-size:14px; padding:0 8px;" onclick="event.stopPropagation(); delProjectTask('${p.id}', '${t.id}')">✕</button>
                 </div>
             `).join('');
         }
 
-        // Formulario de añadir tarea con las opciones de Eisenhower
         const bodyHtml = isOpen ? `
             <div style="padding: 0 16px 16px 16px; border-top: 1px solid var(--line); margin-top: 12px; padding-top: 16px;">
                 <div style="font-size:10px; font-weight:800; color:var(--acc); letter-spacing:0.5px; margin-bottom:8px; text-transform:uppercase;">NUEVA TAREA DEL PROYECTO</div>
+                
                 <input type="text" id="pt-name-${p.id}" class="form-input" placeholder="Nombre de la tarea...">
+                
+                <label class="form-label">DESCRIPCIÓN (Opcional)</label>
+                <textarea id="pt-desc-${p.id}" class="form-input" style="min-height:60px;resize:none;" placeholder="Detalles de la tarea..."></textarea>
 
                 <div style="display:flex; gap:10px;">
                     <div style="flex:1;">
@@ -291,7 +364,7 @@ function renderProjects() {
             <div style="padding:14px 16px; background:var(--bg3); display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleProject('${p.id}')">
                 <div>
                     <div style="font-weight:800; color:var(--t1); font-size:15px; margin-bottom:4px;">${p.name}</div>
-                    <div style="font-size:11px; color:var(--t3); font-weight:600;">Límite: ${p.date} • ${done}/${total} tareas</div>
+                    <div style="font-size:11px; color:var(--t3); font-weight:600;">Límite/Inicio: ${p.date} • ${done}/${total} tareas</div>
                 </div>
                 <div style="display:flex; gap:16px; align-items:center;">
                     <button class="btn-danger" style="background:transparent; color:var(--red); padding:0;" onclick="event.stopPropagation(); delProject('${p.id}')">✕</button>
@@ -304,15 +377,9 @@ function renderProjects() {
     }).join('');
 }
 
-function delProject(id) {
-    if(confirm("¿Eliminar este proyecto y todas sus tareas?")) {
-        S.projects = S.projects.filter(p => p.id !== id);
-        save(); renderProjects();
-    }
-}
-
 function addProjectTask(projectId) {
     const name = document.getElementById(`pt-name-${projectId}`).value.trim();
+    const desc = document.getElementById(`pt-desc-${projectId}`).value.trim();
     const priority = document.getElementById(`pt-priority-${projectId}`).value;
     const deadline = document.getElementById(`pt-deadline-${projectId}`).value;
 
@@ -321,30 +388,62 @@ function addProjectTask(projectId) {
     const p = S.projects.find(x => x.id === projectId);
     if (!p.tasks) p.tasks = [];
 
-    p.tasks.push({ id: uid(), text: name, priority, deadline, done: false });
+    p.tasks.push({ id: uid(), text: name, desc: desc, priority, deadline, done: false });
 
     save();
-    renderProjects(); 
-    showToast('Tarea añadida al proyecto');
+    renderCalendar(); renderDayContent(); 
+    showToast('Tarea añadida');
 }
 
 function toggleProjectTask(projectId, taskId) {
     const p = S.projects.find(x => x.id === projectId);
     const t = p.tasks.find(x => x.id === taskId);
     t.done = !t.done;
-    save(); renderProjects();
+    save(); renderCalendar(); renderDayContent();
 }
 
 function delProjectTask(projectId, taskId) {
     if(confirm("¿Borrar esta tarea del proyecto?")) {
         const p = S.projects.find(x => x.id === projectId);
         p.tasks = p.tasks.filter(x => x.id !== taskId);
-        save(); renderProjects();
+        save(); renderCalendar(); renderDayContent();
+    }
+}
+
+function delProject(id) {
+    if(confirm("¿Eliminar este proyecto y todas sus tareas?")) {
+        S.projects = S.projects.filter(p => p.id !== id);
+        save(); renderCalendar(); renderDayContent();
     }
 }
 
 // ==========================================
-// RECURSOS, POMODORO Y HÁBITOS
+// VISUALIZADOR DE DETALLES DE TAREAS
+// ==========================================
+function viewTaskDetails(type, id1, id2) {
+    let title = '', meta = '', desc = '';
+    
+    if (type === 'project') {
+        const p = S.projects.find(x => x.id === id1);
+        const t = p.tasks.find(x => x.id === id2);
+        title = t.text;
+        meta = `PROYECTO: ${p.name} <br> LÍMITE: ${t.deadline || 'Sin límite'} <br> PRIORIDAD: ${prioText[t.priority] || ''}`;
+        desc = t.desc || 'No hay descripción adjunta para esta tarea.';
+    } else {
+        const t = S.tasks.find(x => x.id === id1);
+        title = t.name;
+        meta = `META DIARIA <br> FECHA: ${t.date} ${t.time ? '· HORA: '+t.time : ''}`;
+        desc = t.desc || 'No hay descripción adjunta.';
+    }
+    
+    document.getElementById('vt-title').textContent = title;
+    document.getElementById('vt-meta').innerHTML = meta;
+    document.getElementById('vt-desc').textContent = desc;
+    openModal('modal-view-task');
+}
+
+// ==========================================
+// RECURSOS Y POMODORO
 // ==========================================
 function renderResources() {
     const list = document.getElementById('resources-list');
@@ -407,40 +506,6 @@ function setPomoMode(m, el) {
     el.classList.add('on');
     pomoMode = m; pomoSec = pomoModes[m]; updPomo();
 }
-
-function renderHabits() {
-    const list = document.getElementById('habits-list');
-    const completedToday = S.agenda.habitLogs[selectedDateStr] || [];
-    if (!S.agenda.habits.length) {
-        list.innerHTML = '<div class="empty">No hay hábitos</div>';
-        return;
-    }
-    list.innerHTML = S.agenda.habits.map(h => `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid var(--line);">
-            <div style="display:flex; align-items:center; gap:12px;">
-                <div class="check-circle ${completedToday.includes(h.id) ? 'checked' : ''}" onclick="toggleHabit('${h.id}')"></div>
-                <span style="font-size:14px; font-weight:600; color:var(--t1);">${h.name}</span>
-            </div>
-            <div style="color:var(--t3); font-size:14px; cursor:pointer;" onclick="deleteHabit('${h.id}')">✕</div>
-        </div>`).join('');
-}
-
-function addHabit() {
-    const name = document.getElementById('habit-text').value.trim();
-    if (!name) return;
-    S.agenda.habits.push({ id: uid(), name });
-    save(); closeModal('modal-habit'); renderHabits();
-}
-
-function toggleHabit(id) {
-    if (!S.agenda.habitLogs[selectedDateStr]) S.agenda.habitLogs[selectedDateStr] = [];
-    const log = S.agenda.habitLogs[selectedDateStr];
-    const idx = log.indexOf(id);
-    if (idx > -1) log.splice(idx, 1); else log.push(id);
-    save(); renderHabits();
-}
-
-function deleteHabit(id) { S.agenda.habits = S.agenda.habits.filter(h => h.id !== id); save(); renderHabits(); }
 
 // ==========================================
 // INICIO AUTOMÁTICO
