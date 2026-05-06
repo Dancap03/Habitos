@@ -69,8 +69,8 @@ function renderStocks() {
       </div>
       <div style="text-align:right; display:flex; align-items:center; gap:12px;">
          <div>
-            <div style="font-size:15px; font-weight:700; color:var(--t1);">€${curVal.toFixed(2)}</div>
-            <div style="font-size:11px; font-weight:700; margin-top:4px; color:${cStr};">${sign}€${Math.abs(pnl).toFixed(2)} (${pct.toFixed(2)}%)</div>
+            <div style="font-size:15px; font-weight:700; color:var(--t1);">€${curVal.toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+            <div style="font-size:11px; font-weight:700; margin-top:4px; color:${cStr};">${sign}€${Math.abs(pnl).toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2})} (${pct.toFixed(2)}%)</div>
          </div>
          <button class="btn-danger" onclick="delStock('${s.id}')">✕</button>
       </div>
@@ -199,20 +199,19 @@ function delPurchase(sid, pid) {
   save(); renderStocks(); openManageStock(sid);
 }
 
-// --- FUNCIÓN PARA PINTAR LEYENDA CUSTOMIZADA ---
-
+// --- FUNCIÓN PARA PINTAR LEYENDA CUSTOMIZADA (ESTILO CUADRÍCULA) ---
 function generateCustomLegend(containerId, labels, data, colors) {
     const container = document.getElementById(containerId);
     if (!container) return;
     
     const total = data.reduce((a, b) => a + b, 0);
     
-    // Contenedor principal
+    // Contenedor principal forzado a cuadrícula
     container.style.display = 'flex';
     container.style.flexDirection = 'row';
     container.style.flexWrap = 'wrap';
     container.style.justifyContent = 'center';
-    container.style.gap = '16px 12px'; // 16px de espacio vertical, 12px horizontal
+    container.style.gap = '16px 12px'; // Espaciado vertical y horizontal
     container.style.width = '100%';
     container.style.marginTop = '24px';
 
@@ -220,7 +219,7 @@ function generateCustomLegend(containerId, labels, data, colors) {
         const pct = total > 0 ? ((data[i] / total) * 100).toFixed(1) : 0;
         const color = colors[i];
         
-        // LA CLAVE: width: 90px; Esto obliga a que se pongan uno al lado del otro
+        // Bloque duro de 90px de ancho para forzar la cuadrícula ordenada
         return `
         <div style="display:flex; align-items:center; gap:8px; width: 90px;">
             <div style="width:10px; height:10px; border-radius:50%; background-color:${color}; flex-shrink:0;"></div>
@@ -242,6 +241,7 @@ function updatePortfolioCharts() {
   let types = {}, assets = {};
   S.stocks.forEach(s => {
     let val = 0;
+    // IMPORTANTE: Calculamos el valor sumando los lotes exactos (mantenemos tu matemática)
     if (s.purchases) s.purchases.forEach(p => val += p.shares * s.price);
     if (val > 0) {
       types[s.type] = (types[s.type] || 0) + val;
@@ -258,7 +258,7 @@ function updatePortfolioCharts() {
   typeChart = new Chart(c1, {
     type: 'doughnut',
     data: { labels: typeLabelsRaw, datasets: [{ data: typeData, backgroundColor: typeBgColors, borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false } } } // Apagamos la original
+    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false } } }
   });
   
   // Dibujamos nuestra propia leyenda
@@ -268,13 +268,13 @@ function updatePortfolioCharts() {
   const assetLabelsRaw = Object.keys(assets);
   const assetData = Object.values(assets);
   const assetColsRaw = ['#8b5cf6', '#3b82f6', '#27ae60', '#f59e0b', '#e74c3c', '#e05a2b', '#1abc9c', '#95a5a6']; 
-  const assetCols = assetLabelsRaw.map((_, i) => assetColsRaw[i % assetColsRaw.length]); // Para que los colores den la vuelta si hay muchos activos
+  const assetCols = assetLabelsRaw.map((_, i) => assetColsRaw[i % assetColsRaw.length]);
   
   if (assetChart) assetChart.destroy();
   assetChart = new Chart(c2, {
     type: 'doughnut',
     data: { labels: assetLabelsRaw, datasets: [{ data: assetData, backgroundColor: assetCols, borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false } } } // Apagamos la original
+    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false } } }
   });
 
   // Dibujamos nuestra propia leyenda
