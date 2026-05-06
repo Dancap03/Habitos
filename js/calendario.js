@@ -254,7 +254,10 @@ function renderTasks() {
                         <div style="font-size:11px; color:var(--t3); margin-top:4px;">Proyecto: ${t.projectName}</div>
                     </div>
                 </div>
-                <div style="color:var(--red); font-size:16px; padding: 0 8px;" onclick="event.stopPropagation(); delProjectTask('${t.projectId}', '${t.id}')">✕</div>
+                <div style="display:flex; align-items:center; gap:4px;">
+                    <button class="btn-sm" style="background:transparent; color:var(--t2); font-size:14px; padding:4px 8px; border:none;" onclick="event.stopPropagation(); openEditProjectTask('${t.projectId}', '${t.id}')">✏️</button>
+                    <button class="btn-danger" style="background:transparent; color:var(--red); padding:4px 8px;" onclick="event.stopPropagation(); delProjectTask('${t.projectId}', '${t.id}')">✕</button>
+                </div>
             </div>`;
         } else {
             return `
@@ -266,7 +269,9 @@ function renderTasks() {
                         <div style="font-size:11px; color:var(--t3); margin-top:4px;">${t.time || '--:--'} · ${t.cat}</div>
                     </div>
                 </div>
-                <div style="color:var(--red); font-size:16px; padding: 0 8px;" onclick="event.stopPropagation(); deleteTask('${t.id}')">✕</div>
+                <div style="display:flex; align-items:center; gap:4px;">
+                    <button class="btn-danger" style="background:transparent; color:var(--red); padding:4px 8px;" onclick="event.stopPropagation(); deleteTask('${t.id}')">✕</button>
+                </div>
             </div>`;
         }
     }).join('');
@@ -278,10 +283,10 @@ function toggleTask(id) {
 }
 
 function deleteTask(id) {
-    if(confirm("¿Borrar meta diaria?")) {
+    customConfirm("Borrar Meta", "¿Borrar meta diaria?", () => {
         S.tasks = S.tasks.filter(x => x.id !== id); 
         save(); renderCalendar(); renderDayContent();
-    }
+    });
 }
 
 // ==========================================
@@ -323,7 +328,10 @@ function renderProjects() {
                             <div style="font-size:10px; color:var(--t3); margin-top:2px;">Límite: ${t.deadline || '--/--/----'}</div>
                         </div>
                     </div>
-                    <button class="btn-danger" style="background:transparent; color:var(--t3); font-size:14px; padding:0 8px;" onclick="event.stopPropagation(); delProjectTask('${p.id}', '${t.id}')">✕</button>
+                    <div style="display:flex; align-items:center; gap:4px;">
+                        <button class="btn-sm" style="background:transparent; color:var(--t2); font-size:14px; padding:4px 8px; border:none;" onclick="event.stopPropagation(); openEditProjectTask('${p.id}', '${t.id}')">✏️</button>
+                        <button class="btn-danger" style="background:transparent; color:var(--red); padding:4px 8px;" onclick="event.stopPropagation(); delProjectTask('${p.id}', '${t.id}')">✕</button>
+                    </div>
                 </div>
             `).join('');
         }
@@ -403,18 +411,61 @@ function toggleProjectTask(projectId, taskId) {
 }
 
 function delProjectTask(projectId, taskId) {
-    if(confirm("¿Borrar esta tarea del proyecto?")) {
+    customConfirm("Borrar Tarea", "¿Borrar esta tarea del proyecto?", () => {
         const p = S.projects.find(x => x.id === projectId);
         p.tasks = p.tasks.filter(x => x.id !== taskId);
         save(); renderCalendar(); renderDayContent();
-    }
+    });
 }
 
 function delProject(id) {
-    if(confirm("¿Eliminar este proyecto y todas sus tareas?")) {
+    customConfirm("Borrar Proyecto", "¿Eliminar este proyecto y todas sus tareas?", () => {
         S.projects = S.projects.filter(p => p.id !== id);
         save(); renderCalendar(); renderDayContent();
-    }
+    });
+}
+
+// ==========================================
+// EDICIÓN DE TAREAS DE PROYECTO
+// ==========================================
+function openEditProjectTask(projectId, taskId) {
+    const p = S.projects.find(x => x.id === projectId);
+    const t = p.tasks.find(x => x.id === taskId);
+
+    document.getElementById('edit-pt-pid').value = projectId;
+    document.getElementById('edit-pt-tid').value = taskId;
+    
+    document.getElementById('edit-pt-name').value = t.text || '';
+    document.getElementById('edit-pt-desc').value = t.desc || '';
+    document.getElementById('edit-pt-priority').value = t.priority || 'nn';
+    document.getElementById('edit-pt-deadline').value = t.deadline || '';
+
+    openModal('modal-edit-project-task');
+}
+
+function saveEditProjectTask() {
+    const projectId = document.getElementById('edit-pt-pid').value;
+    const taskId = document.getElementById('edit-pt-tid').value;
+    
+    const name = document.getElementById('edit-pt-name').value.trim();
+    const desc = document.getElementById('edit-pt-desc').value.trim();
+    const priority = document.getElementById('edit-pt-priority').value;
+    const deadline = document.getElementById('edit-pt-deadline').value;
+
+    if (!name) return showToast('Escribe el nombre de la tarea', 'error');
+
+    const p = S.projects.find(x => x.id === projectId);
+    const t = p.tasks.find(x => x.id === taskId);
+
+    t.text = name;
+    t.desc = desc;
+    t.priority = priority;
+    t.deadline = deadline;
+
+    save();
+    closeModal('modal-edit-project-task');
+    renderCalendar(); renderDayContent();
+    showToast('Tarea actualizada');
 }
 
 // ==========================================
@@ -454,7 +505,7 @@ function renderResources() {
                 <a href="${r.url.startsWith('http') ? r.url : 'https://'+r.url}" target="_blank" style="color:var(--t1); font-weight:700; text-decoration:none; display:block; margin-bottom:4px; font-size:14px;">🔗 ${r.title}</a>
                 <span class="tag" style="background:var(--bg3); color:var(--t3); font-size:10px; padding:2px 6px; border-radius:4px;">${r.cat}</span>
             </div>
-            <button class="btn-danger" style="background:transparent; color:var(--t3);" onclick="delResource('${r.id}')">✕</button>
+            <button class="btn-danger" style="background:transparent; color:var(--red); padding:4px 8px;" onclick="delResource('${r.id}')">✕</button>
         </div>`).join('') : '<div class="empty">Vacío</div>';
 }
 
@@ -467,7 +518,12 @@ function addResource() {
     save(); closeModal('modal-resource'); renderResources();
 }
 
-function delResource(id) { S.resources = S.resources.filter(r => r.id !== id); save(); renderResources(); }
+function delResource(id) { 
+    customConfirm("Borrar Recurso", "¿Borrar este recurso?", () => {
+        S.resources = S.resources.filter(r => r.id !== id); 
+        save(); renderResources();
+    });
+}
 
 function updPomo() {
     const m = Math.floor(pomoSec/60), s = pomoSec%60;
