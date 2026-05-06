@@ -328,9 +328,8 @@ function renderProjects() {
                         </div>
                     </div>
                     <div style="display:flex; align-items:center; gap:4px;">
-                        <button class="btn-sm" style="background:transparent; color:var(--t2); font-size:14px; padding:4px 8px; border:none;" onclick="event.stopPropagation(); viewTaskDetails('project', '${p.id}', '${t.id}')">👁️</button>
                         <button class="btn-danger" style="background:transparent; color:var(--red); padding:4px 8px; border:none; font-size:16px;" onclick="event.stopPropagation(); delProjectTask('${p.id}', '${t.id}')">✕</button>
-                    </div>
+                    </div> 
                 </div>
             `).join('');
         }
