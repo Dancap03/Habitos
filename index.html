@@ -13,7 +13,7 @@
 <div class="app">
 
   <div class="screen on">
-    <!-- TOPBAR ORIGINAL -->
+    <!-- TOPBAR -->
     <div class="topbar">
       <div style="font-weight:800;font-size:26px;color:var(--acc);letter-spacing:-0.5px;">Dancab</div>
        <div style="text-align:right">
@@ -45,79 +45,17 @@
       </div>
 
       <!-- 2. LISTA DE TAREAS DE HOY SINCRONIZADA -->
-<div class="card card-full" style="margin-top: 16px;">
+      <div class="card card-full" style="margin-top: 16px;">
         <div class="card-header" style="margin-bottom: 12px;">
-            <span class="card-title" style="margin-bottom:0;">HOY</span>
+            <span class="card-title" style="margin-bottom:0;">TAREAS DEL DÍA</span>
             <!-- Botón con color principal estilo Finanzas -->
-            <button class="btn btn-sm" style="background:var(--acc); color:#fff; font-weight:700; border:none;" onclick="openModal('modal-task-home')">+ Evento</button>        </div>
+            <button class="btn btn-sm" style="background:var(--acc); color:#fff; font-weight:700; border:none;" onclick="openModal('modal-task-home')">+ Evento</button>
+        </div>
+        <div style="font-size:12px; color:var(--t3); margin-bottom:16px;">Aquí verás tus metas del día y las tareas de proyectos con fecha límite hoy.</div>
         <div id="home-tasks-list">
             <!-- Se inyectan las tareas desde JS -->
         </div>
       </div>
-
-      <!-- MODAL: AÑADIR EVENTO DESDE INICIO -->
-  <div class="overlay" id="modal-task-home" onclick="closeModal('modal-task-home',event)">
-    <div class="modal">
-      <div class="modal-handle"></div>
-      <div class="modal-title" style="margin-bottom:20px;">Nuevo Evento</div>
-      
-      <label class="form-label">¿Qué quieres lograr?</label>
-      <input type="text" id="h-name" class="form-input" placeholder="...">
-      
-      <label class="form-label">Descripción (Opcional)</label>
-      <textarea id="h-desc" class="form-input" style="min-height:60px;resize:none;" placeholder="Detalles del evento o proyecto..."></textarea>
-      
-      <div style="display:flex; gap:10px;">
-          <div style="flex:1;">
-              <label class="form-label">Categoría</label>
-              <select id="h-cat" class="form-input">
-                  <option value="Trabajo">Trabajo</option>
-                  <option value="Personal">Personal</option>
-                  <option value="Estudio">Estudio</option>
-                  <option value="Otro">Otro (Proyecto)</option>
-              </select>
-          </div>
-          <div style="flex:1;">
-              <label class="form-label">Hora (Opcional)</label>
-              <input type="time" id="h-time" class="form-input">
-          </div>
-      </div>
-
-      <div style="display:flex; gap:10px;">
-          <div style="flex:1;">
-              <label class="form-label">Fecha de inicio</label>
-              <input type="date" id="h-start-date" class="form-input">
-          </div>
-          <div style="flex:1;">
-              <label class="form-label">Repetir</label>
-              <select id="h-recurrence" class="form-input" onchange="toggleCustomRecurrenceHome()">
-                  <option value="none">Solo este día</option>
-                  <option value="weekdays">Lunes a Viernes</option>
-                  <option value="daily">Todos los días</option>
-                  <option value="weekly">Semanalmente</option>
-                  <option value="custom">Personalizado...</option>
-              </select>
-          </div>
-      </div>
-
-      <div id="home-custom-recurrence-options" style="display:none; background:var(--bg2); padding:16px; border-radius:12px; margin-bottom:16px; border:1px solid var(--line);">
-          <label class="form-label" style="font-size:11px; margin-top:0;">Días de la semana</label>
-          <div style="display:flex; gap:4px; margin-bottom:16px; justify-content:space-between;">
-              <button class="btn btn-sm custom-day-btn" data-day="1" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">L</button>
-              <button class="btn btn-sm custom-day-btn" data-day="2" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">M</button>
-              <button class="btn btn-sm custom-day-btn" data-day="3" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">X</button>
-              <button class="btn btn-sm custom-day-btn" data-day="4" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">J</button>
-              <button class="btn btn-sm custom-day-btn" data-day="5" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">V</button>
-              <button class="btn btn-sm custom-day-btn" data-day="6" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">S</button>
-              <button class="btn btn-sm custom-day-btn" data-day="0" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">D</button>
-          </div>
-          <label class="form-label" style="font-size:11px;">Fecha de fin</label>
-          <input type="date" id="h-recurrence-end" class="form-input" style="margin-bottom:0;">
-      </div>
-
-      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="addTaskHome()">Guardar Evento / Proyecto</button>
-    </div>
-  </div>
 
       <!-- FINANZAS (DISEÑO ORIGINAL + BOTÓN AÑADIR) -->
       <div class="card card-full" onclick="window.location.href='finanzas.html'" style="cursor:pointer">
@@ -181,6 +119,74 @@
     <button class="nav-btn" onclick="window.location.href='gym.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 5v14M18 5v14M3 9h18M3 15h18"/></svg><span class="nav-label">Gym</span></button>
   </nav>
 
+  <!-- ============================================== -->
+  <!-- MODALES (FUERA DEL SCROLL PARA QUE NO SE ROMPAN) -->
+  <!-- ============================================== -->
+
+  <!-- MODAL: AÑADIR EVENTO DESDE INICIO -->
+  <div class="overlay" id="modal-task-home" onclick="closeModal('modal-task-home',event)">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title" style="margin-bottom:20px;">Nuevo Evento</div>
+      
+      <label class="form-label">¿Qué quieres lograr?</label>
+      <input type="text" id="h-name" class="form-input" placeholder="...">
+      
+      <label class="form-label">Descripción (Opcional)</label>
+      <textarea id="h-desc" class="form-input" style="min-height:60px;resize:none;" placeholder="Detalles del evento o proyecto..."></textarea>
+      
+      <div style="display:flex; gap:10px;">
+          <div style="flex:1;">
+              <label class="form-label">Categoría</label>
+              <select id="h-cat" class="form-input">
+                  <option value="Trabajo">Trabajo</option>
+                  <option value="Personal">Personal</option>
+                  <option value="Estudio">Estudio</option>
+                  <option value="Otro">Otro (Proyecto)</option>
+              </select>
+          </div>
+          <div style="flex:1;">
+              <label class="form-label">Hora (Opcional)</label>
+              <input type="time" id="h-time" class="form-input">
+          </div>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+          <div style="flex:1;">
+              <label class="form-label">Fecha de inicio</label>
+              <input type="date" id="h-start-date" class="form-input">
+          </div>
+          <div style="flex:1;">
+              <label class="form-label">Repetir</label>
+              <select id="h-recurrence" class="form-input" onchange="toggleCustomRecurrenceHome()">
+                  <option value="none">Solo este día</option>
+                  <option value="weekdays">Lunes a Viernes</option>
+                  <option value="daily">Todos los días</option>
+                  <option value="weekly">Semanalmente</option>
+                  <option value="custom">Personalizado...</option>
+              </select>
+          </div>
+      </div>
+
+      <div id="home-custom-recurrence-options" style="display:none; background:var(--bg2); padding:16px; border-radius:12px; margin-bottom:16px; border:1px solid var(--line);">
+          <label class="form-label" style="font-size:11px; margin-top:0;">Días de la semana</label>
+          <div style="display:flex; gap:4px; margin-bottom:16px; justify-content:space-between;">
+              <button class="btn btn-sm custom-day-btn" data-day="1" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">L</button>
+              <button class="btn btn-sm custom-day-btn" data-day="2" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">M</button>
+              <button class="btn btn-sm custom-day-btn" data-day="3" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">X</button>
+              <button class="btn btn-sm custom-day-btn" data-day="4" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">J</button>
+              <button class="btn btn-sm custom-day-btn" data-day="5" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">V</button>
+              <button class="btn btn-sm custom-day-btn" data-day="6" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">S</button>
+              <button class="btn btn-sm custom-day-btn" data-day="0" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">D</button>
+          </div>
+          <label class="form-label" style="font-size:11px;">Fecha de fin</label>
+          <input type="date" id="h-recurrence-end" class="form-input" style="margin-bottom:0;">
+      </div>
+
+      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="addTaskHome()">Guardar Evento / Proyecto</button>
+    </div>
+  </div>
+
   <!-- MODAL FINANZAS -->
   <div class="overlay" id="modal-fin-home" onclick="closeModal('modal-fin-home',event)">
     <div class="modal">
@@ -215,8 +221,8 @@
   <div class="toast-container" id="toast-container"></div>
 </div>
 
-<script src="js/main.js?v=46"></script>
-<script src="js/nube.js?v=46"></script>
+<script src="js/main.js?v=48"></script>
+<script src="js/nube.js?v=48"></script>
 <script>
   function addFinEntryHome() {
     const type = document.getElementById('fin-type-home').value;
