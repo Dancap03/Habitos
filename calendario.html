@@ -13,12 +13,10 @@
   .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
   .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
   .cal-day-name { font-size: 11px; font-weight: 700; color: var(--t3); margin-bottom: 8px; }
-  .cal-day { padding: 8px 0; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--t1); cursor: pointer; transition: 0.2s; }
+  .cal-day { padding: 8px 0; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--t1); cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   .cal-day.empty { visibility: hidden; }
   .cal-day.today { color: var(--acc); font-weight: 800; }
   .cal-day.selected { background: var(--acc); color: #fff; }
-  .cal-day.has-task { position: relative; }
-  .cal-day.has-task::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: var(--acc); border-radius: 50%; }
   
   .pomo-timer { font-size: 48px; font-weight: 800; text-align: center; letter-spacing: -2px; margin: 10px 0; font-variant-numeric: tabular-nums; }
   .pomo-tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
@@ -49,7 +47,6 @@
       <!-- SELECTOR DE VISTAS -->
       <div class="ag-pill-container" id="s-tareas">
         <button class="ag-pill on" onclick="switchTaskView('agenda', this)">Agenda Diaria</button>
-        <button class="ag-pill" onclick="switchTaskView('proyectos', this)">Proyectos</button>
         <button class="ag-pill" onclick="switchTaskView('resources', this)">Recursos</button>
       </div>
 
@@ -88,31 +85,26 @@
           <!-- GOAL SETTING (METAS) -->
           <div class="card card-full">
             <div class="card-header" style="margin-bottom:12px;">
-                <span class="card-title" style="margin-bottom:0;">GOAL SETTING (METAS)</span>
+                <span class="card-title" style="margin-bottom:0;">TAREAS DEL DÍA</span>
                 <button class="btn btn-sm" style="background:var(--bg3); color:var(--t1);" onclick="openModal('modal-task')">+ Meta</button>
             </div>
+            <div style="font-size:12px; color:var(--t3); margin-bottom:16px;">Aquí verás tus metas del día y las tareas de proyectos con fecha límite hoy.</div>
             <div id="tasks-list"></div>
           </div>
 
-          <!-- HABIT TRACKING -->
+          <!-- PROYECTOS (Reemplazando Hábitos) -->
           <div class="card card-full">
-            <div class="card-header" style="margin-bottom:12px;">
-                <span class="card-title" style="margin-bottom:0;">HABIT TRACKING</span>
-                <button class="btn btn-sm" style="background:var(--bg3); color:var(--t1);" onclick="openModal('modal-habit')">+ Hábito</button>
-            </div>
-            <div id="habits-list"></div>
+              <div class="card-header" style="margin-bottom:12px;">
+                  <span class="card-title" style="margin-bottom:0;">PROYECTOS</span>
+              </div>
+              <div style="font-size:12px; color:var(--t3); margin-bottom:16px;">Crea una Meta con categoría "Otro" para añadir un proyecto aquí.</div>
+              <div id="projects-container">
+                  <!-- Se rellena con JS -->
+              </div>
           </div>
       </div>
 
-      <!-- VISTA 2: PROYECTOS (ESTILO ACORDEÓN) -->
-      <div id="tv-proyectos" style="display:none;">
-          <div style="font-size:12px; color:var(--t3); margin-bottom:16px; text-transform:uppercase; font-weight:700; letter-spacing: 0.5px;">Tus Proyectos Activos</div>
-          <div id="projects-container">
-              <!-- Se rellena con JS -->
-          </div>
-      </div>
-
-      <!-- VISTA 3: RECURSOS -->
+      <!-- VISTA 2: RECURSOS -->
       <div id="tv-resources" style="display:none;">
         <div class="card card-full">
             <div class="card-header" style="margin-bottom:16px;">
@@ -134,7 +126,7 @@
     <button class="nav-btn" onclick="window.location.href='gym.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 5v14M18 5v14M3 9h18M3 15h18"/></svg><span class="nav-label">Gym</span></button>
   </nav>
 
-  <!-- MODAL: AÑADIR META -->
+  <!-- MODAL: AÑADIR META / PROYECTO -->
   <div class="overlay" id="modal-task" onclick="closeModal('modal-task',event)">
     <div class="modal">
       <div class="modal-handle"></div>
@@ -190,18 +182,18 @@
           <input type="date" id="t-recurrence-end" class="form-input" style="margin-bottom:0;">
       </div>
 
-      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="addTask()">Guardar Meta</button>
+      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="addTask()">Guardar Meta / Proyecto</button>
     </div>
   </div>
 
-  <!-- MODAL: HÁBITO -->
-  <div class="overlay" id="modal-habit" onclick="closeModal('modal-habit',event)">
+  <!-- MODAL: VER DETALLES DE LA TAREA -->
+  <div class="overlay" id="modal-view-task" onclick="closeModal('modal-view-task',event)">
     <div class="modal">
       <div class="modal-handle"></div>
-      <div class="modal-title" style="margin-bottom:20px;">Nuevo Hábito</div>
-      <label class="form-label">Nombre del hábito</label>
-      <input type="text" id="habit-text" class="form-input" placeholder="Ej: Leer, Meditar...">
-      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="addHabit()">Crear Hábito</button>
+      <div class="modal-title" id="vt-title" style="margin-bottom:10px; color:var(--acc);">Título</div>
+      <div id="vt-meta" style="font-size:12px; color:var(--t3); margin-bottom:20px; font-weight:600; line-height: 1.5;"></div>
+      <label class="form-label" style="font-size:10px;">DESCRIPCIÓN</label>
+      <div id="vt-desc" style="font-size:14px; color:var(--t1); white-space: pre-wrap; background: var(--bg2); padding: 16px; border-radius: 10px; border: 1px solid var(--line); min-height: 60px;"></div>
     </div>
   </div>
 
@@ -223,7 +215,7 @@
   <div class="toast-container" id="toast-container"></div>
 </div>
 
-<script src="js/main.js?v=97"></script>
-<script src="js/calendario.js?v=97"></script>
+<script src="js/main.js?v=99"></script>
+<script src="js/calendario.js?v=99"></script>
 </body>
 </html>
