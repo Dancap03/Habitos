@@ -1,197 +1,167 @@
-function catEmoji(c) {
-  const m = { nómina:'💼', ahorro:'💰', inversión:'📈', intereses:'📊', dividendos:'🏦', alquiler:'🏠', comida:'🛒', transporte:'🚗', suscripciones:'📱', salud:'❤️', ocio:'🎭', caprichos:'🎁', compras:'🛍️', viajes:'✈️' };
-  return m[c] || '📌';
+// ==========================================
+// RENDERIZADO PRINCIPAL DE FINANZAS
+// ==========================================
+function updateFinanzasPage() {
+    // Aseguramos que los arrays existan en S
+    if (!S.incomes) S.incomes = [];
+    if (!S.expenses) S.expenses = [];
+    if (!S.savings) S.savings = [];
+    if (!S.investments) S.investments = [];
+    if (!S.subs) S.subs = []; // Suscripciones
+
+    let totalInc = 0, totalExp = 0, totalSav = 0, totalInv = 0;
+
+    // Calcular totales
+    S.incomes.forEach(i => totalInc += parseFloat(i.amount));
+    S.expenses.forEach(e => totalExp += parseFloat(e.amount));
+    S.subs.forEach(s => totalExp += parseFloat(s.amount)); // Las subs cuentan como gasto
+    S.savings.forEach(s => totalSav += parseFloat(s.amount));
+    S.investments.forEach(i => totalInv += parseFloat(i.amount));
+
+    const disponible = totalInc - totalExp - totalSav - totalInv;
+
+    // Actualizar Textos
+    document.getElementById('fin-avail').textContent = formatCurrency(disponible);
+    document.getElementById('fin-total-aho').textContent = formatCurrency(totalSav);
+    document.getElementById('fin-total-inv').textContent = formatCurrency(totalInv);
+    
+    document.getElementById('fin-total-inc').textContent = formatCurrency(totalInc);
+    document.getElementById('fin-total-exp').textContent = formatCurrency(totalExp);
+    document.getElementById('fin-total-sav-box').textContent = formatCurrency(totalSav);
+    document.getElementById('fin-total-inv-box').textContent = formatCurrency(totalInv);
+
+    // Pintar Listas
+    renderFinList('list-incomes', S.incomes, 'ingreso');
+    renderFinList('list-expenses', S.expenses, 'gasto');
+    renderFinList('list-subs', S.subs, 'gasto');
+    renderFinList('list-savings', S.savings, 'ahorro');
+    renderFinList('list-investments', S.investments, 'inversion');
 }
 
-function toggleFinTypeOptions() {
-  const cat = document.getElementById('fin-cat').value;
-  const typeEl = document.getElementById('fin-type');
-  const dateWrap = document.getElementById('date-wrapper');
-  const dayWrap = document.getElementById('day-wrapper');
-  if (cat === 'ahorro') {
-    typeEl.innerHTML = '<option value="gasto">Ingresar a hucha</option><option value="ingreso">Sacar de hucha</option>';
-    dateWrap.style.display = 'block'; dayWrap.style.display = 'none';
-  } else if (cat === 'inversión') {
-    typeEl.innerHTML = '<option value="gasto">Inyectar capital</option><option value="ingreso">Retirar capital</option>';
-    dateWrap.style.display = 'block'; dayWrap.style.display = 'none';
-  } else if (cat === 'suscripciones') {
-    typeEl.innerHTML = '<option value="gasto">Gasto</option>';
-    dateWrap.style.display = 'none'; dayWrap.style.display = 'block';
-  } else {
-    typeEl.innerHTML = '<option value="ingreso">Ingreso</option><option value="gasto">Gasto</option>';
-    dateWrap.style.display = 'block'; dayWrap.style.display = 'none';
-  }
+// Formateador de moneda
+function formatCurrency(val) {
+    return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(val);
 }
 
-function openModalFin(type, defaultCat = null) {
-  const elCat = document.getElementById('fin-cat');
-  const elType = document.getElementById('fin-type');
-  const elTitle = document.getElementById('modal-fin-title');
-  if(defaultCat) elCat.value = defaultCat;
-  else if(['ahorro','inversión','suscripciones'].includes(elCat.value)) elCat.value = type === 'ingreso' ? 'nómina' : 'otro';
-  toggleFinTypeOptions();
-  elType.value = type;
-  elTitle.textContent = type === 'ingreso' ? 'Nuevo ingreso' : 'Nuevo gasto';
-  document.getElementById('fin-date').value = today();
-  document.getElementById('fin-amount').value = '';
-  document.getElementById('fin-desc').value = '';
-  openModal('modal-fin');
+// Generador de Iconos basado en la descripción
+function getIconForDesc(desc) {
+    const d = desc.toLowerCase();
+    if(d.includes('spotify') || d.includes('netflix')) return '🎭';
+    if(d.includes('gasolina') || d.includes('coche')) return '🚗';
+    if(d.includes('escapada') || d.includes('vuelo') || d.includes('viaje')) return '✈️';
+    if(d.includes('regalo')) return '🛍️';
+    if(d.includes('trade republic') || d.includes('inversion')) return '📊';
+    if(d.includes('ahorro')) return '🐷';
+    if(d.includes('comida') || d.includes('restaurante') || d.includes('super')) return '🍔';
+    return '📌'; // Icono por defecto
 }
 
-function addFinEntry() {
-  const amount = parseFloat(document.getElementById('fin-amount').value);
-  const desc = document.getElementById('fin-desc').value.trim();
-  const cat = document.getElementById('fin-cat').value;
-  const type = document.getElementById('fin-type').value;
-  if (!amount || !desc) return showToast('Rellena los datos', 'error');
-  
-  if (cat === 'suscripciones') {
-    const day = parseInt(document.getElementById('fin-day').value);
-    if (!day || day < 1 || day > 31) return showToast('Día inválido', 'error');
-    S.recurring.push({ id: uid(), name: desc, amount, day, type: 'gasto' });
-  } else {
-    S.fin.push({ id: uid(), type, amount, desc, cat, date: document.getElementById('fin-date').value || today() });
-  }
-  save(); closeAllModals(); renderFinances(); if(typeof renderHome === 'function') renderHome(); showToast('Guardado');
-}
-
-function renderFinances() {
-  const period = S.activePeriod || 'semana';
-  document.querySelectorAll('.fin-tab').forEach(t => {
-    t.classList.remove('on');
-    if (t.textContent.toLowerCase().includes(period)) t.classList.add('on');
-  });
-  
-  const entries = filterByPeriod(S.fin, period);
-  const totalSav = S.fin.filter(e => e.cat === 'ahorro').reduce((a,e) => a + (e.type==='gasto'?e.amount:-e.amount), 0);
-  const totalInv = S.fin.filter(e => e.cat === 'inversión').reduce((a,e) => a + (e.type==='gasto'?e.amount:-e.amount), 0);
-  const available = S.fin.reduce((a,e) => a + (e.type==='ingreso'?e.amount:-e.amount), 0);
-
-  document.getElementById('fin-bal').textContent = fmt(available);
-  document.getElementById('fin-total-sav').textContent = fmt(totalSav);
-  document.getElementById('fin-total-inv-label').textContent = fmt(totalInv);
-  
-  document.getElementById('fin-inc').textContent = fmt(entries.filter(e => e.type==='ingreso' && !['ahorro','inversión'].includes(e.cat)).reduce((a,e)=>a+e.amount,0));
-  document.getElementById('fin-exp').textContent = fmt(entries.filter(e => e.type==='gasto' && !['ahorro','inversión'].includes(e.cat)).reduce((a,e)=>a+e.amount,0));
-  document.getElementById('fin-sav').textContent = fmt(entries.filter(e => e.cat==='ahorro').reduce((a,e)=>a+(e.type==='gasto'?e.amount:-e.amount),0));
-  document.getElementById('fin-inv-period').textContent = fmt(entries.filter(e => e.cat==='inversión').reduce((a,e)=>a+(e.type==='gasto'?e.amount:-e.amount),0));
-
-  renderList('fin-income-list', entries.filter(e => e.type === 'ingreso' && !['ahorro','inversión'].includes(e.cat)));
-  renderList('fin-expense-list', entries.filter(e => e.type === 'gasto' && !['ahorro','inversión'].includes(e.cat)));
-  renderList('fin-sav-list', entries.filter(e => e.cat === 'ahorro'), true);
-  renderList('fin-inv-list', entries.filter(e => e.cat === 'inversión'), true);
-  
-  const recEl = document.getElementById('fin-rec-list');
-  if(recEl) recEl.innerHTML = S.recurring.length ? S.recurring.map(r => `
-    <div class="fin-row" style="padding:10px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <div class="icon-box" style="background:var(--pur); color:#fff; padding:8px; border-radius:8px;">🔄</div>
-        <div><div style="font-size:13px;font-weight:600">${r.name}</div><div class="item-sub" style="font-size:11px;color:var(--t2)">Día ${r.day}</div></div>
-      </div>
-      <div style="text-align:right; display:flex; align-items:center; gap:8px;">
-         <div style="font-weight:700; color:var(--red)">-${fmt(r.amount)}</div>
-         <button class="btn-danger" onclick="delRecurring('${r.id}')">✕</button>
-      </div>
-    </div>`).join('') : '<div class="empty">Vacío</div>';
-
-  updateFinChart(period);
-}
-
-function renderList(id, list, h=false) {
-  const el = document.getElementById(id); if(!el) return;
-  el.innerHTML = list.length ? list.map(e => `
-    <div class="fin-row" style="padding:10px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <div class="icon-box" style="background:${h ? (e.cat==='ahorro'?'rgba(59,130,246,0.1)':'rgba(245,158,11,0.1)') : 'rgba(255,255,255,0.05)'}; padding:8px; border-radius:8px;">${catEmoji(e.cat)}</div>
-        <div><div style="font-size:13px;font-weight:600">${e.desc}</div><div class="item-sub" style="font-size:11px;color:var(--t2)">${e.date}</div></div>
-      </div>
-      <div style="text-align:right; display:flex; align-items:center; gap:8px;">
-        <div style="font-weight:700; color:${e.type==='ingreso'?'var(--grn)':'var(--red)'}">${e.type==='gasto'?'-':'+'}${fmt(e.amount)}</div>
-        <button class="btn-danger" onclick="delFinEntry('${e.id}')">✕</button>
-      </div>
-    </div>`).join('') : '<div class="empty">Vacío</div>';
-}
-
-function filterByPeriod(entries, period) {
-  const now = new Date();
-  return entries.filter(e => {
-    const d = new Date(e.date);
-    if (period === 'mes') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    if (period === 'semana') return getWeek(e.date) === getWeek(today());
-    if (period === 'año') return d.getFullYear() === now.getFullYear();
-    return true;
-  });
-}
-
-function setFinPeriod(p, btn) { S.activePeriod = p; renderFinances(); }
-function delFinEntry(id) { customConfirm('Borrar registro', '¿Seguro?', () => { S.fin = S.fin.filter(x => x.id !== id); save(); renderFinances(); if(typeof renderHome === 'function') renderHome(); }); }
-function delRecurring(id) { customConfirm('Borrar suscripción', '¿Seguro?', () => { S.recurring = S.recurring.filter(x => x.id !== id); save(); renderFinances(); }); }
-
-let finChartInst = null;
-function initFinChart() {
-  const ctx = document.getElementById('finChart'); if (!ctx) return;
-  finChartInst = new Chart(ctx, {
-    type: 'line',
-    data: { labels: [], datasets: [
-      { label:'Ingresos', data:[], borderColor:'#27ae60', backgroundColor:'rgba(39,174,96,.08)', tension:.4, fill:true, pointRadius:3 },
-      { label:'Gastos', data:[], borderColor:'#e74c3c', backgroundColor:'rgba(231,76,60,.06)', tension:.4, fill:true, borderDash:[4,4], pointRadius:3 },
-      { label:'Ahorrado', data:[], borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.08)', tension:.4, fill:true, pointRadius:3 },
-      { label:'Invertido', data:[], borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.08)', tension:.4, fill:true, pointRadius:3 }
-    ]},
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#444',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#444',font:{size:10},callback:v=>'€'+v},grid:{color:'rgba(255,255,255,.03)'}}}}
-  });
-  updateFinChart(S.activePeriod || 'semana');
-}
-
-function updateFinChart(period) {
-  if (!finChartInst) return;
-  let labels = [], inc = [], exp = [], sav = [], inv = [];
-  const now = new Date();
-  if (period === 'semana') {
-    labels = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
-    for (let i=0; i<7; i++) {
-      const d = new Date(); d.setDate(d.getDate() - (d.getDay() || 7) + 1 + i);
-      const ds = d.toISOString().split('T')[0];
-      getDataForPoint(ds, inc, exp, sav, inv);
+// ==========================================
+// DIBUJAR LAS LISTAS
+// ==========================================
+function renderFinList(containerId, list, tipo) {
+    const container = document.getElementById(containerId);
+    
+    if (!list || list.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:var(--t3); padding:20px 0; font-size:13px;">Vacío</div>';
+        return;
     }
-  } else if (period === 'mes') {
-    const days = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
-    for (let i=1; i<=days; i++) {
-      labels.push(i);
-      const ds = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-      getDataForPoint(ds, inc, exp, sav, inv);
-    }
-  } else if (period === 'año') {
-    labels = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    for (let m=1; m<=12; m++) {
-      const prefix = `${now.getFullYear()}-${String(m).padStart(2,'0')}`;
-      inc.push(S.fin.filter(e => e.date.startsWith(prefix) && e.type==='ingreso' && !['ahorro','inversión'].includes(e.cat)).reduce((a,e)=>a+e.amount,0));
-      exp.push(S.fin.filter(e => e.date.startsWith(prefix) && e.type==='gasto' && !['ahorro','inversión'].includes(e.cat)).reduce((a,e)=>a+e.amount,0));
-      sav.push(S.fin.filter(e => e.date.startsWith(prefix) && e.cat==='ahorro').reduce((a,e)=>a+(e.type==='gasto'?e.amount:-e.amount),0));
-      inv.push(S.fin.filter(e => e.date.startsWith(prefix) && e.cat==='inversión').reduce((a,e)=>a+(e.type==='gasto'?e.amount:-e.amount),0));
-    }
-  } else {
-    let years = [...new Set(S.fin.map(e => e.date.slice(0,4)))].sort();
-    if (years.length === 0) years = [String(now.getFullYear())];
-    labels = years;
-    years.forEach(y => {
-      inc.push(S.fin.filter(e => e.date.startsWith(y) && e.type==='ingreso' && !['ahorro','inversión'].includes(e.cat)).reduce((a,e)=>a+e.amount,0));
-      exp.push(S.fin.filter(e => e.date.startsWith(y) && e.type==='gasto' && !['ahorro','inversión'].includes(e.cat)).reduce((a,e)=>a+e.amount,0));
-      sav.push(S.fin.filter(e => e.date.startsWith(y) && e.cat==='ahorro').reduce((a,e)=>a+(e.type==='gasto'?e.amount:-e.amount),0));
-      inv.push(S.fin.filter(e => e.date.startsWith(y) && e.cat==='inversión').reduce((a,e)=>a+(e.type==='gasto'?e.amount:-e.amount),0));
+
+    // Ordenar de más reciente a más antiguo
+    const sortedList = [...list].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    container.innerHTML = sortedList.map(item => {
+        const isExpense = tipo === 'gasto';
+        const color = isExpense ? 'var(--red)' : 'var(--grn)';
+        const sign = isExpense ? '-' : '+';
+        const icon = getIconForDesc(item.desc);
+
+        // AQUÍ ESTÁ EL ONCLICK CORRECTO: onclick="deleteFinEntry('${item.id}')"
+        return `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--line);">
+            
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:40px; height:40px; background:var(--bg3); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px;">
+                    ${icon}
+                </div>
+                <div>
+                    <div style="font-weight:700; color:var(--t1); font-size:15px;">${item.desc}</div>
+                    <div style="font-size:11px; color:var(--t3);">${item.date}</div>
+                </div>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div style="font-weight:700; color:${color}; font-size:15px;">
+                    ${sign}${formatCurrency(item.amount)}
+                </div>
+                <div onclick="deleteFinEntry('${item.id}')" style="color:var(--red); font-size:16px; cursor:pointer; padding:5px 10px; font-weight:bold;">
+                    ✕
+                </div>
+            </div>
+
+        </div>`;
+    }).join('');
+}
+
+// ==========================================
+// FUNCIÓN PARA BORRAR (LA QUE FALLABA)
+// ==========================================
+function deleteFinEntry(id) {
+    if (!confirm("¿Seguro que quieres borrar este registro?")) return;
+
+    const listas = ['incomes', 'expenses', 'subs', 'savings', 'investments'];
+    let borrado = false;
+
+    listas.forEach(lista => {
+        if (S[lista]) {
+            const sizeOriginal = S[lista].length;
+            S[lista] = S[lista].filter(item => item.id !== id);
+            if (S[lista].length < sizeOriginal) borrado = true;
+        }
     });
-  }
-  finChartInst.data.labels = labels;
-  finChartInst.data.datasets[0].data = inc;
-  finChartInst.data.datasets[1].data = exp;
-  finChartInst.data.datasets[2].data = sav;
-  finChartInst.data.datasets[3].data = inv;
-  finChartInst.update();
+
+    if (borrado) {
+        save();
+        updateFinanzasPage();
+        showToast("Registro eliminado 🗑️", "success");
+    }
 }
 
-function getDataForPoint(ds, inc, exp, sav, inv) {
-  inc.push(S.fin.filter(e => e.date===ds && e.type==='ingreso' && !['ahorro','inversión'].includes(e.cat)).reduce((a,e)=>a+e.amount,0));
-  exp.push(S.fin.filter(e => e.date===ds && e.type==='gasto' && !['ahorro','inversión'].includes(e.cat)).reduce((a,e)=>a+e.amount,0));
-  sav.push(S.fin.filter(e => e.date===ds && e.cat==='ahorro').reduce((a,e)=>a+(e.type==='gasto'?e.amount:-e.amount),0));
-  inv.push(S.fin.filter(e => e.date===ds && e.cat==='inversión').reduce((a,e)=>a+(e.type==='gasto'?e.amount:-e.amount),0));
+// ==========================================
+// GUARDAR NUEVO REGISTRO
+// ==========================================
+function saveFinEntry() {
+    const type = document.getElementById('fin-type').value;
+    const amount = parseFloat(document.getElementById('fin-amount').value);
+    const desc = document.getElementById('fin-desc').value.trim();
+    const cat = document.getElementById('fin-cat').value;
+    const date = document.getElementById('fin-date').value || today();
+
+    if (!amount || !desc) return showToast('Rellena importe y descripción', 'error');
+
+    const entry = { id: uid(), type, amount, desc, cat, date };
+
+    if (cat === 'ahorro') {
+        S.savings.push(entry);
+    } else if (cat === 'inversión') {
+        S.investments.push(entry);
+    } else {
+        if (type === 'ingreso') S.incomes.push(entry);
+        else if (type === 'suscripcion') S.subs.push(entry);
+        else S.expenses.push(entry);
+    }
+
+    save();
+    closeModal('modal-fin');
+    updateFinanzasPage();
+    showToast('Registro guardado ✅', 'success');
+
+    // Limpiar campos
+    document.getElementById('fin-amount').value = '';
+    document.getElementById('fin-desc').value = '';
 }
+
+// Arrancar al cargar la página
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof S !== 'undefined') updateFinanzasPage();
+});
