@@ -139,7 +139,25 @@
     </div>
   </div>
   <div class="toast-container" id="toast-container"></div>
+  <!-- MODAL: CONFIRMACIÓN DE BORRADO -->
+  <div class="overlay" id="modal-confirm" onclick="closeModal('modal-confirm',event)">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div style="margin-bottom:24px;">
+        <!-- Título en rojo -->
+        <div id="confirm-title" style="color:var(--red); font-size:14px; font-weight:700; margin-bottom:6px;">Borrar registro</div>
+        <!-- Mensaje en blanco -->
+        <div id="confirm-msg" style="color:var(--t1); font-size:16px; font-weight:700; letter-spacing: -0.3px;">¿Eliminar este movimiento?</div>
+      </div>
+      
+      <div style="display:flex; gap:12px;">
+        <button class="btn" style="flex:1; background:var(--bg3); color:var(--t1); font-weight:700; padding:14px;" onclick="closeModal('modal-confirm')">Cancelar</button>
+        <button class="btn" id="confirm-btn" style="flex:1; background:var(--red); color:#fff; font-weight:700; padding:14px;">Borrar</button>
+      </div>
+    </div>
+  </div>
 </div>
+
 
 <script src="js/main.js?v=44"></script>
 <script src="js/finanzas.js?v=44"></script>
