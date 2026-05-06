@@ -85,7 +85,8 @@ function selectDate(dStr) {
         label.textContent = dateObj.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' });
     }
 
-    document.getElementById('t-date').value = selectedDateStr;
+    // Actualizar la fecha de inicio del formulario automáticamente
+    document.getElementById('t-start-date').value = selectedDateStr;
 
     renderCalendar();
     renderDayContent();
@@ -110,7 +111,7 @@ function switchTaskView(v, pill) {
 }
 
 // ==========================================
-// GOAL SETTING (TAREAS CON PRIORIDAD Y REPETICIÓN)
+// GOAL SETTING (TAREAS CON REPETICIÓN)
 // ==========================================
 function catTagClass(cat) {
     const c = (cat || '').toLowerCase();
@@ -120,22 +121,15 @@ function catTagClass(cat) {
     return 'tag-other';
 }
 
-function getPriorityColor(p) {
-    if(p === 'Alta') return '#e74c3c'; 
-    if(p === 'Media') return '#f59e0b'; 
-    if(p === 'Baja') return '#3b82f6'; 
-    return '#f59e0b'; 
-}
-
 function renderTasks() {
     const list = document.getElementById('tasks-list');
     const dayTasks = S.tasks.filter(t => t.date === selectedDateStr);
     
-    // Ordenar tareas: primero las no hechas, y por prioridad
-    const priorityWeight = { 'Alta': 3, 'Media': 2, 'Baja': 1, undefined: 2 };
+    // Ordenar tareas: primero las no hechas (y opcionalmente por hora si la tienen)
     dayTasks.sort((a, b) => {
         if (a.done !== b.done) return a.done ? 1 : -1; 
-        return priorityWeight[b.priority] - priorityWeight[a.priority]; 
+        if (a.time && b.time) return a.time.localeCompare(b.time);
+        return 0;
     });
     
     if (dayTasks.length === 0) {
@@ -144,9 +138,8 @@ function renderTasks() {
     }
 
     list.innerHTML = dayTasks.map(t => {
-        const pColor = getPriorityColor(t.priority);
         return `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 4px solid ${pColor}; opacity: ${t.done ? '0.6' : '1'};">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 4px solid var(--acc); opacity: ${t.done ? '0.6' : '1'};">
             <div style="display:flex; align-items:center; gap:12px;">
                 <div class="check-circle ${t.done ? 'checked' : ''}" onclick="toggleTask('${t.id}')"></div>
                 <div style="flex:1">
@@ -186,13 +179,13 @@ function addTask() {
     
     const cat = document.getElementById('t-cat').value;
     const time = document.getElementById('t-time').value;
-    const priority = document.getElementById('t-priority').value;
     const recurrence = document.getElementById('t-recurrence').value;
     
-    const tDate = document.getElementById('t-date').value || selectedDateStr;
+    // Tomamos la fecha del nuevo input de fecha de inicio
+    const tDate = document.getElementById('t-start-date').value || selectedDateStr;
 
     const createSingleTask = (dateStr) => {
-        S.tasks.push({ id: uid(), name, cat, time, priority, date: dateStr, done: false });
+        S.tasks.push({ id: uid(), name, cat, time, date: dateStr, done: false });
     };
 
     if (recurrence === 'none') {
@@ -241,11 +234,12 @@ function addTask() {
     
     save(); closeModal('modal-task');
     
+    // Restauramos el formulario al estado original
     document.getElementById('t-name').value = '';
     document.getElementById('t-time').value = '';
-    document.getElementById('t-priority').value = 'Media';
     document.getElementById('t-recurrence').value = 'none';
     document.getElementById('t-recurrence-end').value = '';
+    document.getElementById('t-start-date').value = selectedDateStr; 
     document.getElementById('custom-recurrence-options').style.display = 'none';
     document.querySelectorAll('.custom-day-btn').forEach(btn => {
         btn.classList.remove('on');
@@ -542,7 +536,7 @@ function saveDailyNotes() {
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         initAgendaData();
-        document.getElementById('t-date').value = selectedDateStr;
+        document.getElementById('t-start-date').value = selectedDateStr;
         selectDate(today()); 
         updPomo();
         renderKanban();
