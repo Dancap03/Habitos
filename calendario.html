@@ -126,6 +126,8 @@
     <button class="nav-btn" onclick="window.location.href='gym.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 5v14M18 5v14M3 9h18M3 15h18"/></svg><span class="nav-label">Gym</span></button>
   </nav>
 
+  <!-- ================= MODALES ================= -->
+
   <!-- MODAL: AÑADIR META / PROYECTO -->
   <div class="overlay" id="modal-task" onclick="closeModal('modal-task',event)">
     <div class="modal">
@@ -152,7 +154,7 @@
 
       <div style="display:flex; gap:10px;">
           <div style="flex:1;">
-              <label class="form-label">Fecha de inicio</label>
+              <label class="form-label">Fecha de inicio/Límite</label>
               <input type="date" id="t-start-date" class="form-input">
           </div>
           <div style="flex:1;">
@@ -186,14 +188,39 @@
     </div>
   </div>
 
-  <!-- MODAL: VER DETALLES DE LA TAREA -->
-  <div class="overlay" id="modal-view-task" onclick="closeModal('modal-view-task',event)">
+  <!-- MODAL: EDITAR META DIARIA -->
+  <div class="overlay" id="modal-edit-daily-task" onclick="closeModal('modal-edit-daily-task',event)">
     <div class="modal">
       <div class="modal-handle"></div>
-      <div class="modal-title" id="vt-title" style="margin-bottom:10px; color:var(--acc);">Título</div>
-      <div id="vt-meta" style="font-size:12px; color:var(--t3); margin-bottom:20px; font-weight:600; line-height: 1.5;"></div>
-      <label class="form-label" style="font-size:10px;">DESCRIPCIÓN</label>
-      <div id="vt-desc" style="font-size:14px; color:var(--t1); white-space: pre-wrap; background: var(--bg2); padding: 16px; border-radius: 10px; border: 1px solid var(--line); min-height: 60px;"></div>
+      <div class="modal-title" style="margin-bottom:20px;">Editar Meta</div>
+      
+      <input type="hidden" id="edit-dt-id">
+      
+      <label class="form-label">¿Qué quieres lograr?</label>
+      <input type="text" id="edit-dt-name" class="form-input">
+      
+      <label class="form-label">Descripción</label>
+      <textarea id="edit-dt-desc" class="form-input" style="min-height:60px;resize:none;" placeholder="..."></textarea>
+
+      <div style="display:flex; gap:10px;">
+          <div style="flex:1;">
+              <label class="form-label">Categoría</label>
+              <select id="edit-dt-cat" class="form-input">
+                  <option value="Trabajo">Trabajo</option>
+                  <option value="Personal">Personal</option>
+                  <option value="Estudio">Estudio</option>
+              </select>
+          </div>
+          <div style="flex:1;">
+              <label class="form-label">Hora</label>
+              <input type="time" id="edit-dt-time" class="form-input">
+          </div>
+      </div>
+      
+      <label class="form-label">Fecha</label>
+      <input type="date" id="edit-dt-date" class="form-input">
+
+      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="saveEditDailyTask()">Guardar Cambios</button>
     </div>
   </div>
 
@@ -201,7 +228,7 @@
   <div class="overlay" id="modal-edit-project-task" onclick="closeModal('modal-edit-project-task',event)">
     <div class="modal">
       <div class="modal-handle"></div>
-      <div class="modal-title" style="margin-bottom:20px;">Editar Tarea</div>
+      <div class="modal-title" style="margin-bottom:20px;">Editar Tarea de Proyecto</div>
       
       <input type="hidden" id="edit-pt-pid">
       <input type="hidden" id="edit-pt-tid">
@@ -209,12 +236,12 @@
       <label class="form-label">Nombre de la tarea</label>
       <input type="text" id="edit-pt-name" class="form-input" placeholder="...">
 
-      <label class="form-label">DESCRIPCIÓN (Opcional)</label>
+      <label class="form-label">Descripción</label>
       <textarea id="edit-pt-desc" class="form-input" style="min-height:60px;resize:none;" placeholder="..."></textarea>
 
       <div style="display:flex; gap:10px;">
           <div style="flex:1;">
-              <label class="form-label">PRIORIDAD</label>
+              <label class="form-label">Prioridad</label>
               <select id="edit-pt-priority" class="form-input">
                   <option value="ui">Urgente + Imp 🔴</option>
                   <option value="ni">No Urg + Imp 🔵</option>
@@ -223,7 +250,7 @@
               </select>
           </div>
           <div style="flex:1;">
-              <label class="form-label">FECHA LÍMITE</label>
+              <label class="form-label">Fecha Límite</label>
               <input type="date" id="edit-pt-deadline" class="form-input">
           </div>
       </div>
@@ -250,7 +277,7 @@
   <div class="toast-container" id="toast-container"></div>
 </div>
 
-<script src="js/main.js?v=101"></script>
-<script src="js/calendario.js?v=101"></script>
+<script src="js/main.js?v=105"></script>
+<script src="js/calendario.js?v=105"></script>
 </body>
 </html>
