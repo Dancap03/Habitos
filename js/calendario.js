@@ -3,7 +3,7 @@
 // ==========================================
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
-let selectedDateStr = today(); 
+let selectedDateStr = today(); // from main.js
 
 let pomoSec = 25 * 60;
 let pomoRunning = false;
@@ -16,22 +16,14 @@ let openProjects = {};
 const prioColor = { ui: '#e74c3c', ni: '#3b82f6', un: '#f59e0b', nn: '#95a5a6', acc: '#8b5cf6' };
 const prioText = { ui: 'Urgente + Imp 🔴', ni: 'No Urg + Imp 🔵', un: 'Urg + No Imp 🟡', nn: 'No Urg + No Imp ⚪' };
 
-// ==========================================
-// SISTEMA DE CONFIRMACIÓN DE BORRADO SEGURO
-// ==========================================
-let confirmDeleteAction = null;
-
-function showDeleteConfirm(title, msg, callback) {
-    document.getElementById('confirm-del-title').textContent = title;
-    document.getElementById('confirm-del-msg').textContent = msg;
-    confirmDeleteAction = callback;
-    openModal('modal-confirm-delete');
+// Función segura de borrado
+function safeDelete(title, msg, callback) {
+    if (typeof customConfirm === 'function') {
+        customConfirm(title, msg, callback);
+    } else {
+        if (confirm(msg)) callback();
+    }
 }
-
-document.getElementById('confirm-del-btn').addEventListener('click', () => {
-    if (confirmDeleteAction) confirmDeleteAction();
-    closeModal('modal-confirm-delete');
-});
 
 // ==========================================
 // INICIALIZACIÓN
@@ -126,10 +118,11 @@ function switchTaskView(v, pill) {
 }
 
 // ==========================================
-// GOAL SETTING (METAS)
+// GOAL SETTING (METAS Y PROYECTOS NUEVOS)
 // ==========================================
 function addTask() {
     const name = document.getElementById('t-name').value.trim();
+    const desc = document.getElementById('t-desc').value.trim(); // Descripción añadida
     if (!name) return showToast('Escribe un nombre', 'error');
     
     const cat = document.getElementById('t-cat').value;
@@ -139,7 +132,7 @@ function addTask() {
 
     if (cat === "Otro") {
         if (!S.projects.some(p => p.name === name)) {
-            S.projects.push({ id: uid(), name: name, date: tDate, tasks: [] });
+            S.projects.push({ id: uid(), name: name, desc: desc, date: tDate, tasks: [] });
             save(); resetTaskForm(); renderCalendar(); renderDayContent(); 
             return showToast('Proyecto creado con éxito ✅');
         } else {
@@ -148,7 +141,7 @@ function addTask() {
     }
 
     const createSingleTask = (dateStr) => {
-        S.tasks.push({ id: uid(), name, cat, time, date: dateStr, desc: '', done: false });
+        S.tasks.push({ id: uid(), name, cat, time, date: dateStr, desc: desc, done: false });
     };
 
     if (recurrence === 'none') {
@@ -185,11 +178,12 @@ function addTask() {
     save(); closeModal('modal-task');
     resetTaskForm();
     renderCalendar(); renderDayContent(); 
-    showToast('Meta guardada ✅');
+    showToast('Evento guardado ✅');
 }
 
 function resetTaskForm() {
     document.getElementById('t-name').value = '';
+    document.getElementById('t-desc').value = '';
     document.getElementById('t-time').value = '';
     document.getElementById('t-recurrence').value = 'none';
     document.getElementById('custom-recurrence-options').style.display = 'none';
@@ -254,9 +248,7 @@ function renderTasks() {
                         <div style="font-size:11px; color:var(--t3); margin-top:4px;">Proyecto: ${t.projectName}</div>
                     </div>
                 </div>
-                <div style="display:flex; align-items:center; gap:4px;">
-                    <button class="btn-danger" style="background:transparent; color:var(--red); padding:4px 8px; border:none; font-size:16px;" onclick="event.stopPropagation(); delProjectTask('${t.projectId}', '${t.id}')">✕</button>
-                </div>
+                <button class="btn-danger" onclick="event.stopPropagation(); delProjectTask('${t.projectId}', '${t.id}')">✕</button>
             </div>`;
         } else {
             return `
@@ -268,9 +260,7 @@ function renderTasks() {
                         <div style="font-size:11px; color:var(--t3); margin-top:4px;">${t.time || '--:--'} · ${t.cat}</div>
                     </div>
                 </div>
-                <div style="display:flex; align-items:center; gap:4px;">
-                    <button class="btn-danger" style="background:transparent; color:var(--red); padding:4px 8px; border:none; font-size:16px;" onclick="event.stopPropagation(); deleteTask('${t.id}')">✕</button>
-                </div>
+                <button class="btn-danger" onclick="event.stopPropagation(); deleteTask('${t.id}')">✕</button>
             </div>`;
         }
     }).join('');
@@ -282,7 +272,7 @@ function toggleTask(id) {
 }
 
 function deleteTask(id) {
-    showDeleteConfirm("Borrar Meta", "¿Seguro que quieres borrar esta meta diaria?", () => {
+    safeDelete("Borrar Evento", "¿Seguro que quieres borrar este evento diario?", () => {
         S.tasks = S.tasks.filter(x => x.id !== id); 
         save(); renderCalendar(); renderDayContent();
     });
@@ -327,9 +317,7 @@ function renderProjects() {
                             <div style="font-size:10px; color:var(--t3); margin-top:2px;">Límite: ${t.deadline || '--/--/----'}</div>
                         </div>
                     </div>
-                    <div style="display:flex; align-items:center; gap:4px;">
-                        <button class="btn-danger" style="background:transparent; color:var(--red); padding:4px 8px; border:none; font-size:16px;" onclick="event.stopPropagation(); delProjectTask('${p.id}', '${t.id}')">✕</button>
-                    </div> 
+                    <button class="btn-danger" onclick="event.stopPropagation(); delProjectTask('${p.id}', '${t.id}')">✕</button>
                 </div>
             `).join('');
         }
@@ -370,7 +358,7 @@ function renderProjects() {
             <div style="padding:14px 16px; background:var(--bg3); display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleProject('${p.id}')">
                 <div>
                     <div style="font-weight:800; color:var(--t1); font-size:15px; margin-bottom:4px;">${p.name}</div>
-                    <div style="font-size:11px; color:var(--t3); font-weight:600;">Límite/Inicio: ${p.date} • ${done}/${total} tareas</div>
+                    <div style="font-size:11px; color:var(--t3); font-weight:600;">Inicio: ${p.date} • ${done}/${total} tareas</div>
                 </div>
                 <div style="display:flex; gap:16px; align-items:center;">
                     <button class="btn-danger" style="background:transparent; color:var(--red); padding:0; border:none; font-size:16px;" onclick="event.stopPropagation(); delProject('${p.id}')">✕</button>
@@ -409,7 +397,7 @@ function toggleProjectTask(projectId, taskId) {
 }
 
 function delProjectTask(projectId, taskId) {
-    showDeleteConfirm("Borrar Tarea", "¿Seguro que quieres borrar esta tarea del proyecto?", () => {
+    safeDelete("Borrar Tarea", "¿Seguro que quieres borrar esta tarea del proyecto?", () => {
         const p = S.projects.find(x => x.id === projectId);
         p.tasks = p.tasks.filter(x => x.id !== taskId);
         save(); renderCalendar(); renderDayContent();
@@ -417,7 +405,7 @@ function delProjectTask(projectId, taskId) {
 }
 
 function delProject(id) {
-    showDeleteConfirm("Borrar Proyecto", "Se eliminará el proyecto y todas sus tareas. ¿Continuar?", () => {
+    safeDelete("Borrar Proyecto", "Se eliminará el proyecto y todas sus tareas. ¿Continuar?", () => {
         S.projects = S.projects.filter(p => p.id !== id);
         save(); renderCalendar(); renderDayContent();
     });
@@ -462,7 +450,7 @@ function saveEditDailyTask() {
     closeModal('modal-edit-daily-task');
     renderCalendar();
     renderDayContent();
-    showToast('Meta actualizada ✅');
+    showToast('Evento actualizado ✅');
 }
 
 function openEditProjectTask(projectId, taskId) {
@@ -506,31 +494,6 @@ function saveEditProjectTask() {
 }
 
 // ==========================================
-// VISUALIZADOR DE DETALLES DE TAREAS
-// ==========================================
-function viewTaskDetails(type, id1, id2) {
-    let title = '', meta = '', desc = '';
-    
-    if (type === 'project') {
-        const p = S.projects.find(x => x.id === id1);
-        const t = p.tasks.find(x => x.id === id2);
-        title = t.text;
-        meta = `PROYECTO: ${p.name} <br> LÍMITE: ${t.deadline || 'Sin límite'} <br> PRIORIDAD: ${prioText[t.priority] || ''}`;
-        desc = t.desc || 'No hay descripción adjunta para esta tarea.';
-    } else {
-        const t = S.tasks.find(x => x.id === id1);
-        title = t.name;
-        meta = `META DIARIA <br> FECHA: ${t.date} ${t.time ? '· HORA: '+t.time : ''}`;
-        desc = t.desc || 'No hay descripción adjunta.';
-    }
-    
-    document.getElementById('vt-title').textContent = title;
-    document.getElementById('vt-meta').innerHTML = meta;
-    document.getElementById('vt-desc').textContent = desc;
-    openModal('modal-view-task');
-}
-
-// ==========================================
 // RECURSOS Y POMODORO
 // ==========================================
 function renderResources() {
@@ -556,7 +519,7 @@ function addResource() {
 }
 
 function delResource(id) { 
-    showDeleteConfirm("Borrar Recurso", "¿Seguro que quieres borrar este enlace?", () => {
+    safeDelete("Borrar Recurso", "¿Seguro que quieres borrar este enlace?", () => {
         S.resources = S.resources.filter(r => r.id !== id); 
         save(); renderResources();
     });
