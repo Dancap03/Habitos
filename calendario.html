@@ -234,13 +234,31 @@
           </div>
           <div style="flex:1;">
               <label class="form-label">Repetir</label>
-              <select id="t-recurrence" class="form-input">
+              <select id="t-recurrence" class="form-input" onchange="toggleCustomRecurrence()">
                   <option value="none">Solo este día</option>
                   <option value="weekdays">Lunes a Viernes</option>
                   <option value="daily">Todos los días</option>
                   <option value="weekly">Semanalmente</option>
+                  <option value="custom">Personalizado...</option>
               </select>
           </div>
+      </div>
+      <div style="font-size:11px; color:var(--t3); margin-top:-8px; margin-bottom:12px;">*Las repeticiones por defecto se crean hasta final de mes.</div>
+
+      <!-- PANEL PERSONALIZADO (OCULTO POR DEFECTO) -->
+      <div id="custom-recurrence-options" style="display:none; background:var(--bg2); padding:16px; border-radius:12px; margin-bottom:16px; border:1px solid var(--line);">
+          <label class="form-label" style="font-size:11px; margin-top:0;">Días a repetir</label>
+          <div style="display:flex; gap:4px; margin-bottom:16px; justify-content:space-between;">
+              <button class="btn btn-sm custom-day-btn" data-day="1" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0;" onclick="toggleCustomDay(this)">L</button>
+              <button class="btn btn-sm custom-day-btn" data-day="2" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0;" onclick="toggleCustomDay(this)">M</button>
+              <button class="btn btn-sm custom-day-btn" data-day="3" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0;" onclick="toggleCustomDay(this)">X</button>
+              <button class="btn btn-sm custom-day-btn" data-day="4" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0;" onclick="toggleCustomDay(this)">J</button>
+              <button class="btn btn-sm custom-day-btn" data-day="5" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0;" onclick="toggleCustomDay(this)">V</button>
+              <button class="btn btn-sm custom-day-btn" data-day="6" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0;" onclick="toggleCustomDay(this)">S</button>
+              <button class="btn btn-sm custom-day-btn" data-day="0" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0;" onclick="toggleCustomDay(this)">D</button>
+          </div>
+          <label class="form-label" style="font-size:11px;">Repetir hasta (Opcional)</label>
+          <input type="date" id="t-recurrence-end" class="form-input" style="margin-bottom:0;">
       </div>
 
       <input type="hidden" id="t-date">
