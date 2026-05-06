@@ -5,58 +5,54 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#080808">
 <title>Dancab - Cartera</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/UI.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 <div class="app">
-
   <div class="screen on">
     <div class="topbar">
-      <div style="font-weight:800;font-size:26px;color:var(--acc);letter-spacing:-0.5px;">Cartera</div>
+      <span class="page-title">Cartera</span>
     </div>
-
     <div class="scroll">
       
+      <!-- VALOR TOTAL -->
       <div class="card card-full">
         <div class="card-title">VALOR TOTAL</div>
-        <div class="big-bal" id="port-total-main" style="font-size:36px;">€0,00</div>
-        <div style="margin-top:8px;display:flex;gap:10px;align-items:center;">
-           <span style="font-size:13px;color:var(--t2)">Invertido: <span id="port-inv-main" style="color:var(--t1)">€0,00</span></span>
-           <span id="port-pnl-main" style="font-size:13px;font-weight:700;">+€0,00 (0%)</span>
+        <div class="big-bal" id="port-total">€0</div>
+        <div style="margin-top:8px; display:flex; gap:10px;">
+           <span style="font-size:13px;color:var(--t2)">Invertido: <span id="port-invested" style="color:var(--t1)">€0</span></span>
+           <span id="port-pnl" style="font-size:13px;font-weight:700;">+€0 (0%)</span>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-title">POR TIPO</div>
-        <div style="min-height: 250px; display: flex; flex-direction: column; align-items: center;">
-            <div style="height: 160px; width: 100%; position: relative;">
-                <canvas id="chart-type"></canvas>
+      <!-- GRÁFICOS APILADOS CON LEYENDA CUSTOMIZADA -->
+      <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:14px;" class="card-full">
+         <div class="card" style="margin-bottom:0;">
+            <div class="card-title">POR TIPO</div>
+            <div style="display:flex; align-items:center; height:160px; gap:16px;">
+                <div style="position:relative; flex:1; height:100%;"><canvas id="chart-type"></canvas></div>
+                <div id="legend-type" style="width:110px; overflow-y:auto; max-height:100%; display:flex; flex-direction:column; gap:12px; padding-right:4px;"></div>
             </div>
-            <div id="legend-type"></div> 
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">POR ACTIVO</div>
-        <div style="min-height: 250px; display: flex; flex-direction: column; align-items: center;">
-            <div style="height: 160px; width: 100%; position: relative;">
-                <canvas id="chart-asset"></canvas>
+         </div>
+         <div class="card" style="margin-bottom:0;">
+            <div class="card-title">POR ACTIVO</div>
+            <div style="display:flex; align-items:center; height:160px; gap:16px;">
+                <div style="position:relative; flex:1; height:100%;"><canvas id="chart-asset"></canvas></div>
+                <div id="legend-asset" style="width:110px; overflow-y:auto; max-height:100%; display:flex; flex-direction:column; gap:12px; padding-right:4px;"></div>
             </div>
-            <div id="legend-asset"></div> 
-        </div>
+         </div>
       </div>
 
+      <!-- TUS POSICIONES -->
       <div class="card card-full">
-        <div class="card-header">
-            <span class="card-title" style="margin-bottom:0">TUS POSICIONES</span>
-            <button class="btn btn-sm" style="background:var(--bg3); color:var(--t1); font-weight:700;" onclick="openModal('modal-add-stock')">+ Posición</button>
+        <div class="card-header" style="margin-bottom: 16px;">
+            <span class="card-title" style="margin-bottom: 0;">TUS POSICIONES</span>
+            <button class="btn btn-sm" onclick="openNewStockModal()">+ Posición</button>
         </div>
-        <div id="portfolio-list">
-            <div style="text-align:center;color:var(--t3);padding:20px;font-size:14px;">Tu cartera está vacía</div>
-        </div>
+        <div id="stock-list"><div class="empty">Sin posiciones</div></div>
       </div>
 
     </div>
@@ -70,28 +66,29 @@
     <button class="nav-btn" onclick="window.location.href='gym.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 5v14M18 5v14M3 9h18M3 15h18"/></svg><span class="nav-label">Gym</span></button>
   </nav>
 
-  <div class="overlay" id="modal-add-stock" onclick="closeModal('modal-add-stock',event)">
+  <!-- MODAL: NUEVA POSICIÓN -->
+  <div class="overlay" id="modal-stock" onclick="closeModal('modal-stock',event)">
     <div class="modal">
       <div class="modal-handle"></div>
       <div class="modal-title" style="margin-bottom:20px;">Nueva posición</div>
       
       <label class="form-label">Ticker</label>
-      <input type="text" id="stock-ticker" class="form-input" placeholder="Ej: AAPL, VOO, BTC...">
+      <input type="text" id="s-ticker" class="form-input" placeholder="Ej: AAPL, VOO, BTC...">
       
       <label class="form-label">Nombre</label>
-      <input type="text" id="stock-name" class="form-input" placeholder="Ej: Apple Inc.">
+      <input type="text" id="s-name" class="form-input" placeholder="Ej: Apple Inc.">
       
       <label class="form-label">Dinero Invertido (€)</label>
-      <input type="number" id="stock-invested" class="form-input" placeholder="Ej: 50.00" step="0.01">
+      <input type="number" id="s-invested" class="form-input" placeholder="Ej: 50.00" step="0.01">
       
-      <label class="form-label">Precio de compra (€)</label>
-      <input type="number" id="stock-buy-price" class="form-input" placeholder="Ej: 10.00" step="0.01">
+      <label class="form-label">Precio de Compra (€)</label>
+      <input type="number" id="s-price" class="form-input" placeholder="Ej: 10.00" step="0.01">
       
-      <label class="form-label">Precio actual en mercado (€)</label>
-      <input type="number" id="stock-current-price" class="form-input" placeholder="Ej: 15.00" step="0.01">
+      <label class="form-label">Precio actual en Mercado (€)</label>
+      <input type="number" id="s-current" class="form-input" placeholder="Ej: 15.00" step="0.01">
       
       <label class="form-label">Tipo</label>
-      <select id="stock-type" class="form-input">
+      <select id="s-type" class="form-input">
         <option value="Acción">Acción</option>
         <option value="ETF">ETF</option>
         <option value="Crypto">Crypto</option>
@@ -100,63 +97,32 @@
         <option value="Materias primas">Materias primas</option>
         <option value="Otro">Otro</option>
       </select>
-
-      <button class="btn btn-primary" style="margin-top:16px; width:100%;" onclick="saveStock()">Crear Posición</button>
+      
+      <button class="btn btn-primary" style="margin-top:10px; width:100%;" onclick="addStock()">Crear Posición</button>
     </div>
   </div>
 
-  <div class="overlay" id="modal-edit-stock" onclick="closeModal('modal-edit-stock',event)">
-    <div class="modal">
+  <!-- MODAL: GESTIONAR -->
+  <div class="overlay" id="modal-manage-stock" onclick="closeModal('modal-manage-stock',event)">
+    <div class="modal" id="manage-stock-content"></div>
+  </div>
+
+  <div class="overlay" id="modal-confirm" onclick="cancelConfirm(event)">
+    <div class="modal" style="padding-bottom: 24px;">
       <div class="modal-handle"></div>
-      <div class="modal-title" style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
-          <span>Editar posición</span>
-          <button class="btn-danger" style="font-size:12px; padding:6px 10px;" onclick="deleteStock()">🗑️ Borrar</button>
+      <div class="modal-title" id="confirm-title" style="color: var(--red);">¿Estás seguro?</div>
+      <div class="form-label" id="confirm-message" style="margin-bottom: 20px; text-transform: none; font-size: 14px; color: var(--t1); letter-spacing: normal;">¿Quieres borrar esto?</div>
+      <div class="form-row" style="display:flex; gap:10px;">
+        <button class="btn" style="background:var(--bg3); color:var(--t1); flex:1;" onclick="cancelConfirm(event, true)">Cancelar</button>
+        <button class="btn" style="background:var(--red); color:#fff; flex:1;" onclick="executeConfirm()">Borrar</button>
       </div>
-      
-      <input type="hidden" id="edit-stock-id">
-
-      <label class="form-label">Ticker</label>
-      <input type="text" id="edit-stock-ticker" class="form-input">
-      
-      <label class="form-label">Nombre</label>
-      <input type="text" id="edit-stock-name" class="form-input">
-      
-      <label class="form-label">Dinero Invertido (€)</label>
-      <input type="number" id="edit-stock-invested" class="form-input" step="0.01">
-      
-      <label class="form-label">Precio de compra (€)</label>
-      <input type="number" id="edit-stock-buy-price" class="form-input" step="0.01">
-      
-      <label class="form-label">Precio actual en mercado (€)</label>
-      <input type="number" id="edit-stock-current-price" class="form-input" step="0.01">
-      
-      <label class="form-label">Tipo</label>
-      <select id="edit-stock-type" class="form-input">
-        <option value="Acción">Acción</option>
-        <option value="ETF">ETF</option>
-        <option value="Crypto">Crypto</option>
-        <option value="Fondos">Fondos</option>
-        <option value="Bonos">Bonos</option>
-        <option value="Materias primas">Materias primas</option>
-        <option value="Otro">Otro</option>
-      </select>
-
-      <button class="btn btn-primary" style="margin-top:16px; width:100%;" onclick="updateStock()">Guardar Cambios</button>
     </div>
   </div>
 
   <div class="toast-container" id="toast-container"></div>
 </div>
-
-<script src="js/main.js?v=56"></script>
-<script src="js/cartera.js?v=56"></script>
-<script>
-    // Aseguramos que la función de deslizar modal se active en esta página
-    document.addEventListener('DOMContentLoaded', () => {
-        if (typeof setupSwipeToClose === 'function') {
-            setupSwipeToClose();
-        }
-    });
-</script>
+<script src="js/main.js?v=42"></script>
+<script src="js/cartera.js?v=42"></script>
+<script>document.addEventListener('DOMContentLoaded', init);</script>
 </body>
 </html>
