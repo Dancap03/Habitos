@@ -70,43 +70,77 @@ function cancelConfirm(e, force = false) {
 
 // 6. DASHBOARD E INICIO
 function renderHome() {
-  if (document.getElementById('home-fin-avail')) {
-    const trueInc = S.fin.filter(e => e.type === 'ingreso' && !['ahorro','inversión'].includes(e.cat)).reduce((a,e) => a+e.amount, 0);
-    const trueExp = S.fin.filter(e => e.type === 'gasto' && !['ahorro','inversión'].includes(e.cat)).reduce((a,e) => a+e.amount, 0);
-    const available = S.fin.reduce((a,e) => a + (e.type==='ingreso'?e.amount:-e.amount), 0);
-    const totalSav = S.fin.filter(e => e.cat === 'ahorro').reduce((a,e) => a + (e.type==='gasto'?e.amount:-e.amount), 0);
-    const totalInv = S.fin.filter(e => e.cat === 'inversión').reduce((a,e) => a + (e.type==='gasto'?e.amount:-e.amount), 0);
+    const hoyStr = today(); // Fecha de hoy (ej: 2026-05-06)
+    let pendingCount = 0;
+    let combined = [];
 
-    document.getElementById('home-fin-avail').textContent = fmt(available);
-    document.getElementById('home-fin-inc').textContent = fmt(trueInc);
-    document.getElementById('home-fin-exp').textContent = fmt(trueExp);
-    document.getElementById('home-fin-sav').textContent = fmt(totalSav);
-    const elInv = document.getElementById('home-fin-inv');
-    if(elInv) elInv.textContent = fmt(totalInv);
-  }
+    // 1. Recopilar metas diarias normales
+    if (S.tasks) {
+        S.tasks.forEach(t => {
+            if (t.date === hoyStr) combined.push({ ...t, isProject: false });
+        });
+    }
 
-  if (document.getElementById('home-port-total')) {
-    let val = 0, inv = 0;
-    S.stocks.forEach(s => {
-      let sInv = 0, sShares = 0;
-      if(s.purchases) s.purchases.forEach(p => { sInv += p.invested; sShares += p.shares; });
-      val += sShares * s.price; inv += sInv;
+    // 2. Recopilar tareas de proyectos cuya fecha límite es hoy
+    if (S.projects) {
+        S.projects.forEach(p => {
+            if (p.tasks) {
+                p.tasks.forEach(t => {
+                    if (t.deadline === hoyStr) {
+                        combined.push({ ...t, isProject: true, projectName: p.name });
+                    }
+                });
+            }
+        });
+    }
+
+    // 3. Ordenar: No hechas primero, luego por prioridad (Matriz Eisenhower)
+    const pWeight = { ui: 4, ni: 3, un: 2, nn: 1 };
+    combined.sort((a, b) => {
+        if (a.done !== b.done) return a.done ? 1 : -1;
+        let wA = a.isProject ? (pWeight[a.priority] || 0) : 0; 
+        let wB = b.isProject ? (pWeight[b.priority] || 0) : 0;
+        return wB - wA; 
     });
-    const pnl = val - inv;
-    document.getElementById('home-port-total').textContent = fmt(val);
-    document.getElementById('home-port-inv').textContent = fmt(inv);
-    const elPnl = document.getElementById('home-port-pnl');
-    elPnl.textContent = `${pnl>=0?'+':''}${fmt(Math.abs(pnl))} (${inv>0?((pnl/inv)*100).toFixed(2):0}%)`;
-    elPnl.style.color = pnl>=0 ? 'var(--grn)' : 'var(--red)';
-  }
 
-  const homeEvents = document.getElementById('home-events-list');
-  if (homeEvents) {
-    const todayTasks = S.tasks.filter(t => t.date === today());
-    homeEvents.innerHTML = todayTasks.length ? todayTasks.map(t => `<div class="list-item" style="padding:10px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--line);"><span>${t.title}</span><span style="color:var(--acc); font-weight:600;">${t.time || ''}</span></div>`).join('') : '<div class="empty">Sin eventos hoy</div>';
-  }
+    // 4. Contar cuántas tareas de hoy están pendientes
+    combined.forEach(t => {
+        if (!t.done) pendingCount++;
+    });
 
-  renderGymCalendar();
+    // 5. Actualizar el recuadro gigante de Eventos Pendientes
+    const countEl = document.getElementById('home-pending-count');
+    if (countEl) countEl.textContent = pendingCount;
+
+    // 6. Renderizar la lista debajo del calendario
+    const listEl = document.getElementById('home-tasks-list');
+    if (listEl) {
+        if (combined.length === 0) {
+            listEl.innerHTML = `<div style="color:var(--t3); font-size:13px; text-align:center; padding:20px;">No hay eventos para hoy. ¡Disfruta tu día libre! 🎉</div>`;
+            return;
+        }
+
+        const prioColor = { ui: '#e74c3c', ni: '#3b82f6', un: '#f59e0b', nn: '#95a5a6', acc: '#8b5cf6' };
+
+        listEl.innerHTML = combined.map(t => {
+            // El color dependerá de si es tarea de proyecto (usa la matriz) o meta normal (usa color de acento)
+            const color = t.isProject ? (prioColor[t.priority] || 'var(--acc)') : 'var(--acc)';
+            const title = t.isProject ? t.text : t.name;
+            const sub = t.isProject ? `Proyecto: ${t.projectName}` : (t.time ? `${t.time} · ${t.cat}` : t.cat);
+            
+            // Al hacer clic en una tarea de inicio, te lleva a la Agenda para gestionarla
+            return `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 4px solid ${color}; opacity: ${t.done ? '0.6' : '1'}; cursor:pointer;" onclick="window.location.href='calendario.html'">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div class="check-circle ${t.done ? 'checked' : ''}"></div>
+                    <div style="flex:1">
+                        <div style="font-size:14px; font-weight:600; color:${t.done ? 'var(--t3)' : 'var(--t1)'}; text-decoration:${t.done ? 'line-through' : 'none'};">${title}</div>
+                        <div style="font-size:11px; color:var(--t3); margin-top:4px;">${sub}</div>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
 }
 
 function changeGymMonth(dir) { currGymMonth += dir; if(currGymMonth<0){currGymMonth=11;currGymYear--;} else if(currGymMonth>11){currGymMonth=0;currGymYear++;} renderGymCalendar(); }
