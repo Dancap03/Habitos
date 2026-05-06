@@ -211,7 +211,7 @@ function deleteTask(id) {
 }
 
 // ==========================================
-// VISTA PROYECTOS (ACORDEÓN)
+// VISTA PROYECTOS (ESTILO ACORDEÓN CON MATRIZ EISENHOWER)
 // ==========================================
 function toggleProject(id) {
     openProjects[id] = !openProjects[id];
@@ -231,13 +231,14 @@ function renderProjects() {
         const total = (p.tasks || []).length;
         const done = (p.tasks || []).filter(t => t.done).length;
 
-        // Html de la lista interna de tareas del proyecto
-        const prioColor = { Alta: '#e74c3c', Media: '#f59e0b', Baja: '#3b82f6' };
+        // Diccionario de colores estilo Eisenhower
+        const prioColor = { ui: '#e74c3c', ni: '#3b82f6', un: '#f59e0b', nn: '#95a5a6' };
+        
         let tasksHtml = '<div class="empty" style="padding:10px 0;">No hay tareas en este proyecto</div>';
         
         if (p.tasks && p.tasks.length > 0) {
-            // Ordenamos: No hechas primero, luego por prioridad
-            const priorityWeight = { 'Alta': 3, 'Media': 2, 'Baja': 1 };
+            // Ordenamos: No hechas primero, luego por peso de prioridad
+            const priorityWeight = { 'ui': 4, 'ni': 3, 'un': 2, 'nn': 1 };
             const sortedTasks = [...p.tasks].sort((a, b) => {
                 if (a.done !== b.done) return a.done ? 1 : -1; 
                 return priorityWeight[b.priority] - priorityWeight[a.priority]; 
@@ -257,7 +258,7 @@ function renderProjects() {
             `).join('');
         }
 
-        // HTML del cuerpo del acordeón (Formulario + Lista)
+        // Formulario de añadir tarea con las opciones de Eisenhower
         const bodyHtml = isOpen ? `
             <div style="padding: 0 16px 16px 16px; border-top: 1px solid var(--line); margin-top: 12px; padding-top: 16px;">
                 <div style="font-size:10px; font-weight:800; color:var(--acc); letter-spacing:0.5px; margin-bottom:8px; text-transform:uppercase;">NUEVA TAREA DEL PROYECTO</div>
@@ -267,9 +268,10 @@ function renderProjects() {
                     <div style="flex:1;">
                         <label class="form-label">PRIORIDAD</label>
                         <select id="pt-priority-${p.id}" class="form-input">
-                            <option value="Alta">Alta 🔴</option>
-                            <option value="Media" selected>Media 🟡</option>
-                            <option value="Baja">Baja 🔵</option>
+                            <option value="ui">Urgente + Imp 🔴</option>
+                            <option value="ni">No Urg + Imp 🔵</option>
+                            <option value="un">Urg + No Imp 🟡</option>
+                            <option value="nn" selected>No Urg + No Imp ⚪</option>
                         </select>
                     </div>
                     <div style="flex:1;">
