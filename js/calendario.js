@@ -11,15 +11,22 @@ let pomoInterval = null;
 let pomoMode = 'focus';
 const pomoModes = { focus: 25 * 60, short: 5 * 60, long: 15 * 60 };
 
-// Control de Acordeones de Proyectos
 let openProjects = {}; 
 
-// Colores de la Matriz Eisenhower para las tareas
 const prioColor = { ui: '#e74c3c', ni: '#3b82f6', un: '#f59e0b', nn: '#95a5a6', acc: '#8b5cf6' };
 const prioText = { ui: 'Urgente + Imp 🔴', ni: 'No Urg + Imp 🔵', un: 'Urg + No Imp 🟡', nn: 'No Urg + No Imp ⚪' };
 
+// Función segura de borrado (por si falla customConfirm en main.js)
+function safeDelete(title, msg, callback) {
+    if (typeof customConfirm === 'function') {
+        customConfirm(title, msg, callback);
+    } else {
+        if (confirm(msg)) callback();
+    }
+}
+
 // ==========================================
-// INICIALIZACIÓN DE LA BASE DE DATOS
+// INICIALIZACIÓN
 // ==========================================
 function initAgendaData() {
     if (!S.tasks) S.tasks = [];
@@ -29,7 +36,7 @@ function initAgendaData() {
 }
 
 // ==========================================
-// LÓGICA DEL CALENDARIO CON PUNTITOS DE COLOR
+// LÓGICA DEL CALENDARIO
 // ==========================================
 function renderCalendar() {
     const daysContainer = document.getElementById('cal-days');
@@ -54,21 +61,10 @@ function renderCalendar() {
         if (dStr === hoyStr) classes.push('today');
         if (dStr === selectedDateStr) classes.push('selected');
         
-        // Recopilar prioridades para pintar los puntitos correctos
         let dayPriorities = new Set();
-        
-        // Comprobar tareas normales
         if (S.tasks.some(t => t.date === dStr && !t.done)) dayPriorities.add('acc'); 
-        
-        // Comprobar tareas de proyectos
         S.projects.forEach(p => {
-            if(p.tasks) {
-                p.tasks.forEach(t => {
-                    if (t.deadline === dStr && !t.done) {
-                        dayPriorities.add(t.priority);
-                    }
-                });
-            }
+            if(p.tasks) p.tasks.forEach(t => { if (t.deadline === dStr && !t.done) dayPriorities.add(t.priority); });
         });
 
         let dotsHtml = '';
@@ -122,7 +118,7 @@ function switchTaskView(v, pill) {
 }
 
 // ==========================================
-// GOAL SETTING (LISTA MEZCLADA DIARIA)
+// GOAL SETTING (METAS)
 // ==========================================
 function addTask() {
     const name = document.getElementById('t-name').value.trim();
@@ -133,7 +129,6 @@ function addTask() {
     const recurrence = document.getElementById('t-recurrence').value;
     const tDate = document.getElementById('t-start-date').value || selectedDateStr;
 
-    // CREAR PROYECTO SI ES "OTRO"
     if (cat === "Otro") {
         if (!S.projects.some(p => p.name === name)) {
             S.projects.push({ id: uid(), name: name, date: tDate, tasks: [] });
@@ -212,12 +207,10 @@ function renderTasks() {
     const list = document.getElementById('tasks-list');
     let combined = [];
 
-    // Tareas Normales
     S.tasks.forEach(t => {
         if (t.date === selectedDateStr) combined.push({ ...t, isProject: false });
     });
 
-    // Tareas de Proyectos cuya fecha límite es hoy
     S.projects.forEach(p => {
         if (p.tasks) {
             p.tasks.forEach(t => {
@@ -233,7 +226,6 @@ function renderTasks() {
         return;
     }
 
-    // Ordenar: primero las no hechas. Luego por prioridad de Eisenhower (para proyectos)
     const pWeight = { ui: 4, ni: 3, un: 2, nn: 1 };
     combined.sort((a, b) => {
         if (a.done !== b.done) return a.done ? 1 : -1;
@@ -246,7 +238,7 @@ function renderTasks() {
         if (t.isProject) {
             const color = prioColor[t.priority] || 'var(--acc)';
             return `
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 4px solid ${color}; opacity: ${t.done ? '0.6' : '1'}; cursor:pointer;" onclick="viewTaskDetails('project', '${t.projectId}', '${t.id}')">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 4px solid ${color}; opacity: ${t.done ? '0.6' : '1'}; cursor:pointer;" onclick="openEditProjectTask('${t.projectId}', '${t.id}')">
                 <div style="display:flex; align-items:center; gap:12px;">
                     <div class="check-circle ${t.done ? 'checked' : ''}" onclick="event.stopPropagation(); toggleProjectTask('${t.projectId}', '${t.id}')"></div>
                     <div style="flex:1">
@@ -254,14 +246,11 @@ function renderTasks() {
                         <div style="font-size:11px; color:var(--t3); margin-top:4px;">Proyecto: ${t.projectName}</div>
                     </div>
                 </div>
-                <div style="display:flex; align-items:center; gap:4px;">
-                    <button class="btn-sm" style="background:transparent; color:var(--t2); font-size:14px; padding:4px 8px; border:none;" onclick="event.stopPropagation(); openEditProjectTask('${t.projectId}', '${t.id}')">✏️</button>
-                    <button class="btn-danger" style="background:transparent; color:var(--red); padding:4px 8px;" onclick="event.stopPropagation(); delProjectTask('${t.projectId}', '${t.id}')">✕</button>
-                </div>
+                <button class="btn-danger" onclick="event.stopPropagation(); delProjectTask('${t.projectId}', '${t.id}')">✕</button>
             </div>`;
         } else {
             return `
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 4px solid var(--acc); opacity: ${t.done ? '0.6' : '1'}; cursor:pointer;" onclick="viewTaskDetails('normal', '${t.id}')">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 4px solid var(--acc); opacity: ${t.done ? '0.6' : '1'}; cursor:pointer;" onclick="openEditDailyTask('${t.id}')">
                 <div style="display:flex; align-items:center; gap:12px;">
                     <div class="check-circle ${t.done ? 'checked' : ''}" onclick="event.stopPropagation(); toggleTask('${t.id}')"></div>
                     <div style="flex:1">
@@ -269,9 +258,7 @@ function renderTasks() {
                         <div style="font-size:11px; color:var(--t3); margin-top:4px;">${t.time || '--:--'} · ${t.cat}</div>
                     </div>
                 </div>
-                <div style="display:flex; align-items:center; gap:4px;">
-                    <button class="btn-danger" style="background:transparent; color:var(--red); padding:4px 8px;" onclick="event.stopPropagation(); deleteTask('${t.id}')">✕</button>
-                </div>
+                <button class="btn-danger" onclick="event.stopPropagation(); deleteTask('${t.id}')">✕</button>
             </div>`;
         }
     }).join('');
@@ -283,14 +270,14 @@ function toggleTask(id) {
 }
 
 function deleteTask(id) {
-    customConfirm("Borrar Meta", "¿Borrar meta diaria?", () => {
+    safeDelete("Borrar Meta", "¿Borrar meta diaria?", () => {
         S.tasks = S.tasks.filter(x => x.id !== id); 
         save(); renderCalendar(); renderDayContent();
     });
 }
 
 // ==========================================
-// VISTA PROYECTOS (INTEGRADO EN AGENDA)
+// VISTA PROYECTOS
 // ==========================================
 function toggleProject(id) {
     openProjects[id] = !openProjects[id];
@@ -320,7 +307,7 @@ function renderProjects() {
             });
 
             tasksHtml = sortedTasks.map(t => `
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 3px solid ${prioColor[t.priority] || 'var(--acc)'}; opacity: ${t.done ? '0.6' : '1'}; cursor:pointer;" onclick="viewTaskDetails('project', '${p.id}', '${t.id}')">
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 3px solid ${prioColor[t.priority] || 'var(--acc)'}; opacity: ${t.done ? '0.6' : '1'}; cursor:pointer;" onclick="openEditProjectTask('${p.id}', '${t.id}')">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <div class="check-circle ${t.done ? 'checked' : ''}" onclick="event.stopPropagation(); toggleProjectTask('${p.id}', '${t.id}')"></div>
                         <div>
@@ -328,10 +315,7 @@ function renderProjects() {
                             <div style="font-size:10px; color:var(--t3); margin-top:2px;">Límite: ${t.deadline || '--/--/----'}</div>
                         </div>
                     </div>
-                    <div style="display:flex; align-items:center; gap:4px;">
-                        <button class="btn-sm" style="background:transparent; color:var(--t2); font-size:14px; padding:4px 8px; border:none;" onclick="event.stopPropagation(); openEditProjectTask('${p.id}', '${t.id}')">✏️</button>
-                        <button class="btn-danger" style="background:transparent; color:var(--red); padding:4px 8px;" onclick="event.stopPropagation(); delProjectTask('${p.id}', '${t.id}')">✕</button>
-                    </div>
+                    <button class="btn-danger" onclick="event.stopPropagation(); delProjectTask('${p.id}', '${t.id}')">✕</button>
                 </div>
             `).join('');
         }
@@ -375,7 +359,7 @@ function renderProjects() {
                     <div style="font-size:11px; color:var(--t3); font-weight:600;">Límite/Inicio: ${p.date} • ${done}/${total} tareas</div>
                 </div>
                 <div style="display:flex; gap:16px; align-items:center;">
-                    <button class="btn-danger" style="background:transparent; color:var(--red); padding:0;" onclick="event.stopPropagation(); delProject('${p.id}')">✕</button>
+                    <button class="btn-danger" onclick="event.stopPropagation(); delProject('${p.id}')">✕</button>
                     <div style="font-size:12px; color:var(--t3); transition:transform 0.2s; transform: rotate(${isOpen ? '180deg' : '0deg'});">▼</div>
                 </div>
             </div>
@@ -411,7 +395,7 @@ function toggleProjectTask(projectId, taskId) {
 }
 
 function delProjectTask(projectId, taskId) {
-    customConfirm("Borrar Tarea", "¿Borrar esta tarea del proyecto?", () => {
+    safeDelete("Borrar Tarea", "¿Borrar esta tarea del proyecto?", () => {
         const p = S.projects.find(x => x.id === projectId);
         p.tasks = p.tasks.filter(x => x.id !== taskId);
         save(); renderCalendar(); renderDayContent();
@@ -419,15 +403,54 @@ function delProjectTask(projectId, taskId) {
 }
 
 function delProject(id) {
-    customConfirm("Borrar Proyecto", "¿Eliminar este proyecto y todas sus tareas?", () => {
+    safeDelete("Borrar Proyecto", "¿Eliminar este proyecto y todas sus tareas?", () => {
         S.projects = S.projects.filter(p => p.id !== id);
         save(); renderCalendar(); renderDayContent();
     });
 }
 
 // ==========================================
-// EDICIÓN DE TAREAS DE PROYECTO
+// EDICIÓN DE TAREAS (DIARIAS Y PROYECTOS)
 // ==========================================
+function openEditDailyTask(id) {
+    const t = S.tasks.find(x => x.id === id);
+    if(!t) return;
+    
+    document.getElementById('edit-dt-id').value = t.id;
+    document.getElementById('edit-dt-name').value = t.name || '';
+    document.getElementById('edit-dt-desc').value = t.desc || '';
+    
+    let catSelect = document.getElementById('edit-dt-cat');
+    if (t.cat === 'Otro') catSelect.value = 'Trabajo'; 
+    else catSelect.value = t.cat || 'Trabajo';
+    
+    document.getElementById('edit-dt-time').value = t.time || '';
+    document.getElementById('edit-dt-date').value = t.date || '';
+    
+    openModal('modal-edit-daily-task');
+}
+
+function saveEditDailyTask() {
+    const id = document.getElementById('edit-dt-id').value;
+    const t = S.tasks.find(x => x.id === id);
+    if(!t) return;
+    
+    const name = document.getElementById('edit-dt-name').value.trim();
+    if(!name) return showToast('Escribe un nombre', 'error');
+
+    t.name = name;
+    t.desc = document.getElementById('edit-dt-desc').value.trim();
+    t.cat = document.getElementById('edit-dt-cat').value;
+    t.time = document.getElementById('edit-dt-time').value;
+    t.date = document.getElementById('edit-dt-date').value;
+
+    save();
+    closeModal('modal-edit-daily-task');
+    renderCalendar();
+    renderDayContent();
+    showToast('Meta actualizada ✅');
+}
+
 function openEditProjectTask(projectId, taskId) {
     const p = S.projects.find(x => x.id === projectId);
     const t = p.tasks.find(x => x.id === taskId);
@@ -465,32 +488,7 @@ function saveEditProjectTask() {
     save();
     closeModal('modal-edit-project-task');
     renderCalendar(); renderDayContent();
-    showToast('Tarea actualizada');
-}
-
-// ==========================================
-// VISUALIZADOR DE DETALLES DE TAREAS
-// ==========================================
-function viewTaskDetails(type, id1, id2) {
-    let title = '', meta = '', desc = '';
-    
-    if (type === 'project') {
-        const p = S.projects.find(x => x.id === id1);
-        const t = p.tasks.find(x => x.id === id2);
-        title = t.text;
-        meta = `PROYECTO: ${p.name} <br> LÍMITE: ${t.deadline || 'Sin límite'} <br> PRIORIDAD: ${prioText[t.priority] || ''}`;
-        desc = t.desc || 'No hay descripción adjunta para esta tarea.';
-    } else {
-        const t = S.tasks.find(x => x.id === id1);
-        title = t.name;
-        meta = `META DIARIA <br> FECHA: ${t.date} ${t.time ? '· HORA: '+t.time : ''}`;
-        desc = t.desc || 'No hay descripción adjunta.';
-    }
-    
-    document.getElementById('vt-title').textContent = title;
-    document.getElementById('vt-meta').innerHTML = meta;
-    document.getElementById('vt-desc').textContent = desc;
-    openModal('modal-view-task');
+    showToast('Tarea actualizada ✅');
 }
 
 // ==========================================
@@ -505,7 +503,7 @@ function renderResources() {
                 <a href="${r.url.startsWith('http') ? r.url : 'https://'+r.url}" target="_blank" style="color:var(--t1); font-weight:700; text-decoration:none; display:block; margin-bottom:4px; font-size:14px;">🔗 ${r.title}</a>
                 <span class="tag" style="background:var(--bg3); color:var(--t3); font-size:10px; padding:2px 6px; border-radius:4px;">${r.cat}</span>
             </div>
-            <button class="btn-danger" style="background:transparent; color:var(--red); padding:4px 8px;" onclick="delResource('${r.id}')">✕</button>
+            <button class="btn-danger" onclick="delResource('${r.id}')">✕</button>
         </div>`).join('') : '<div class="empty">Vacío</div>';
 }
 
@@ -519,7 +517,7 @@ function addResource() {
 }
 
 function delResource(id) { 
-    customConfirm("Borrar Recurso", "¿Borrar este recurso?", () => {
+    safeDelete("Borrar Recurso", "¿Borrar este recurso?", () => {
         S.resources = S.resources.filter(r => r.id !== id); 
         save(); renderResources();
     });
