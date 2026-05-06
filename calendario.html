@@ -4,103 +4,136 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#080808">
-<title>Dancab - Calendario</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Dancab - Productividad</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/UI.css">
-<link rel="stylesheet" href="css/tareas.css">
-</head> 
+<style>
+  /* Estilos específicos para el calendario y widgets */
+  .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+  .cal-day-name { font-size: 11px; font-weight: 700; color: var(--t3); margin-bottom: 8px; }
+  .cal-day { padding: 8px 0; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--t1); cursor: pointer; transition: 0.2s; }
+  .cal-day.empty { visibility: hidden; }
+  .cal-day.today { color: var(--acc); font-weight: 800; }
+  .cal-day.selected { background: var(--acc); color: #fff; }
+  .cal-day.has-task { position: relative; }
+  .cal-day.has-task::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: var(--acc); border-radius: 50%; }
+  
+  .pomo-timer { font-size: 48px; font-weight: 800; text-align: center; letter-spacing: -2px; margin: 10px 0; font-variant-numeric: tabular-nums; }
+  .pomo-tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
+  .pomo-tab { background: var(--bg4); color: var(--t2); border: none; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .pomo-tab.on { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
+  
+  .check-circle { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+  .check-circle.checked { background: var(--acc); border-color: var(--acc); }
+  .check-circle.checked::after { content: '✓'; color: #fff; font-size: 12px; font-weight: bold; }
+</style>
+</head>
 <body>
 <div class="app">
 
   <div class="screen on">
+    <!-- TOPBAR -->
     <div class="topbar">
-      <span class="page-title">Calendario</span>
-      <div class="topbar-right"><button class="btn btn-sm" onclick="openModal('modal-task')">+ Evento</button></div>
+      <div style="font-weight:800;font-size:26px;color:var(--acc);letter-spacing:-0.5px;">Agenda</div>
     </div>
-    <div class="scroll">
-      <div class="pill-row">
-        <span class="pill on" onclick="switchTaskView('agenda',this)">Agenda</span>
-        <span class="pill" onclick="switchTaskView('kanban',this)">Kanban</span>
-        <span class="pill" onclick="switchTaskView('eisenhower',this)">Eisenhower</span>
-        <span class="pill" onclick="switchTaskView('pomo',this)">Pomodoro</span>
+
+    <div class="scroll" style="padding-bottom: 90px;">
+      
+      <!-- 1. CALENDARIO MENSUAL -->
+      <div class="card card-full">
+        <div class="cal-header">
+            <button class="btn btn-sm" style="background:var(--bg3); color:var(--t1);" onclick="changeMonth(-1)">◀</button>
+            <div id="cal-month-year" style="font-weight:800; font-size:16px; text-transform:capitalize;">Mes Año</div>
+            <button class="btn btn-sm" style="background:var(--bg3); color:var(--t1);" onclick="changeMonth(1)">▶</button>
+        </div>
+        <div class="cal-grid">
+            <div class="cal-day-name">L</div><div class="cal-day-name">M</div><div class="cal-day-name">X</div><div class="cal-day-name">J</div><div class="cal-day-name">V</div><div class="cal-day-name">S</div><div class="cal-day-name">D</div>
+        </div>
+        <div class="cal-grid" id="cal-days"></div>
       </div>
 
-      <div id="tv-agenda">
-        <div class="card"><div class="card-title">Pendientes</div><div id="task-pending"><div class="empty">Sin eventos</div></div></div>
-        <div class="card"><div class="card-title">Completados</div><div id="task-done-list"><div class="empty">Ninguno aún</div></div></div>
-      </div>
+      <!-- ETIQUETA DEL DÍA SELECCIONADO -->
+      <div style="margin: 20px 0 10px 4px; font-weight:800; font-size:18px; color:var(--t1);" id="selected-date-label">Hoy</div>
 
-      <div id="tv-kanban" style="display:none">
-        <div class="kanban-wrap">
-          <div class="kanban-cols">
-            <div class="k-col"><div class="k-col-title" style="color:var(--t2)">POR HACER</div><div id="k-todo"></div><div class="k-add" onclick="openModalKanban('todo')">+ Añadir</div></div>
-            <div class="k-col"><div class="k-col-title" style="color:var(--acc)">EN PROGRESO</div><div id="k-doing"></div><div class="k-add" onclick="openModalKanban('doing')">+ Añadir</div></div>
-            <div class="k-col"><div class="k-col-title" style="color:var(--grn)">HECHO</div><div id="k-done"></div><div class="k-add" onclick="openModalKanban('done')">+ Añadir</div></div>
-          </div>
+      <!-- 2. POMODORO (FOCUS TIME) -->
+      <div class="card card-full" style="background: linear-gradient(145deg, rgba(30,30,35,1) 0%, rgba(20,20,25,1) 100%); border: 1px solid rgba(139, 92, 246, 0.3);">
+        <div class="card-title" style="color: #8b5cf6;">FOCUS TIMER</div>
+        <div class="pomo-tabs">
+            <button class="pomo-tab on" onclick="setPomodoroMode('work', this)">Pomodoro</button>
+            <button class="pomo-tab" onclick="setPomodoroMode('short', this)">Descanso Corto</button>
+            <button class="pomo-tab" onclick="setPomodoroMode('long', this)">Descanso Largo</button>
+        </div>
+        <div class="pomo-timer" id="pomo-time">25:00</div>
+        <div style="display:flex; justify-content:center; gap:12px; margin-top:16px;">
+            <button class="btn" style="background:#8b5cf6; color:#fff; font-weight:700; padding:10px 24px; border-radius:20px;" id="btn-pomo-start" onclick="togglePomodoro()">Empezar</button>
+            <button class="btn" style="background:var(--bg4); color:var(--t1); font-weight:700; padding:10px 16px; border-radius:20px;" onclick="resetPomodoro()">↻</button>
         </div>
       </div>
 
-      <div id="tv-eisenhower" style="display:none">
-        <div class="eis-grid">
-          <div class="eis-quad"><div class="eis-label" style="color:var(--red)">URGENTE + IMPORTANTE</div><div id="eis-ui"></div><div style="font-size:11px;color:var(--t3);margin-top:8px;cursor:pointer" onclick="openModalEis('ui')">+ Añadir</div></div>
-          <div class="eis-quad"><div class="eis-label" style="color:var(--blu)">NO URG. + IMPORTANTE</div><div id="eis-ni"></div><div style="font-size:11px;color:var(--t3);margin-top:8px;cursor:pointer" onclick="openModalEis('ni')">+ Añadir</div></div>
-          <div class="eis-quad"><div class="eis-label" style="color:var(--yel)">URGENTE + NO IMP.</div><div id="eis-un"></div><div style="font-size:11px;color:var(--t3);margin-top:8px;cursor:pointer" onclick="openModalEis('un')">+ Añadir</div></div>
-          <div class="eis-quad"><div class="eis-label" style="color:var(--t3)">NO URG. + NO IMP.</div><div id="eis-nn"></div><div style="font-size:11px;color:var(--t3);margin-top:8px;cursor:pointer" onclick="openModalEis('nn')">+ Añadir</div></div>
+      <!-- 3. TAREAS DEL DÍA (GOALS) -->
+      <div class="card card-full">
+        <div class="card-header" style="margin-bottom:12px;">
+            <span class="card-title" style="margin-bottom:0;">TAREAS DEL DÍA</span>
+            <button class="btn btn-sm" style="background:var(--bg3); color:var(--t1);" onclick="openModal('modal-task')">+ Tarea</button>
         </div>
+        <div id="tasks-list"></div>
       </div>
 
-      <div id="tv-pomo" style="display:none">
-        <div class="card">
-          <div class="pill-row"><span class="pill on" onclick="setPomoMode('focus',this)">Enfoque 25m</span><span class="pill" onclick="setPomoMode('short',this)">Pausa 5m</span><span class="pill" onclick="setPomoMode('long',this)">Descanso 15m</span></div>
-          <div class="pomo-display">
-            <div class="pomo-label" id="pomo-label">ENFOQUE</div><div class="pomo-num" id="pomo-display">25:00</div>
-            <div class="pomo-btns"><button class="pomo-btn pomo-play" onclick="togglePomo()" id="pomo-play">▶</button><button class="pomo-btn pomo-reset" onclick="resetPomo()">↺</button></div>
-          </div>
+      <!-- 4. HÁBITOS (HABIT TRACKING) -->
+      <div class="card card-full">
+        <div class="card-header" style="margin-bottom:12px;">
+            <span class="card-title" style="margin-bottom:0;">TUS HÁBITOS</span>
+            <button class="btn btn-sm" style="background:var(--bg3); color:var(--t1);" onclick="openModal('modal-habit')">+ Hábito</button>
         </div>
-        <div class="card"><div class="card-title">Sesiones hoy</div><div class="row"><span style="font-size:14px;color:var(--t2)">Completadas</span><span style="font-size:22px;font-weight:700" id="pomo-sessions">0</span></div></div>
+        <div id="habits-list"></div>
       </div>
+
+      <!-- 5. REFLEXIÓN DIARIA Y NOTAS -->
+      <div class="card card-full">
+        <div class="card-title">REFLEXIÓN / NOTAS DEL DÍA</div>
+        <textarea id="daily-notes" class="form-input" style="min-height: 120px; resize: none; margin-bottom:0;" placeholder="¿Qué tal ha ido el día? Apunta ideas, reuniones o pensamientos..." oninput="saveDailyNotes()"></textarea>
+      </div>
+
     </div>
   </div>
 
+  <!-- NAVEGACIÓN -->
   <nav class="nav">
-    <button class="nav-btn" onclick="window.location.href='index.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="nav-label">Inicio</span></button>
-    <button class="nav-btn on" onclick="window.location.href='calendario.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span class="nav-label">Calendario</span></button>
-    <button class="nav-btn" onclick="window.location.href='finanzas.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg><span class="nav-label">Finanzas</span></button>
-    <button class="nav-btn" onclick="window.location.href='cartera.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Cartera</span></button>
-    <button class="nav-btn" onclick="window.location.href='gym.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5v14M18 5v14M3 9h18M3 15h18"/></svg><span class="nav-label">Gym</span></button>
+    <button class="nav-btn" onclick="window.location.href='index.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="nav-label">Inicio</span></button>
+    <button class="nav-btn on" onclick="window.location.href='calendario.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span class="nav-label">Agenda</span></button>
+    <button class="nav-btn" onclick="window.location.href='finanzas.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg><span class="nav-label">Finanzas</span></button>
+    <button class="nav-btn" onclick="window.location.href='cartera.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Cartera</span></button>
+    <button class="nav-btn" onclick="window.location.href='gym.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 5v14M18 5v14M3 9h18M3 15h18"/></svg><span class="nav-label">Gym</span></button>
   </nav>
 
-  <!-- Modales Tareas/Eventos -->
+  <!-- MODAL: AÑADIR TAREA -->
   <div class="overlay" id="modal-task" onclick="closeModal('modal-task',event)">
-    <div class="modal"><div class="modal-handle"></div><div class="modal-title">Nuevo evento</div>
-      <div class="form-row"><div><div class="form-label">Nombre</div><input type="text" id="t-name" placeholder="Título..."></div></div>
-      <div class="form-row" style="margin-top:10px">
-        <div><div class="form-label">Categoría</div><select id="t-cat"><option value="trabajo">Trabajo</option><option value="clases">Clases</option><option value="exámenes">Exámenes</option><option value="gym">Gym</option><option value="cumpleaños">Cumpleaños</option><option value="quedadas">Quedadas</option><option value="otro">Otros</option></select></div>
-        <div><div class="form-label">Hora (opcional)</div><input type="text" id="t-time" placeholder="09:00"></div>
-      </div>
-      <div style="margin-top:10px"><div class="form-label">Fecha</div><input type="date" id="t-date"></div>
-      <button class="btn btn-primary" style="margin-top:16px" onclick="addTask()">Añadir evento</button>
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title" style="margin-bottom:20px;">Nueva Tarea</div>
+      <label class="form-label">¿Qué quieres lograr?</label>
+      <input type="text" id="task-text" class="form-input" placeholder="Ej: Terminar proyecto, Enviar email...">
+      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="addTask()">Guardar Tarea</button>
     </div>
   </div>
 
-  <div class="overlay" id="modal-kanban" onclick="closeModal('modal-kanban',event)">
-    <div class="modal"><div class="modal-handle"></div><div class="modal-title" id="modal-kanban-title">Añadir evento</div>
-      <div class="form-label">Evento</div><input type="text" id="k-title" placeholder="¿Qué evento es?">
-      <div class="form-row" style="margin-top:10px"><div><div class="form-label">Categoría</div><select id="k-cat"><option value="trabajo">Trabajo</option><option value="clases">Clases</option><option value="exámenes">Exámenes</option><option value="gym">Gym</option><option value="cumpleaños">Cumpleaños</option><option value="quedadas">Quedadas</option><option value="otro">Otros</option></select></div></div>
-      <input type="hidden" id="k-col-target"><button class="btn btn-primary" style="margin-top:16px" onclick="addKanbanCard()">Añadir</button>
+  <!-- MODAL: AÑADIR HÁBITO GLOBAL -->
+  <div class="overlay" id="modal-habit" onclick="closeModal('modal-habit',event)">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title" style="margin-bottom:20px;">Nuevo Hábito</div>
+      <label class="form-label">Nombre del hábito</label>
+      <input type="text" id="habit-text" class="form-input" placeholder="Ej: Leer 10 páginas, Beber agua...">
+      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="addHabit()">Crear Hábito</button>
     </div>
   </div>
 
-  <div class="overlay" id="modal-eis" onclick="closeModal('modal-eis',event)">
-    <div class="modal"><div class="modal-handle"></div><div class="modal-title" id="modal-eis-title">Añadir evento</div>
-      <div class="form-label">Evento</div><input type="text" id="eis-task-text" placeholder="Describe el evento...">
-      <input type="hidden" id="eis-quad-target"><button class="btn btn-primary" style="margin-top:16px" onclick="addEisTask()">Añadir</button>
-    </div>
-  </div>
   <div class="toast-container" id="toast-container"></div>
 </div>
-<script src="js/main.js"></script><script src="js/tareas.js"></script>
-<script>document.addEventListener('DOMContentLoaded', init);</script>
+
+<script src="js/main.js?v=70"></script>
+<script src="js/calendario.js?v=70"></script>
 </body>
 </html>
