@@ -99,10 +99,10 @@ function renderDayContent() {
 }
 
 // ==========================================
-// VISTAS (PILLS: Agenda, Kanban, Matriz...)
+// VISTAS (PILLS AISLADOS: Agenda, Kanban, Matriz...)
 // ==========================================
 function switchTaskView(v, pill) {
-    document.querySelectorAll('#s-tareas .pill').forEach(p => p.classList.remove('on'));
+    document.querySelectorAll('#s-tareas .ag-pill').forEach(p => p.classList.remove('on'));
     pill.classList.add('on');
     ['agenda', 'kanban', 'eisenhower', 'resources'].forEach(id => {
         const el = document.getElementById('tv-' + id);
@@ -181,7 +181,7 @@ function addTask() {
     const time = document.getElementById('t-time').value;
     const recurrence = document.getElementById('t-recurrence').value;
     
-    // Tomamos la fecha del nuevo input de fecha de inicio
+    // Tomamos la fecha del input (o el día seleccionado por defecto)
     const tDate = document.getElementById('t-start-date').value || selectedDateStr;
 
     const createSingleTask = (dateStr) => {
@@ -451,9 +451,9 @@ function resetPomo() {
     btn.style.background = "#8b5cf6";
 }
 
-function setPomoMode(m, pill) {
-    document.querySelectorAll('#tv-pomo .pill').forEach(p => p.classList.remove('on'));
-    pill.classList.add('on');
+function setPomoMode(m, pillEl) {
+    document.querySelectorAll('#tv-pomo .pomo-tab').forEach(p => p.classList.remove('on'));
+    pillEl.classList.add('on');
     pomoMode = m;
     clearInterval(pomoInterval); pomoRunning = false;
     pomoSec = pomoModes[m]; updPomo();
