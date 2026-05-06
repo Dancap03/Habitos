@@ -29,7 +29,7 @@
   .check-circle.checked { background: var(--acc); border-color: var(--acc); }
   .check-circle.checked::after { content: '✓'; color: #fff; font-size: 12px; font-weight: bold; }
 
-  /* Pill Styles (Fijos para evitar estiramientos) */
+  /* Pill Styles */
   .ag-pill-container { display: flex; flex-direction: row; align-items: center; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; width: 100%; flex: 0 0 auto; min-height: 45px; }
   .ag-pill-container::-webkit-scrollbar { display: none; }
   .ag-pill { background: var(--bg3); color: var(--t2); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; border: none; flex: 0 0 auto; height: 36px; display: inline-flex; align-items: center; justify-content: center; }
@@ -37,9 +37,10 @@
 
   /* Estilos Proyectos */
   .projects-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .project-card { background: var(--bg2); border-radius: 12px; padding: 16px; border: 1px solid var(--line); min-height: 100px; display: flex; flex-direction: column; justify-content: space-between; }
-  .project-title { font-size: 14px; font-weight: 800; text-transform: uppercase; color: var(--acc); display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; line-height: 1.2; }
-  .project-date { font-size: 11px; color: var(--t3); font-weight: 600; }
+  .project-card { background: var(--bg2); border-radius: 12px; padding: 16px; border: 1px solid var(--line); min-height: 100px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; }
+  .project-title { font-size: 14px; font-weight: 800; text-transform: uppercase; color: var(--acc); display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .project-stats { font-size: 10px; color: var(--t3); font-weight: 700; margin-bottom: 8px; }
+  .project-date { font-size: 10px; color: var(--t3); font-weight: 600; opacity: 0.7; }
 </style>
 </head>
 <body>
@@ -52,7 +53,6 @@
 
     <div class="scroll" style="padding-bottom: 90px;">
 
-      <!-- SELECTOR DE VISTAS -->
       <div class="ag-pill-container" id="s-tareas">
         <button class="ag-pill on" onclick="switchTaskView('agenda', this)">Agenda Diaria</button>
         <button class="ag-pill" onclick="switchTaskView('proyectos', this)">Proyectos</button>
@@ -75,7 +75,6 @@
 
           <div style="margin: 20px 0 10px 4px; font-weight:800; font-size:18px; color:var(--t1);" id="selected-date-label">Hoy</div>
 
-          <!-- FOCUS-TIME BLOCKING -->
           <div class="card card-full" style="background: linear-gradient(145deg, rgba(30,30,35,1) 0%, rgba(20,20,25,1) 100%); border: 1px solid rgba(139, 92, 246, 0.3);">
             <div class="card-title" style="color: #8b5cf6;" id="pomo-label">FOCUS-TIME BLOCKING</div>
             <div class="pomo-tabs" id="tv-pomo">
@@ -84,14 +83,13 @@
                 <button class="pomo-tab" onclick="setPomoMode('long', this)">Largo</button>
             </div>
             <div class="pomo-timer" id="pomo-display">25:00</div>
-            <div style="text-align:center; font-size:12px; color:var(--t3); margin-bottom:16px;">Sesiones Completadas: <span id="pomo-sessions" style="color:var(--t1); font-weight:bold;">0</span></div>
+            <div style="text-align:center; font-size:12px; color:var(--t3); margin-bottom:16px;">Sesiones: <span id="pomo-sessions" style="color:var(--t1); font-weight:bold;">0</span></div>
             <div style="display:flex; justify-content:center; gap:12px;">
                 <button class="btn" style="background:#8b5cf6; color:#fff; font-weight:700; padding:10px 24px; border-radius:20px;" id="pomo-play" onclick="togglePomo()">▶ Empezar</button>
                 <button class="btn" style="background:var(--bg4); color:var(--t1); font-weight:700; padding:10px 16px; border-radius:20px;" onclick="resetPomo()">↻</button>
             </div>
           </div>
 
-          <!-- GOAL SETTING (METAS) -->
           <div class="card card-full">
             <div class="card-header" style="margin-bottom:12px;">
                 <span class="card-title" style="margin-bottom:0;">GOAL SETTING (METAS)</span>
@@ -100,7 +98,6 @@
             <div id="tasks-list"></div>
           </div>
 
-          <!-- HABIT TRACKING -->
           <div class="card card-full">
             <div class="card-header" style="margin-bottom:12px;">
                 <span class="card-title" style="margin-bottom:0;">HABIT TRACKING</span>
@@ -113,9 +110,7 @@
       <!-- VISTA 2: PROYECTOS -->
       <div id="tv-proyectos" style="display:none;">
           <div style="font-size:12px; color:var(--t3); margin-bottom:16px; text-transform:uppercase; font-weight:700; letter-spacing: 0.5px;">Tus Proyectos Activos</div>
-          <div class="projects-grid" id="projects-container">
-              <!-- Se rellena con JS -->
-          </div>
+          <div class="projects-grid" id="projects-container"></div>
       </div>
 
       <!-- VISTA 3: RECURSOS -->
@@ -200,6 +195,39 @@
     </div>
   </div>
 
+  <!-- MODAL: GESTIÓN DE TAREAS DE PROYECTO -->
+  <div class="overlay" id="modal-project-tasks" onclick="closeModal('modal-project-tasks',event)">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title" id="project-manage-title" style="margin-bottom:10px;">Proyecto</div>
+      <div id="project-manage-date" style="font-size:11px; color:var(--t3); margin-bottom:20px; font-weight:700;">Iniciado: --</div>
+      
+      <!-- Formulario para añadir tarea al proyecto -->
+      <div style="background:var(--bg2); padding:16px; border-radius:12px; margin-bottom:20px; border:1px solid var(--line);">
+          <label class="form-label" style="margin-top:0;">Nueva Tarea del Proyecto</label>
+          <input type="text" id="pt-name" class="form-input" placeholder="Nombre de la tarea...">
+          <div style="display:flex; gap:10px;">
+              <div style="flex:1;">
+                  <label class="form-label">Prioridad</label>
+                  <select id="pt-priority" class="form-input">
+                      <option value="Alta">Alta 🔴</option>
+                      <option value="Media" selected>Media 🟡</option>
+                      <option value="Baja">Baja 🔵</option>
+                  </select>
+              </div>
+              <div style="flex:1;">
+                  <label class="form-label">Fecha Límite</label>
+                  <input type="date" id="pt-deadline" class="form-input">
+              </div>
+          </div>
+          <button class="btn btn-sm" style="width:100%; background:var(--acc); color:#fff; font-weight:700;" onclick="addProjectTask()">+ Añadir Tarea</button>
+      </div>
+
+      <label class="form-label">Lista de Tareas</label>
+      <div id="project-tasks-list" style="max-height: 300px; overflow-y: auto;"></div>
+    </div>
+  </div>
+
   <!-- MODAL: HÁBITO -->
   <div class="overlay" id="modal-habit" onclick="closeModal('modal-habit',event)">
     <div class="modal">
@@ -229,7 +257,7 @@
   <div class="toast-container" id="toast-container"></div>
 </div>
 
-<script src="js/main.js?v=88"></script>
-<script src="js/calendario.js?v=88"></script>
+<script src="js/main.js?v=92"></script>
+<script src="js/calendario.js?v=92"></script>
 </body>
 </html>
