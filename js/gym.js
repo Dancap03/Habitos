@@ -45,10 +45,12 @@ function renderGymInit() {
     renderRecords();
 }
 
-// --- CREADOR DE RUTINAS BASE ---
+// --- CREADOR Y EDITOR DE RUTINAS ---
 let tempRtExercises = [];
+let editingRoutineId = null; // Guardamos el ID de la rutina que estamos editando
 
 function openRoutineModal() {
+    editingRoutineId = null; // Nos aseguramos de que es una rutina NUEVA
     document.getElementById('rt-name').value = '';
     document.getElementById('rt-main-type').value = 'pesas';
     
@@ -59,6 +61,33 @@ function openRoutineModal() {
     document.getElementById('rt-ex-sets').value = '';
     document.getElementById('rt-cardio-unit').value = '';
     
+    toggleRtMainType();
+    openModal('modal-routine');
+}
+
+// NUEVA FUNCIÓN: Abrir modal para editar
+function editRoutine(id) {
+    const r = S.routines.find(x => x.id === id);
+    if (!r) return;
+    
+    editingRoutineId = id; // Marcamos que estamos editando
+    
+    // Rellenar datos básicos
+    document.getElementById('rt-name').value = r.name || '';
+    document.getElementById('rt-main-type').value = r.type || 'pesas';
+    
+    // Rellenar ejercicios
+    if (r.type === 'pesas') {
+        // Hacemos una copia profunda de los ejercicios
+        tempRtExercises = JSON.parse(JSON.stringify(r.exercises || []));
+        document.getElementById('rt-ex-name').value = '';
+        document.getElementById('rt-ex-sets').value = '';
+    } else {
+        tempRtExercises = [];
+        document.getElementById('rt-cardio-unit').value = (r.exercises && r.exercises[0] && r.exercises[0].unit) ? r.exercises[0].unit : 'km';
+    }
+    
+    renderRtExList();
     toggleRtMainType();
     openModal('modal-routine');
 }
@@ -119,10 +148,24 @@ function addRoutine() {
     }
     
     if (!Array.isArray(S.routines)) S.routines = [];
-    S.routines.push({ id: uid(), name, type, exercises: finalExercises });
+    
+    if (editingRoutineId) {
+        // ACTUALIZAR RUTINA EXISTENTE
+        const index = S.routines.findIndex(x => x.id === editingRoutineId);
+        if (index > -1) {
+            S.routines[index].name = name;
+            S.routines[index].type = type;
+            S.routines[index].exercises = finalExercises;
+        }
+        showToast('Rutina actualizada ✅');
+        editingRoutineId = null; // Limpiamos estado
+    } else {
+        // CREAR NUEVA RUTINA
+        S.routines.push({ id: uid(), name, type, exercises: finalExercises });
+        showToast('Rutina guardada ✅');
+    }
     
     save(); closeModal('modal-routine'); renderRoutines();
-    showToast('Rutina guardada');
 }
 
 function renderRoutines() {
@@ -141,9 +184,10 @@ function renderRoutines() {
                 <div style="font-weight:700; font-size:15px; color:${isCardio ? 'var(--yel)' : 'var(--t1)'}">${r.name || 'Sin nombre'}</div>
                 <div style="font-size:11px; color:var(--t3); margin-top:2px;">${subText}</div>
             </div>
-            <div style="display:flex; gap:12px; align-items:center;">
+            <div style="display:flex; gap:8px; align-items:center;">
                 <button class="btn btn-sm" style="background:var(--acc); color:#fff;" onclick="startWorkout('${r.id}')">▶ Empezar</button>
-                <button class="btn-danger" onclick="delRoutine('${r.id}')">✕</button>
+                <button class="btn btn-sm" style="background:var(--bg3); color:var(--t1); padding:5px 10px;" onclick="editRoutine('${r.id}')">✏️</button>
+                <button class="btn-danger" style="padding:4px 8px; font-size:12px;" onclick="delRoutine('${r.id}')">✕</button>
             </div>
         </div>
         `;
@@ -151,10 +195,16 @@ function renderRoutines() {
 }
 
 function delRoutine(id) {
-    customConfirm('Borrar Rutina', '¿Eliminar esta rutina para siempre?', () => {
+    if (typeof customConfirm === 'function') {
+        customConfirm('Borrar Rutina', '¿Eliminar esta rutina para siempre?', () => {
+            S.routines = S.routines.filter(x => x.id !== id);
+            save(); renderRoutines();
+        });
+    } else {
+        if (!confirm('¿Eliminar esta rutina para siempre?')) return;
         S.routines = S.routines.filter(x => x.id !== id);
         save(); renderRoutines();
-    });
+    }
 }
 
 // --- ENTRENO ACTIVO ---
@@ -345,7 +395,12 @@ function toggleSet(exIdx, sIdx) {
 }
 
 function cancelWorkout() {
-    customConfirm('Cancelar Entreno', '¿Descartar este entrenamiento?', () => { S.activeRoutine = null; save(); renderActiveWorkout(); });
+    if (typeof customConfirm === 'function') {
+        customConfirm('Cancelar Entreno', '¿Descartar este entrenamiento?', () => { S.activeRoutine = null; save(); renderActiveWorkout(); });
+    } else {
+        if (!confirm('¿Descartar este entrenamiento?')) return;
+        S.activeRoutine = null; save(); renderActiveWorkout();
+    }
 }
 
 function finishWorkout() {
@@ -567,10 +622,16 @@ function renderWorkoutLog() {
 }
 
 function delWorkoutLog(id) { 
-    customConfirm('Borrar Entreno', '¿Eliminar este día?', () => { 
+    if (typeof customConfirm === 'function') {
+        customConfirm('Borrar Entreno', '¿Eliminar este día?', () => { 
+            S.workoutLog = S.workoutLog.filter(x => x.id !== id); 
+            save(); renderWorkoutLog(); 
+        }); 
+    } else {
+        if (!confirm('¿Eliminar este día?')) return;
         S.workoutLog = S.workoutLog.filter(x => x.id !== id); 
         save(); renderWorkoutLog(); 
-    }); 
+    }
 }
 
 function renderRecords() {
@@ -615,10 +676,18 @@ function renderRecords() {
 }
 
 function delRecord(key) {
-    customConfirm('Borrar Récord', `¿Eliminar tu récord de ${key}?`, () => {
+    if (typeof customConfirm === 'function') {
+        customConfirm('Borrar Récord', `¿Eliminar tu récord de ${key}?`, () => {
+            delete S.prs[key];
+            save(); 
+            renderRecords();
+            showToast('Récord eliminado');
+        });
+    } else {
+        if (!confirm(`¿Eliminar tu récord de ${key}?`)) return;
         delete S.prs[key];
         save(); 
         renderRecords();
         showToast('Récord eliminado');
-    });
+    }
 }
