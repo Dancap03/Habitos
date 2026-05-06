@@ -92,7 +92,7 @@
             <div id="tasks-list"></div>
           </div>
 
-          <!-- PROYECTOS (Reemplazando Hábitos) -->
+          <!-- PROYECTOS -->
           <div class="card card-full">
               <div class="card-header" style="margin-bottom:12px;">
                   <span class="card-title" style="margin-bottom:0;">PROYECTOS</span>
@@ -152,7 +152,7 @@
 
       <div style="display:flex; gap:10px;">
           <div style="flex:1;">
-              <label class="form-label">Fecha de inicio/Límite</label>
+              <label class="form-label">Fecha de inicio</label>
               <input type="date" id="t-start-date" class="form-input">
           </div>
           <div style="flex:1;">
@@ -197,6 +197,41 @@
     </div>
   </div>
 
+  <!-- MODAL: EDITAR TAREA DE PROYECTO -->
+  <div class="overlay" id="modal-edit-project-task" onclick="closeModal('modal-edit-project-task',event)">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title" style="margin-bottom:20px;">Editar Tarea</div>
+      
+      <input type="hidden" id="edit-pt-pid">
+      <input type="hidden" id="edit-pt-tid">
+
+      <label class="form-label">Nombre de la tarea</label>
+      <input type="text" id="edit-pt-name" class="form-input" placeholder="...">
+
+      <label class="form-label">DESCRIPCIÓN (Opcional)</label>
+      <textarea id="edit-pt-desc" class="form-input" style="min-height:60px;resize:none;" placeholder="..."></textarea>
+
+      <div style="display:flex; gap:10px;">
+          <div style="flex:1;">
+              <label class="form-label">PRIORIDAD</label>
+              <select id="edit-pt-priority" class="form-input">
+                  <option value="ui">Urgente + Imp 🔴</option>
+                  <option value="ni">No Urg + Imp 🔵</option>
+                  <option value="un">Urg + No Imp 🟡</option>
+                  <option value="nn">No Urg + No Imp ⚪</option>
+              </select>
+          </div>
+          <div style="flex:1;">
+              <label class="form-label">FECHA LÍMITE</label>
+              <input type="date" id="edit-pt-deadline" class="form-input">
+          </div>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="saveEditProjectTask()">Guardar Cambios</button>
+    </div>
+  </div>
+
   <!-- MODAL: RECURSO -->
   <div class="overlay" id="modal-resource" onclick="closeModal('modal-resource',event)">
     <div class="modal">
@@ -215,7 +250,7 @@
   <div class="toast-container" id="toast-container"></div>
 </div>
 
-<script src="js/main.js?v=99"></script>
-<script src="js/calendario.js?v=99"></script>
+<script src="js/main.js?v=101"></script>
+<script src="js/calendario.js?v=101"></script>
 </body>
 </html>
