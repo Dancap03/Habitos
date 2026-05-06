@@ -4,6 +4,7 @@
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
 let selectedDateStr = today(); 
+let activeProjectId = null; // Para saber qué proyecto estamos gestionando
 
 let pomoSec = 25 * 60;
 let pomoRunning = false;
@@ -91,7 +92,7 @@ function switchTaskView(v, pill) {
 }
 
 // ==========================================
-// GOAL SETTING & PROYECTOS
+// GOAL SETTING (METAS)
 // ==========================================
 function addTask() {
     const name = document.getElementById('t-name').value.trim();
@@ -102,12 +103,10 @@ function addTask() {
     const recurrence = document.getElementById('t-recurrence').value;
     const tDate = document.getElementById('t-start-date').value || selectedDateStr;
 
-    // CREAR PROYECTO SI ES CATEGORÍA "OTRO"
+    // CREAR PROYECTO SI ES "OTRO"
     if (cat === "Otro") {
-        if (!S.projects) S.projects = [];
-        // Evitar duplicados por nombre
         if (!S.projects.some(p => p.name === name)) {
-            S.projects.push({ id: uid(), name: name, date: tDate });
+            S.projects.push({ id: uid(), name: name, date: tDate, tasks: [] });
         }
     }
 
@@ -208,7 +207,7 @@ function deleteTask(id) {
 }
 
 // ==========================================
-// VISTA PROYECTOS
+// VISTA PROYECTOS (ESTRUCTURA DE TAREAS)
 // ==========================================
 function renderProjects() {
     const cont = document.getElementById('projects-container');
@@ -217,25 +216,101 @@ function renderProjects() {
         cont.innerHTML = '<div style="color:var(--t3); grid-column: span 2; text-align:center; padding:20px; font-size:13px;">Las metas con categoría "Otro" se crearán aquí como proyectos.</div>';
         return;
     }
-    cont.innerHTML = S.projects.map(p => `
-        <div class="project-card">
+    cont.innerHTML = S.projects.map(p => {
+        const total = (p.tasks || []).length;
+        const done = (p.tasks || []).filter(t => t.done).length;
+        return `
+        <div class="project-card" onclick="openProjectTasks('${p.id}')">
             <div class="project-title">
                 <span>${p.name}</span>
-                <span style="color:var(--t3); font-size:14px; cursor:pointer; padding-left:10px;" onclick="delProject('${p.id}')">✕</span>
+                <span style="color:var(--t3); font-size:14px;" onclick="event.stopPropagation(); delProject('${p.id}')">✕</span>
             </div>
+            <div class="project-stats">${done}/${total} tareas completadas</div>
             <div class="project-date">📅 Iniciado: ${p.date}</div>
-        </div>`).join('');
+        </div>`;
+    }).join('');
 }
 
 function delProject(id) {
-    if(confirm("¿Eliminar este proyecto?")) {
+    if(confirm("¿Eliminar este proyecto y todas sus tareas?")) {
         S.projects = S.projects.filter(p => p.id !== id);
         save(); renderProjects();
     }
 }
 
+// GESTIÓN DE TAREAS DENTRO DEL PROYECTO
+function openProjectTasks(id) {
+    const p = S.projects.find(x => x.id === id);
+    if (!p) return;
+    activeProjectId = id;
+    
+    document.getElementById('project-manage-title').textContent = p.name;
+    document.getElementById('project-manage-date').textContent = `Iniciado: ${p.date}`;
+    document.getElementById('pt-deadline').value = today();
+    
+    renderProjectTasksList();
+    openModal('modal-project-tasks');
+}
+
+function addProjectTask() {
+    const name = document.getElementById('pt-name').value.trim();
+    const priority = document.getElementById('pt-priority').value;
+    const deadline = document.getElementById('pt-deadline').value;
+    
+    if (!name) return showToast('Escribe el nombre de la tarea', 'error');
+    
+    const p = S.projects.find(x => x.id === activeProjectId);
+    if (!p.tasks) p.tasks = [];
+    
+    p.tasks.push({ id: uid(), text: name, priority, deadline, done: false });
+    
+    save();
+    document.getElementById('pt-name').value = '';
+    renderProjectTasksList();
+    renderProjects(); // Para actualizar el contador (0/1)
+    showToast('Tarea añadida al proyecto');
+}
+
+function renderProjectTasksList() {
+    const p = S.projects.find(x => x.id === activeProjectId);
+    const list = document.getElementById('project-tasks-list');
+    
+    if (!p.tasks || p.tasks.length === 0) {
+        list.innerHTML = '<div class="empty">No hay tareas en este proyecto</div>';
+        return;
+    }
+
+    const prioColor = { Alta: '#e74c3c', Media: '#f59e0b', Baja: '#3b82f6' };
+
+    list.innerHTML = p.tasks.map(t => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 3px solid ${prioColor[t.priority] || 'var(--acc)'};">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div class="check-circle ${t.done ? 'checked' : ''}" onclick="toggleProjectTask('${t.id}')"></div>
+                <div>
+                    <div style="font-size:13px; font-weight:700; color:${t.done ? 'var(--t3)' : 'var(--t1)'}; text-decoration:${t.done ? 'line-through' : 'none'};">${t.text}</div>
+                    <div style="font-size:10px; color:var(--t3);">Límite: ${t.deadline}</div>
+                </div>
+            </div>
+            <button class="btn-danger" style="background:transparent; color:var(--t3); font-size:12px;" onclick="delProjectTask('${t.id}')">✕</button>
+        </div>
+    `).join('');
+}
+
+function toggleProjectTask(taskId) {
+    const p = S.projects.find(x => x.id === activeProjectId);
+    const t = p.tasks.find(x => x.id === taskId);
+    t.done = !t.done;
+    save(); renderProjectTasksList(); renderProjects();
+}
+
+function delProjectTask(taskId) {
+    const p = S.projects.find(x => x.id === activeProjectId);
+    p.tasks = p.tasks.filter(x => x.id !== taskId);
+    save(); renderProjectTasksList(); renderProjects();
+}
+
 // ==========================================
-// OTROS COMPONENTES
+// RECURSOS, POMODORO Y HÁBITOS (RECUADROS FIX)
 // ==========================================
 function renderResources() {
     const list = document.getElementById('resources-list');
