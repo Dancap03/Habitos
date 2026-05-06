@@ -1,6 +1,6 @@
 // 1. ESTADO GLOBAL
 const S = {
-  tasks: [], fin: [], recurring: [], stocks: [], routines: [], workoutLog: [], prs: {},
+  tasks: [], fin: [], recurring: [], stocks: [], routines: [], workoutLog: [], prs: {}, projects: [],
   kanban: { todo:[], doing:[], done:[] }, eis: { ui:[], ni:[], un:[], nn:[] },
   pomo: { sessions: 0 }, activePeriod: 'semana', activeRoutine: null
 };
@@ -16,13 +16,13 @@ function load() {
     if (d) Object.assign(S, JSON.parse(d));
     // Protecciones contra datos vacíos
     if (!S.tasks) S.tasks = [];
+    if (!S.projects) S.projects = [];
     if (!S.workoutLog) S.workoutLog = [];
     if (!S.fin) S.fin = [];
     if (!S.stocks) S.stocks = [];
     if (!S.recurring) S.recurring = [];
   } catch(e) { console.error("Error cargando datos"); }
 }
-
 
 // 4. UTILIDADES GENERALES
 function uid() { return Math.random().toString(36).slice(2, 10); }
@@ -142,18 +142,18 @@ function renderHome() {
             const color = t.isProject ? (prioColor[t.priority] || 'var(--acc)') : 'var(--acc)';
             const title = t.isProject ? t.text : t.name;
             
-            // Si la tarea tiene hora, la mostramos. Si no, no.
+            // Si la tarea tiene hora, la mostramos.
             let timeStr = t.time ? `${t.time} · ` : '';
-            const sub = t.isProject ? `Proyecto: ${t.projectName}` : `${timeStr}${t.cat}`;
+            const sub = t.isProject ? `${timeStr}Proyecto: ${t.projectName}` : `${timeStr}${t.cat}`;
             
-            // Acciones para marcar el check sin redirigir
+            // Acciones para marcar el check sin redirigir (se quitó el onclick del wrapper)
             const toggleAction = t.isProject ? `toggleProjectTaskHome('${t.projectId}', '${t.id}')` : `toggleTaskHome('${t.id}')`;
 
             return `
             <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 4px solid ${color}; opacity: ${t.done ? '0.6' : '1'};">
                 <div style="display:flex; align-items:center; gap:12px; flex:1;">
                     <div class="check-circle ${t.done ? 'checked' : ''}" onclick="event.stopPropagation(); ${toggleAction}"></div>
-                    <div style="flex:1; cursor:pointer;" onclick="window.location.href='calendario.html'">
+                    <div style="flex:1;">
                         <div style="font-size:14px; font-weight:600; color:${t.done ? 'var(--t3)' : 'var(--t1)'}; text-decoration:${t.done ? 'line-through' : 'none'};">${title}</div>
                         <div style="font-size:11px; color:var(--t3); margin-top:4px;">${sub}</div>
                     </div>
@@ -257,7 +257,6 @@ function addTaskHome() {
     showToast('Evento guardado ✅');
 }
 
- 
 
 function changeGymMonth(dir) { currGymMonth += dir; if(currGymMonth<0){currGymMonth=11;currGymYear--;} else if(currGymMonth>11){currGymMonth=0;currGymYear++;} renderGymCalendar(); }
 function renderGymCalendar() {
@@ -307,41 +306,31 @@ function setupSwipeToClose() {
         let currentY = 0;
         let isDragging = false;
 
-        // Cuando ponemos el dedo en la rayita
         handle.addEventListener('touchstart', (e) => {
             startY = e.touches[0].clientY;
             isDragging = true;
-            modal.style.transition = 'none'; // Quitamos la animación para que siga al dedo
+            modal.style.transition = 'none'; 
         }, { passive: true });
 
-        // Mientras arrastramos el dedo
         handle.addEventListener('touchmove', (e) => {
             if (!isDragging) return;
             const y = e.touches[0].clientY;
-            currentY = Math.max(0, y - startY); // Solo permitimos arrastrar hacia abajo
-            
-            // Movemos el modal visualmente
+            currentY = Math.max(0, y - startY); 
             modal.style.transform = `translateY(${currentY}px)`;
         }, { passive: true });
 
-        // Cuando soltamos el dedo
         handle.addEventListener('touchend', () => {
             if (!isDragging) return;
             isDragging = false;
-            
-            // Devolvemos la animación suave
             modal.style.transition = 'transform 0.3s cubic-bezier(0.1, 0.8, 0.2, 1)'; 
 
-            // Si lo hemos bajado más de 100px, lo cerramos
             if (currentY > 100) {
                 const overlay = modal.closest('.overlay');
                 if (overlay) {
-                    // Quitamos los estilos en línea para que CSS vuelva a tomar el control
                     setTimeout(() => modal.style.transform = '', 300); 
-                    overlay.classList.remove('on'); // Cerramos el modal
+                    overlay.classList.remove('on'); 
                 }
             } else {
-                // Si no lo bajamos lo suficiente, rebota a su sitio original
                 modal.style.transform = ''; 
             }
             currentY = 0;
