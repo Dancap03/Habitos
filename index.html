@@ -26,7 +26,7 @@
       <!-- 1. RECUADRO ÚNICO EXTENDIDO -->
       <div style="margin-bottom: 16px;">
         <div class="card card-full" style="text-align: center; padding: 24px;">
-            <div id="home-pending-count" style="font-size: 48px; font-weight: 800; margin-bottom: 8px;">0</div>
+            <div id="home-pending-count" style="font-size: 48px; font-weight: 800; margin-bottom: 8px; color: var(--t1);">0</div>
             <div style="font-size: 12px; color: var(--t3); font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Eventos Pendientes para Hoy</div>
         </div>
       </div>
@@ -45,13 +45,15 @@
       </div>
 
       <!-- 2. LISTA DE TAREAS DE HOY SINCRONIZADA -->
-      <div class="card card-full" style="margin-top: 16px;">
+<div class="card card-full" style="margin-top: 16px;">
         <div class="card-header" style="margin-bottom: 12px;">
             <span class="card-title" style="margin-bottom:0;">HOY</span>
-            <button class="btn btn-sm" style="background:var(--bg3); color:var(--t1);" onclick="window.location.href='calendario.html'">+ Evento</button>
+            <!-- Botón con color principal estilo Finanzas -->
+            <button class="btn btn-sm" style="background:var(--acc); color:#fff; font-weight:700; border:none;" onclick="window.location.href='calendario.html'">+ Evento</button>
         </div>
-        <!-- Aquí se inyectarán las tareas sin el "undefined" -->
-        <div id="home-tasks-list"></div>
+        <div id="home-tasks-list">
+            <!-- Se inyectan las tareas desde JS -->
+        </div>
       </div>
 
       <!-- FINANZAS (DISEÑO ORIGINAL + BOTÓN AÑADIR) -->
