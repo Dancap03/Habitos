@@ -70,18 +70,24 @@ function cancelConfirm(e, force = false) {
 
 // 6. DASHBOARD E INICIO
 function renderHome() {
-    const hoyStr = today(); // Fecha de hoy (ej: 2026-05-06)
+    // 1. Calculamos la fecha de hoy EXACTA (formato YYYY-MM-DD para igualar a la base de datos)
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hoyStr = `${y}-${m}-${day}`;
+    
     let pendingCount = 0;
     let combined = [];
 
-    // 1. Recopilar metas diarias normales
+    // 2. Buscar metas diarias normales de hoy
     if (S.tasks) {
         S.tasks.forEach(t => {
             if (t.date === hoyStr) combined.push({ ...t, isProject: false });
         });
     }
 
-    // 2. Recopilar tareas de proyectos cuya fecha límite es hoy
+    // 3. Buscar tareas de proyectos cuya fecha límite sea hoy
     if (S.projects) {
         S.projects.forEach(p => {
             if (p.tasks) {
@@ -94,7 +100,7 @@ function renderHome() {
         });
     }
 
-    // 3. Ordenar: No hechas primero, luego por prioridad (Matriz Eisenhower)
+    // 4. Ordenar: Primero las NO hechas, luego por prioridad de Eisenhower
     const pWeight = { ui: 4, ni: 3, un: 2, nn: 1 };
     combined.sort((a, b) => {
         if (a.done !== b.done) return a.done ? 1 : -1;
@@ -103,16 +109,16 @@ function renderHome() {
         return wB - wA; 
     });
 
-    // 4. Contar cuántas tareas de hoy están pendientes
+    // 5. Contar cuántas no están tachadas (pendientes)
     combined.forEach(t => {
         if (!t.done) pendingCount++;
     });
 
-    // 5. Actualizar el recuadro gigante de Eventos Pendientes
+    // 6. Actualizar el recuadro gigante extendido
     const countEl = document.getElementById('home-pending-count');
     if (countEl) countEl.textContent = pendingCount;
 
-    // 6. Renderizar la lista debajo del calendario
+    // 7. Renderizar la lista
     const listEl = document.getElementById('home-tasks-list');
     if (listEl) {
         if (combined.length === 0) {
@@ -123,12 +129,10 @@ function renderHome() {
         const prioColor = { ui: '#e74c3c', ni: '#3b82f6', un: '#f59e0b', nn: '#95a5a6', acc: '#8b5cf6' };
 
         listEl.innerHTML = combined.map(t => {
-            // El color dependerá de si es tarea de proyecto (usa la matriz) o meta normal (usa color de acento)
             const color = t.isProject ? (prioColor[t.priority] || 'var(--acc)') : 'var(--acc)';
             const title = t.isProject ? t.text : t.name;
             const sub = t.isProject ? `Proyecto: ${t.projectName}` : (t.time ? `${t.time} · ${t.cat}` : t.cat);
             
-            // Al hacer clic en una tarea de inicio, te lleva a la Agenda para gestionarla
             return `
             <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 4px solid ${color}; opacity: ${t.done ? '0.6' : '1'}; cursor:pointer;" onclick="window.location.href='calendario.html'">
                 <div style="display:flex; align-items:center; gap:12px;">
@@ -142,6 +146,7 @@ function renderHome() {
         }).join('');
     }
 }
+ 
 
 function changeGymMonth(dir) { currGymMonth += dir; if(currGymMonth<0){currGymMonth=11;currGymYear--;} else if(currGymMonth>11){currGymMonth=0;currGymYear++;} renderGymCalendar(); }
 function renderGymCalendar() {
