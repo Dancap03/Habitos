@@ -18,7 +18,7 @@ function initAgendaData() {
     if (!S.tasks) S.tasks = [];
     if (!S.pomo) S.pomo = { sessions: 0 };
     if (!S.resources) S.resources = [];
-    if (!S.projects) S.projects = []; // Nuevo array para Proyectos (Ex-Matriz)
+    if (!S.projects) S.projects = []; 
     
     if (!S.agenda) S.agenda = {};
     if (!S.agenda.habits) S.agenda.habits = [];
@@ -91,7 +91,7 @@ function switchTaskView(v, pill) {
 }
 
 // ==========================================
-// GOAL SETTING & PROYECTOS (LÓGICA OTRO)
+// GOAL SETTING & PROYECTOS
 // ==========================================
 function addTask() {
     const name = document.getElementById('t-name').value.trim();
@@ -102,8 +102,10 @@ function addTask() {
     const recurrence = document.getElementById('t-recurrence').value;
     const tDate = document.getElementById('t-start-date').value || selectedDateStr;
 
-    // SI LA CATEGORÍA ES "OTRO", CREAMOS PROYECTO
+    // CREAR PROYECTO SI ES CATEGORÍA "OTRO"
     if (cat === "Otro") {
+        if (!S.projects) S.projects = [];
+        // Evitar duplicados por nombre
         if (!S.projects.some(p => p.name === name)) {
             S.projects.push({ id: uid(), name: name, date: tDate });
         }
@@ -146,8 +148,8 @@ function addTask() {
     
     save(); closeModal('modal-task');
     resetTaskForm();
-    renderCalendar(); renderTasks(); 
-    showToast('Meta guardada');
+    renderCalendar(); renderTasks(); renderProjects(); 
+    showToast('Meta guardada ✅');
 }
 
 function resetTaskForm() {
@@ -155,6 +157,11 @@ function resetTaskForm() {
     document.getElementById('t-time').value = '';
     document.getElementById('t-recurrence').value = 'none';
     document.getElementById('custom-recurrence-options').style.display = 'none';
+    document.querySelectorAll('.custom-day-btn').forEach(btn => {
+        btn.classList.remove('on');
+        btn.style.background = 'var(--bg3)';
+        btn.style.color = 'var(--t1)';
+    });
 }
 
 function toggleCustomRecurrence() {
@@ -183,7 +190,7 @@ function renderTasks() {
                 <div class="check-circle ${t.done ? 'checked' : ''}" onclick="toggleTask('${t.id}')"></div>
                 <div style="flex:1">
                     <div style="font-size:14px; font-weight:600; color:${t.done ? 'var(--t3)' : 'var(--t1)'}; text-decoration:${t.done ? 'line-through' : 'none'};">${t.name}</div>
-                    <div style="font-size:11px; color:var(--t3); margin-top:4px;">${t.time || ''} · ${t.cat}</div>
+                    <div style="font-size:11px; color:var(--t3); margin-top:4px;">${t.time || '--:--'} · ${t.cat}</div>
                 </div>
             </div>
             <div style="color:var(--red); font-size:16px; cursor:pointer;" onclick="deleteTask('${t.id}')">✕</div>
@@ -201,29 +208,34 @@ function deleteTask(id) {
 }
 
 // ==========================================
-// VISTA PROYECTOS (OTRO)
+// VISTA PROYECTOS
 // ==========================================
 function renderProjects() {
     const cont = document.getElementById('projects-container');
     if (!cont) return;
-    if (S.projects.length === 0) {
-        cont.innerHTML = '<div style="color:var(--t3); grid-column: span 2; text-align:center; padding:20px;">Los metas con categoría "Otro" aparecerán aquí como proyectos.</div>';
+    if (!S.projects || S.projects.length === 0) {
+        cont.innerHTML = '<div style="color:var(--t3); grid-column: span 2; text-align:center; padding:20px; font-size:13px;">Las metas con categoría "Otro" se crearán aquí como proyectos.</div>';
         return;
     }
     cont.innerHTML = S.projects.map(p => `
         <div class="project-card">
-            <div class="project-title">${p.name} <span style="color:var(--red); cursor:pointer;" onclick="delProject('${p.id}')">✕</span></div>
-            <div style="font-size:11px; color:var(--t3);">Iniciado: ${p.date}</div>
+            <div class="project-title">
+                <span>${p.name}</span>
+                <span style="color:var(--t3); font-size:14px; cursor:pointer; padding-left:10px;" onclick="delProject('${p.id}')">✕</span>
+            </div>
+            <div class="project-date">📅 Iniciado: ${p.date}</div>
         </div>`).join('');
 }
 
 function delProject(id) {
-    S.projects = S.projects.filter(p => p.id !== id);
-    save(); renderProjects();
+    if(confirm("¿Eliminar este proyecto?")) {
+        S.projects = S.projects.filter(p => p.id !== id);
+        save(); renderProjects();
+    }
 }
 
 // ==========================================
-// RECURSOS, POMODORO Y HÁBITOS
+// OTROS COMPONENTES
 // ==========================================
 function renderResources() {
     const list = document.getElementById('resources-list');
@@ -269,7 +281,7 @@ function togglePomo() {
                 document.getElementById('pomo-play').textContent = '▶ Empezar';
                 if (pomoMode === 'focus') { S.pomo.sessions++; save(); }
                 pomoSec = pomoModes[pomoMode]; updPomo();
-                showToast("¡Focus completado!");
+                showToast("¡Focus completado! 🔔");
             }
         }, 1000);
     }
