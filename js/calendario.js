@@ -421,3 +421,144 @@ document.addEventListener('DOMContentLoaded', () => {
         renderEis();
     }, 100);
 });
+
+// ==========================================
+// TAREAS (CON REPETICIÓN Y PRIORIDAD)
+// ==========================================
+function catTagClass(cat) {
+    const c = (cat || '').toLowerCase();
+    if (c === 'trabajo') return 'tag-work';
+    if (c === 'personal') return 'tag-personal';
+    if (c === 'estudio') return 'tag-study';
+    return 'tag-other';
+}
+
+function getPriorityColor(p) {
+    if(p === 'Alta') return '#e74c3c'; // Rojo
+    if(p === 'Media') return '#f59e0b'; // Naranja/Amarillo
+    if(p === 'Baja') return '#3b82f6'; // Azul
+    return '#f59e0b'; // Default Media
+}
+
+function renderTasks() {
+    const list = document.getElementById('tasks-list');
+    const dayTasks = S.tasks.filter(t => t.date === selectedDateStr);
+    
+    // Ordenar tareas: primero las que no están hechas, luego por prioridad (Alta > Media > Baja)
+    const priorityWeight = { 'Alta': 3, 'Media': 2, 'Baja': 1, undefined: 2 };
+    dayTasks.sort((a, b) => {
+        if (a.done !== b.done) return a.done ? 1 : -1; // Las hechas abajo del todo
+        return priorityWeight[b.priority] - priorityWeight[a.priority]; // Mayor prioridad arriba
+    });
+    
+    if (dayTasks.length === 0) {
+        list.innerHTML = `<div style="color:var(--t3); font-size:13px; text-align:center; padding:10px;">Nada agendado para este día.</div>`;
+        return;
+    }
+
+    list.innerHTML = dayTasks.map(t => {
+        const pColor = getPriorityColor(t.priority);
+        return `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 4px solid ${pColor}; opacity: ${t.done ? '0.6' : '1'};">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div class="check-circle ${t.done ? 'checked' : ''}" onclick="toggleTask('${t.id}')"></div>
+                <div style="flex:1">
+                    <div style="font-size:14px; font-weight:600; color:${t.done ? 'var(--t3)' : 'var(--t1)'}; text-decoration:${t.done ? 'line-through' : 'none'};">${t.name}</div>
+                    <div style="font-size:11px; color:var(--t3); margin-top:4px;">
+                        ${t.time ? t.time + ' · ' : ''}
+                        <span class="tag ${catTagClass(t.cat)}">${t.cat}</span>
+                    </div>
+                </div>
+            </div>
+            <div style="color:var(--red); font-size:16px; cursor:pointer; padding:0 8px;" onclick="deleteTask('${t.id}')">✕</div>
+        </div>
+        `;
+    }).join('');
+}
+
+function addTask() {
+    const name = document.getElementById('t-name').value.trim();
+    if (!name) return showToast('Escribe un nombre para la tarea', 'error');
+    
+    const cat = document.getElementById('t-cat').value;
+    const time = document.getElementById('t-time').value;
+    const priority = document.getElementById('t-priority').value;
+    const recurrence = document.getElementById('t-recurrence').value;
+    
+    const tDate = document.getElementById('t-date').value || selectedDateStr;
+
+    // Función interna para crear una sola tarea en una fecha específica
+    const createSingleTask = (dateStr) => {
+        S.tasks.push({ 
+            id: uid(), 
+            name, 
+            cat, 
+            time, 
+            priority,
+            date: dateStr, 
+            done: false 
+        });
+    };
+
+    if (recurrence === 'none') {
+        createSingleTask(tDate);
+        showToast('Tarea guardada ✅');
+    } else {
+        // LÓGICA DE REPETICIÓN
+        let currDate = new Date(tDate);
+        // Calculamos el último día del mes de la fecha seleccionada
+        const endOfMonth = new Date(currDate.getFullYear(), currDate.getMonth() + 1, 0); 
+        let addedCount = 0;
+
+        while (currDate <= endOfMonth) {
+            // Formatear la fecha iterada a YYYY-MM-DD local
+            const dStr = `${currDate.getFullYear()}-${String(currDate.getMonth() + 1).padStart(2, '0')}-${String(currDate.getDate()).padStart(2, '0')}`;
+            
+            let shouldAdd = false;
+            const dayOfWeek = currDate.getDay(); // 0 es Domingo, 6 es Sábado
+
+            if (recurrence === 'daily') {
+                shouldAdd = true;
+            } else if (recurrence === 'weekdays') {
+                if (dayOfWeek !== 0 && dayOfWeek !== 6) shouldAdd = true; 
+            } else if (recurrence === 'weekly') {
+                const originalDay = new Date(tDate).getDay();
+                if (dayOfWeek === originalDay) shouldAdd = true;
+            }
+
+            if (shouldAdd) {
+                createSingleTask(dStr);
+                addedCount++;
+            }
+            
+            // Avanzar 1 día
+            currDate.setDate(currDate.getDate() + 1);
+        }
+        showToast(`${addedCount} tareas programadas ✅`);
+    }
+    
+    save(); 
+    closeModal('modal-task');
+    
+    // Limpiar formulario
+    document.getElementById('t-name').value = '';
+    document.getElementById('t-time').value = '';
+    document.getElementById('t-priority').value = 'Media';
+    document.getElementById('t-recurrence').value = 'none';
+    
+    renderCalendar();
+    renderTasks(); 
+    if(typeof renderHome === 'function') renderHome();
+}
+
+function toggleTask(id) {
+    const t = S.tasks.find(x => x.id === id);
+    if (t) { t.done = !t.done; save(); renderTasks(); renderCalendar(); if(typeof renderHome === 'function') renderHome(); }
+}
+
+function deleteTask(id) {
+    if (confirm("¿Borrar tarea?")) {
+        S.tasks = S.tasks.filter(x => x.id !== id); 
+        save(); renderTasks(); renderCalendar(); if(typeof renderHome === 'function') renderHome();
+    }
+}
