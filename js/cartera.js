@@ -15,7 +15,7 @@ function getTypeColor(type) {
 }
 
 // ==========================================
-// GENERADOR DE LEYENDAS (FIX CUADRÍCULA FLUIDA)
+// GENERADOR DE LEYENDAS (FIX CUADRÍCULA FLUIDA DEFINITIVA)
 // ==========================================
 function generateCustomLegend(containerId, labels, data, colors) {
     const container = document.getElementById(containerId);
@@ -23,13 +23,12 @@ function generateCustomLegend(containerId, labels, data, colors) {
     
     const total = data.reduce((a, b) => a + b, 0);
     
-    // Forzamos dirección fila y que envuelva (wrap) al quedarse sin espacio
+    // Contenedor principal
     container.style.display = 'flex';
     container.style.flexDirection = 'row';
     container.style.flexWrap = 'wrap';
     container.style.justifyContent = 'center';
-    container.style.alignItems = 'flex-start';
-    container.style.gap = '12px 24px'; // 12px de hueco vertical, 24px horizontal
+    container.style.gap = '16px 12px'; // 16px de espacio vertical, 12px horizontal
     container.style.width = '100%';
     container.style.marginTop = '24px';
 
@@ -37,12 +36,12 @@ function generateCustomLegend(containerId, labels, data, colors) {
         const pct = total > 0 ? ((data[i] / total) * 100).toFixed(1) : 0;
         const color = colors[i];
         
-        // flex: 0 0 auto permite que cada elemento ocupe solo lo que necesita
+        // LA CLAVE: width: 90px; Esto obliga a que se pongan uno al lado del otro
         return `
-        <div style="display:flex; align-items:center; gap:8px; flex: 0 0 auto;">
+        <div style="display:flex; align-items:center; gap:8px; width: 90px;">
             <div style="width:10px; height:10px; border-radius:50%; background-color:${color}; flex-shrink:0;"></div>
-            <div style="display:flex; flex-direction:column; align-items:flex-start;">
-                <span style="font-size:9px; color:var(--t3); text-transform:uppercase; font-weight:700; line-height:1; margin-bottom:4px;">${label}</span>
+            <div style="display:flex; flex-direction:column; align-items:flex-start; width:calc(100% - 18px);">
+                <span style="font-size:9px; color:var(--t3); text-transform:uppercase; font-weight:700; line-height:1; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">${label}</span>
                 <span style="font-size:14px; font-weight:800; color:${color}; line-height:1;">${pct}%</span>
             </div>
         </div>`;
