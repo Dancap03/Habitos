@@ -240,6 +240,57 @@
     </div>
   </div>
 
+  <!-- MODAL: AÑADIR TAREA -->
+  <div class="overlay" id="modal-task" onclick="closeModal('modal-task',event)">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title" style="margin-bottom:20px;">Nueva Tarea</div>
+      
+      <label class="form-label">¿Qué quieres lograr?</label>
+      <input type="text" id="t-name" class="form-input" placeholder="Ej: Terminar proyecto, Enviar email...">
+      
+      <div style="display:flex; gap:10px;">
+          <div style="flex:1;">
+              <label class="form-label">Categoría</label>
+              <select id="t-cat" class="form-input">
+                  <option value="Trabajo">Trabajo</option>
+                  <option value="Personal">Personal</option>
+                  <option value="Estudio">Estudio</option>
+                  <option value="Otro">Otro</option>
+              </select>
+          </div>
+          <div style="flex:1;">
+              <label class="form-label">Hora (Opcional)</label>
+              <input type="time" id="t-time" class="form-input">
+          </div>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+          <div style="flex:1;">
+              <label class="form-label">Prioridad</label>
+              <select id="t-priority" class="form-input">
+                  <option value="Alta">Alta 🔴</option>
+                  <option value="Media" selected>Media 🟡</option>
+                  <option value="Baja">Baja 🔵</option>
+              </select>
+          </div>
+          <div style="flex:1;">
+              <label class="form-label">Repetir</label>
+              <select id="t-recurrence" class="form-input">
+                  <option value="none">Solo este día</option>
+                  <option value="weekdays">Lunes a Viernes</option>
+                  <option value="daily">Todos los días</option>
+                  <option value="weekly">Semanalmente</option>
+              </select>
+          </div>
+      </div>
+      <div style="font-size:11px; color:var(--t3); margin-top:-8px; margin-bottom:12px;">*Las repeticiones se crearán hasta final de mes.</div>
+
+      <input type="hidden" id="t-date">
+      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="addTask()">Guardar Tarea</button>
+    </div>
+  </div>
+
   <div class="toast-container" id="toast-container"></div>
 </div>
 
