@@ -1,5 +1,3 @@
-// js/calendario.js
-
 // ==========================================
 // ESTADO LOCAL DEL CALENDARIO Y POMODORO
 // ==========================================
@@ -21,8 +19,9 @@ function initAgendaData() {
     if (!S.kanban) S.kanban = { todo: [], doing: [], done: [] };
     if (!S.eis) S.eis = { ui: [], ni: [], un: [], nn: [] };
     if (!S.pomo) S.pomo = { sessions: 0 };
+    if (!S.resources) S.resources = [];
     
-    // Legacy support for habits/notes if needed, or initialized here
+    // Hábitos y Notas
     if (!S.agenda) S.agenda = {};
     if (!S.agenda.habits) S.agenda.habits = [];
     if (!S.agenda.habitLogs) S.agenda.habitLogs = {};
@@ -30,7 +29,7 @@ function initAgendaData() {
 }
 
 // ==========================================
-// LÓGICA DEL CALENDARIO
+// LÓGICA DEL CALENDARIO (ESTILO GOOGLE CALENDAR)
 // ==========================================
 function renderCalendar() {
     const daysContainer = document.getElementById('cal-days');
@@ -60,7 +59,7 @@ function renderCalendar() {
         if (dStr === hoyStr) classes.push('today');
         if (dStr === selectedDateStr) classes.push('selected');
         
-        // Check for tasks on this day
+        // Puntito azul si hay metas pendientes ese día
         if (S.tasks.some(t => t.date === dStr && !t.done)) {
             classes.push('has-task');
         }
@@ -86,7 +85,6 @@ function selectDate(dStr) {
         label.textContent = dateObj.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' });
     }
 
-    // Set hidden date input for new tasks
     document.getElementById('t-date').value = selectedDateStr;
 
     renderCalendar();
@@ -105,13 +103,14 @@ function renderDayContent() {
 function switchTaskView(v, pill) {
     document.querySelectorAll('#s-tareas .pill').forEach(p => p.classList.remove('on'));
     pill.classList.add('on');
-    ['agenda', 'kanban', 'eisenhower'].forEach(id => {
-        document.getElementById('tv-' + id).style.display = id === v ? 'block' : 'none';
+    ['agenda', 'kanban', 'eisenhower', 'resources'].forEach(id => {
+        const el = document.getElementById('tv-' + id);
+        if (el) el.style.display = id === v ? 'block' : 'none';
     });
 }
 
 // ==========================================
-// TAREAS (MIGRATED LOGIC)
+// GOAL SETTING (TAREAS CON PRIORIDAD Y REPETICIÓN)
 // ==========================================
 function catTagClass(cat) {
     const c = (cat || '').toLowerCase();
@@ -121,50 +120,93 @@ function catTagClass(cat) {
     return 'tag-other';
 }
 
+function getPriorityColor(p) {
+    if(p === 'Alta') return '#e74c3c'; 
+    if(p === 'Media') return '#f59e0b'; 
+    if(p === 'Baja') return '#3b82f6'; 
+    return '#f59e0b'; 
+}
+
 function renderTasks() {
     const list = document.getElementById('tasks-list');
     const dayTasks = S.tasks.filter(t => t.date === selectedDateStr);
+    
+    const priorityWeight = { 'Alta': 3, 'Media': 2, 'Baja': 1, undefined: 2 };
+    dayTasks.sort((a, b) => {
+        if (a.done !== b.done) return a.done ? 1 : -1; 
+        return priorityWeight[b.priority] - priorityWeight[a.priority]; 
+    });
     
     if (dayTasks.length === 0) {
         list.innerHTML = `<div style="color:var(--t3); font-size:13px; text-align:center; padding:10px;">Nada agendado para este día.</div>`;
         return;
     }
 
-    list.innerHTML = dayTasks.map(t => `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px;">
+    list.innerHTML = dayTasks.map(t => {
+        const pColor = getPriorityColor(t.priority);
+        return `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 4px solid ${pColor}; opacity: ${t.done ? '0.6' : '1'};">
             <div style="display:flex; align-items:center; gap:12px;">
                 <div class="check-circle ${t.done ? 'checked' : ''}" onclick="toggleTask('${t.id}')"></div>
                 <div style="flex:1">
                     <div style="font-size:14px; font-weight:600; color:${t.done ? 'var(--t3)' : 'var(--t1)'}; text-decoration:${t.done ? 'line-through' : 'none'};">${t.name}</div>
-                    <div style="font-size:11px; color:var(--t3); margin-top:4px;">${t.time ? t.time + ' · ' : ''}<span class="tag ${catTagClass(t.cat)}">${t.cat}</span></div>
+                    <div style="font-size:11px; color:var(--t3); margin-top:4px;">
+                        ${t.time ? t.time + ' · ' : ''}
+                        <span class="tag ${catTagClass(t.cat)}">${t.cat}</span>
+                    </div>
                 </div>
             </div>
             <div style="color:var(--red); font-size:16px; cursor:pointer; padding:0 8px;" onclick="deleteTask('${t.id}')">✕</div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function addTask() {
     const name = document.getElementById('t-name').value.trim();
-    if (!name) return;
+    if (!name) return showToast('Escribe un nombre para la meta', 'error');
+    
+    const cat = document.getElementById('t-cat').value;
+    const time = document.getElementById('t-time').value;
+    const priority = document.getElementById('t-priority').value;
+    const recurrence = document.getElementById('t-recurrence').value;
     
     const tDate = document.getElementById('t-date').value || selectedDateStr;
 
-    S.tasks.push({ 
-        id: uid(), 
-        name, 
-        cat: document.getElementById('t-cat').value, 
-        time: document.getElementById('t-time').value, 
-        date: tDate, 
-        done: false 
-    });
+    const createSingleTask = (dateStr) => {
+        S.tasks.push({ id: uid(), name, cat, time, priority, date: dateStr, done: false });
+    };
+
+    if (recurrence === 'none') {
+        createSingleTask(tDate);
+        showToast('Meta guardada ✅');
+    } else {
+        let currDate = new Date(tDate);
+        const endOfMonth = new Date(currDate.getFullYear(), currDate.getMonth() + 1, 0); 
+        let addedCount = 0;
+
+        while (currDate <= endOfMonth) {
+            const dStr = `${currDate.getFullYear()}-${String(currDate.getMonth() + 1).padStart(2, '0')}-${String(currDate.getDate()).padStart(2, '0')}`;
+            let shouldAdd = false;
+            const dayOfWeek = currDate.getDay(); 
+
+            if (recurrence === 'daily') shouldAdd = true;
+            else if (recurrence === 'weekdays' && dayOfWeek !== 0 && dayOfWeek !== 6) shouldAdd = true; 
+            else if (recurrence === 'weekly' && dayOfWeek === new Date(tDate).getDay()) shouldAdd = true;
+
+            if (shouldAdd) { createSingleTask(dStr); addedCount++; }
+            currDate.setDate(currDate.getDate() + 1);
+        }
+        showToast(`${addedCount} tareas programadas ✅`);
+    }
     
-    save(); 
-    closeAllModals();
+    save(); closeModal('modal-task');
     document.getElementById('t-name').value = '';
     document.getElementById('t-time').value = '';
-    renderCalendar();
-    renderTasks(); 
+    document.getElementById('t-priority').value = 'Media';
+    document.getElementById('t-recurrence').value = 'none';
+    
+    renderCalendar(); renderTasks(); 
     if(typeof renderHome === 'function') renderHome();
 }
 
@@ -174,14 +216,14 @@ function toggleTask(id) {
 }
 
 function deleteTask(id) {
-    if (confirm("¿Borrar tarea?")) {
+    if (confirm("¿Borrar meta?")) {
         S.tasks = S.tasks.filter(x => x.id !== id); 
         save(); renderTasks(); renderCalendar(); if(typeof renderHome === 'function') renderHome();
     }
 }
 
 // ==========================================
-// KANBAN (MIGRATED LOGIC)
+// STRUCTURED PRIORITIZATION (KANBAN)
 // ==========================================
 function openModalKanban(col) {
     document.getElementById('k-col-target').value = col;
@@ -195,9 +237,7 @@ function addKanbanCard() {
     const col = document.getElementById('k-col-target').value;
     if (!title) return;
     S.kanban[col].push({ id: uid(), title, cat: document.getElementById('k-cat').value });
-    save(); closeAllModals();
-    document.getElementById('k-title').value = '';
-    renderKanban();
+    save(); closeAllModals(); document.getElementById('k-title').value = ''; renderKanban();
 }
 
 function moveKanban(id, from, to) {
@@ -209,9 +249,7 @@ function moveKanban(id, from, to) {
 }
 
 function delKanban(id, col) {
-    if(confirm("¿Borrar tarjeta?")) {
-        S.kanban[col] = S.kanban[col].filter(c => c.id !== id); save(); renderKanban();
-    }
+    if(confirm("¿Borrar tarjeta?")) { S.kanban[col] = S.kanban[col].filter(c => c.id !== id); save(); renderKanban(); }
 }
 
 function renderKanban() {
@@ -240,7 +278,7 @@ function renderKanban() {
 }
 
 // ==========================================
-// EISENHOWER (MIGRATED LOGIC)
+// STRUCTURED PRIORITIZATION (EISENHOWER)
 // ==========================================
 function openModalEis(quad) {
     document.getElementById('eis-quad-target').value = quad;
@@ -254,9 +292,7 @@ function addEisTask() {
     const quad = document.getElementById('eis-quad-target').value;
     if (!text) return;
     S.eis[quad].push({ id: uid(), text });
-    save(); closeAllModals();
-    document.getElementById('eis-task-text').value = '';
-    renderEis();
+    save(); closeAllModals(); document.getElementById('eis-task-text').value = ''; renderEis();
 }
 
 function delEis(id, quad) {
@@ -278,7 +314,54 @@ function renderEis() {
 }
 
 // ==========================================
-// POMODORO (MIGRATED LOGIC)
+// WORKSPACE & RESOURCES MANAGEMENT
+// ==========================================
+function renderResources() {
+    const list = document.getElementById('resources-list');
+    if(!list) return;
+    if(!S.resources || S.resources.length === 0) {
+        list.innerHTML = '<div class="empty">No hay recursos guardados aún.</div>';
+        return;
+    }
+    list.innerHTML = S.resources.map(r => `
+        <div class="list-item" style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg2); border-radius:10px; margin-bottom:8px; border: 1px solid var(--line);">
+            <div style="flex:1;">
+                <a href="${r.url.startsWith('http') ? r.url : 'https://'+r.url}" target="_blank" style="color:var(--t1); font-weight:700; text-decoration:none; display:block; margin-bottom:4px; font-size:14px;">🔗 ${r.title}</a>
+                <span class="tag" style="background:var(--bg3); color:var(--t3); font-size:10px;">${r.cat || 'General'}</span>
+            </div>
+            <button class="btn-danger" style="background:transparent; color:var(--t3);" onclick="delResource('${r.id}')">✕</button>
+        </div>
+    `).join('');
+}
+
+function addResource() {
+    const title = document.getElementById('res-title').value.trim();
+    const url = document.getElementById('res-url').value.trim();
+    const cat = document.getElementById('res-cat').value.trim();
+    
+    if(!title || !url) return showToast('Rellena el Título y el Enlace', 'error');
+
+    if(!S.resources) S.resources = [];
+    S.resources.push({ id: uid(), title, url, cat });
+    
+    save(); closeModal('modal-resource');
+    document.getElementById('res-title').value = '';
+    document.getElementById('res-url').value = '';
+    document.getElementById('res-cat').value = '';
+    
+    renderResources();
+    showToast('Recurso guardado en tu Workspace ✅');
+}
+
+function delResource(id) {
+    if(confirm("¿Borrar este recurso?")) {
+        S.resources = S.resources.filter(r => r.id !== id);
+        save(); renderResources();
+    }
+}
+
+// ==========================================
+// FOCUS-TIME BLOCKING (POMODORO)
 // ==========================================
 function updPomo() {
     const m = Math.floor(pomoSec/60), s = pomoSec%60;
@@ -290,12 +373,12 @@ function togglePomo() {
     if (pomoRunning) {
         clearInterval(pomoInterval); pomoRunning = false;
         const btn = document.getElementById('pomo-play');
-        btn.textContent = '▶';
+        btn.textContent = '▶ Empezar';
         btn.style.background = "#8b5cf6";
     } else {
         pomoRunning = true;
         const btn = document.getElementById('pomo-play');
-        btn.textContent = '⏸';
+        btn.textContent = '⏸ Pausar';
         btn.style.background = "#e74c3c";
         
         pomoInterval = setInterval(() => {
@@ -304,9 +387,9 @@ function togglePomo() {
             } else {
                 clearInterval(pomoInterval); pomoRunning = false;
                 const btn = document.getElementById('pomo-play');
-                btn.textContent = '▶';
+                btn.textContent = '▶ Empezar';
                 btn.style.background = "#8b5cf6";
-                showToast("¡Tiempo finalizado! 🔔", "success");
+                showToast("¡Tiempo de Focus finalizado! 🔔", "success");
                 if (pomoMode === 'focus') { 
                     if(!S.pomo) S.pomo = { sessions: 0 };
                     S.pomo.sessions++; 
@@ -323,7 +406,7 @@ function resetPomo() {
     clearInterval(pomoInterval); pomoRunning = false;
     pomoSec = pomoModes[pomoMode]; updPomo();
     const btn = document.getElementById('pomo-play');
-    btn.textContent = '▶';
+    btn.textContent = '▶ Empezar';
     btn.style.background = "#8b5cf6";
 }
 
@@ -331,17 +414,15 @@ function setPomoMode(m, pill) {
     document.querySelectorAll('#tv-pomo .pill').forEach(p => p.classList.remove('on'));
     pill.classList.add('on');
     pomoMode = m;
-    const lbl = {focus:'ENFOQUE', short:'PAUSA CORTA', long:'DESCANSO LARGO'};
-    document.getElementById('pomo-label').textContent = lbl[m];
     clearInterval(pomoInterval); pomoRunning = false;
     pomoSec = pomoModes[m]; updPomo();
     const btn = document.getElementById('pomo-play');
-    btn.textContent = '▶';
+    btn.textContent = '▶ Empezar';
     btn.style.background = "#8b5cf6";
 }
 
 // ==========================================
-// HÁBITOS Y NOTAS (NUEVAS FUNCIONES)
+// HABIT TRACKING Y DAILY REFLECTION
 // ==========================================
 function renderHabits() {
     const list = document.getElementById('habits-list');
@@ -419,146 +500,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updPomo();
         renderKanban();
         renderEis();
+        renderResources();
     }, 100);
 });
-
-// ==========================================
-// TAREAS (CON REPETICIÓN Y PRIORIDAD)
-// ==========================================
-function catTagClass(cat) {
-    const c = (cat || '').toLowerCase();
-    if (c === 'trabajo') return 'tag-work';
-    if (c === 'personal') return 'tag-personal';
-    if (c === 'estudio') return 'tag-study';
-    return 'tag-other';
-}
-
-function getPriorityColor(p) {
-    if(p === 'Alta') return '#e74c3c'; // Rojo
-    if(p === 'Media') return '#f59e0b'; // Naranja/Amarillo
-    if(p === 'Baja') return '#3b82f6'; // Azul
-    return '#f59e0b'; // Default Media
-}
-
-function renderTasks() {
-    const list = document.getElementById('tasks-list');
-    const dayTasks = S.tasks.filter(t => t.date === selectedDateStr);
-    
-    // Ordenar tareas: primero las que no están hechas, luego por prioridad (Alta > Media > Baja)
-    const priorityWeight = { 'Alta': 3, 'Media': 2, 'Baja': 1, undefined: 2 };
-    dayTasks.sort((a, b) => {
-        if (a.done !== b.done) return a.done ? 1 : -1; // Las hechas abajo del todo
-        return priorityWeight[b.priority] - priorityWeight[a.priority]; // Mayor prioridad arriba
-    });
-    
-    if (dayTasks.length === 0) {
-        list.innerHTML = `<div style="color:var(--t3); font-size:13px; text-align:center; padding:10px;">Nada agendado para este día.</div>`;
-        return;
-    }
-
-    list.innerHTML = dayTasks.map(t => {
-        const pColor = getPriorityColor(t.priority);
-        return `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 4px solid ${pColor}; opacity: ${t.done ? '0.6' : '1'};">
-            <div style="display:flex; align-items:center; gap:12px;">
-                <div class="check-circle ${t.done ? 'checked' : ''}" onclick="toggleTask('${t.id}')"></div>
-                <div style="flex:1">
-                    <div style="font-size:14px; font-weight:600; color:${t.done ? 'var(--t3)' : 'var(--t1)'}; text-decoration:${t.done ? 'line-through' : 'none'};">${t.name}</div>
-                    <div style="font-size:11px; color:var(--t3); margin-top:4px;">
-                        ${t.time ? t.time + ' · ' : ''}
-                        <span class="tag ${catTagClass(t.cat)}">${t.cat}</span>
-                    </div>
-                </div>
-            </div>
-            <div style="color:var(--red); font-size:16px; cursor:pointer; padding:0 8px;" onclick="deleteTask('${t.id}')">✕</div>
-        </div>
-        `;
-    }).join('');
-}
-
-function addTask() {
-    const name = document.getElementById('t-name').value.trim();
-    if (!name) return showToast('Escribe un nombre para la tarea', 'error');
-    
-    const cat = document.getElementById('t-cat').value;
-    const time = document.getElementById('t-time').value;
-    const priority = document.getElementById('t-priority').value;
-    const recurrence = document.getElementById('t-recurrence').value;
-    
-    const tDate = document.getElementById('t-date').value || selectedDateStr;
-
-    // Función interna para crear una sola tarea en una fecha específica
-    const createSingleTask = (dateStr) => {
-        S.tasks.push({ 
-            id: uid(), 
-            name, 
-            cat, 
-            time, 
-            priority,
-            date: dateStr, 
-            done: false 
-        });
-    };
-
-    if (recurrence === 'none') {
-        createSingleTask(tDate);
-        showToast('Tarea guardada ✅');
-    } else {
-        // LÓGICA DE REPETICIÓN
-        let currDate = new Date(tDate);
-        // Calculamos el último día del mes de la fecha seleccionada
-        const endOfMonth = new Date(currDate.getFullYear(), currDate.getMonth() + 1, 0); 
-        let addedCount = 0;
-
-        while (currDate <= endOfMonth) {
-            // Formatear la fecha iterada a YYYY-MM-DD local
-            const dStr = `${currDate.getFullYear()}-${String(currDate.getMonth() + 1).padStart(2, '0')}-${String(currDate.getDate()).padStart(2, '0')}`;
-            
-            let shouldAdd = false;
-            const dayOfWeek = currDate.getDay(); // 0 es Domingo, 6 es Sábado
-
-            if (recurrence === 'daily') {
-                shouldAdd = true;
-            } else if (recurrence === 'weekdays') {
-                if (dayOfWeek !== 0 && dayOfWeek !== 6) shouldAdd = true; 
-            } else if (recurrence === 'weekly') {
-                const originalDay = new Date(tDate).getDay();
-                if (dayOfWeek === originalDay) shouldAdd = true;
-            }
-
-            if (shouldAdd) {
-                createSingleTask(dStr);
-                addedCount++;
-            }
-            
-            // Avanzar 1 día
-            currDate.setDate(currDate.getDate() + 1);
-        }
-        showToast(`${addedCount} tareas programadas ✅`);
-    }
-    
-    save(); 
-    closeModal('modal-task');
-    
-    // Limpiar formulario
-    document.getElementById('t-name').value = '';
-    document.getElementById('t-time').value = '';
-    document.getElementById('t-priority').value = 'Media';
-    document.getElementById('t-recurrence').value = 'none';
-    
-    renderCalendar();
-    renderTasks(); 
-    if(typeof renderHome === 'function') renderHome();
-}
-
-function toggleTask(id) {
-    const t = S.tasks.find(x => x.id === id);
-    if (t) { t.done = !t.done; save(); renderTasks(); renderCalendar(); if(typeof renderHome === 'function') renderHome(); }
-}
-
-function deleteTask(id) {
-    if (confirm("¿Borrar tarea?")) {
-        S.tasks = S.tasks.filter(x => x.id !== id); 
-        save(); renderTasks(); renderCalendar(); if(typeof renderHome === 'function') renderHome();
-    }
-}
