@@ -199,23 +199,33 @@ function delPurchase(sid, pid) {
   save(); renderStocks(); openManageStock(sid);
 }
 
-// --- FUNCIÓN PARA PINTAR LEYENDA CUSTOMIZADA ---
+// --- FUNCIÓN PARA PINTAR LEYENDA CUSTOMIZADA (ÚNICO CAMBIO REALIZADO) ---
 function generateCustomLegend(containerId, labels, data, colors) {
     const container = document.getElementById(containerId);
     if (!container) return;
     const total = data.reduce((a, b) => a + b, 0);
     
+    // Convertimos el contenedor en una cuadrícula envolvente
+    container.style.display = 'flex';
+    container.style.flexDirection = 'row';
+    container.style.flexWrap = 'wrap';
+    container.style.justifyContent = 'center';
+    container.style.gap = '16px 12px'; // Espaciado vertical y horizontal
+    container.style.width = '100%';
+    container.style.marginTop = '24px';
+
     let html = '';
     labels.forEach((label, i) => {
         const pct = total > 0 ? ((data[i] / total) * 100).toFixed(1) : 0;
         const color = colors[i];
         
+        // Bloque de 90px para obligar a los elementos a colocarse como cuadrícula
         html += `
-        <div style="display:flex; align-items:flex-start; gap:8px;">
-            <div style="width:10px; height:10px; border-radius:50%; background-color:${color}; flex-shrink:0; margin-top:4px;"></div>
-            <div>
-                <div style="font-size:10px; color:var(--t3); text-transform:uppercase; font-weight:700; letter-spacing:0.5px; margin-bottom:2px;">${label}</div>
-                <div style="font-size:18px; font-weight:800; color:${color}; line-height:1;">${pct}%</div>
+        <div style="display:flex; align-items:center; gap:8px; width: 90px;">
+            <div style="width:10px; height:10px; border-radius:50%; background-color:${color}; flex-shrink:0;"></div>
+            <div style="display:flex; flex-direction:column; align-items:flex-start; width:calc(100% - 18px);">
+                <span style="font-size:9px; color:var(--t3); text-transform:uppercase; font-weight:700; line-height:1; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">${label}</span>
+                <span style="font-size:14px; font-weight:800; color:${color}; line-height:1;">${pct}%</span>
             </div>
         </div>`;
     });
