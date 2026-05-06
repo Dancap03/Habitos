@@ -3,7 +3,7 @@
 // ==========================================
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
-let selectedDateStr = today(); // from main.js
+let selectedDateStr = today(); // Viene de main.js
 
 let pomoSec = 25 * 60;
 let pomoRunning = false;
@@ -12,7 +12,7 @@ let pomoMode = 'focus';
 const pomoModes = { focus: 25 * 60, short: 5 * 60, long: 15 * 60 };
 
 // ==========================================
-// INICIALIZACIÓN
+// INICIALIZACIÓN DE LA BASE DE DATOS
 // ==========================================
 function initAgendaData() {
     if (!S.tasks) S.tasks = [];
@@ -98,7 +98,7 @@ function renderDayContent() {
 }
 
 // ==========================================
-// VISTAS (PILLS)
+// VISTAS (PILLS: Agenda, Kanban, Matriz...)
 // ==========================================
 function switchTaskView(v, pill) {
     document.querySelectorAll('#s-tareas .pill').forEach(p => p.classList.remove('on'));
@@ -131,6 +131,7 @@ function renderTasks() {
     const list = document.getElementById('tasks-list');
     const dayTasks = S.tasks.filter(t => t.date === selectedDateStr);
     
+    // Ordenar tareas: primero las no hechas, y por prioridad
     const priorityWeight = { 'Alta': 3, 'Media': 2, 'Baja': 1, undefined: 2 };
     dayTasks.sort((a, b) => {
         if (a.done !== b.done) return a.done ? 1 : -1; 
@@ -162,6 +163,23 @@ function renderTasks() {
     }).join('');
 }
 
+// Lógica Visual del modal de repetición
+function toggleCustomRecurrence() {
+    const val = document.getElementById('t-recurrence').value;
+    document.getElementById('custom-recurrence-options').style.display = (val === 'custom') ? 'block' : 'none';
+}
+
+function toggleCustomDay(btn) {
+    btn.classList.toggle('on');
+    if (btn.classList.contains('on')) {
+        btn.style.background = 'var(--acc)';
+        btn.style.color = '#fff';
+    } else {
+        btn.style.background = 'var(--bg3)';
+        btn.style.color = 'var(--t1)';
+    }
+}
+
 function addTask() {
     const name = document.getElementById('t-name').value.trim();
     if (!name) return showToast('Escribe un nombre para la meta', 'error');
@@ -181,18 +199,39 @@ function addTask() {
         createSingleTask(tDate);
         showToast('Meta guardada ✅');
     } else {
-        let currDate = new Date(tDate);
-        const endOfMonth = new Date(currDate.getFullYear(), currDate.getMonth() + 1, 0); 
+        const [y, m, d] = tDate.split('-');
+        let currDate = new Date(y, m - 1, d);
+        let endLimit = new Date(currDate.getFullYear(), currDate.getMonth() + 1, 0); 
+        let selectedCustomDays = [];
+
+        if (recurrence === 'custom') {
+            const customEnd = document.getElementById('t-recurrence-end').value;
+            if (customEnd) {
+                const [ey, em, ed] = customEnd.split('-');
+                endLimit = new Date(ey, em - 1, ed); 
+            } else {
+                endLimit = new Date(currDate.getFullYear(), currDate.getMonth() + 3, 0); 
+            }
+            
+            document.querySelectorAll('.custom-day-btn.on').forEach(btn => {
+                selectedCustomDays.push(parseInt(btn.dataset.day));
+            });
+            
+            if (selectedCustomDays.length === 0) return showToast('Selecciona al menos un día', 'error');
+            if (currDate > endLimit) return showToast('La fecha límite debe ser futura', 'error');
+        }
+
         let addedCount = 0;
 
-        while (currDate <= endOfMonth) {
+        while (currDate <= endLimit) {
             const dStr = `${currDate.getFullYear()}-${String(currDate.getMonth() + 1).padStart(2, '0')}-${String(currDate.getDate()).padStart(2, '0')}`;
             let shouldAdd = false;
             const dayOfWeek = currDate.getDay(); 
 
             if (recurrence === 'daily') shouldAdd = true;
             else if (recurrence === 'weekdays' && dayOfWeek !== 0 && dayOfWeek !== 6) shouldAdd = true; 
-            else if (recurrence === 'weekly' && dayOfWeek === new Date(tDate).getDay()) shouldAdd = true;
+            else if (recurrence === 'weekly' && dayOfWeek === new Date(y, m - 1, d).getDay()) shouldAdd = true;
+            else if (recurrence === 'custom' && selectedCustomDays.includes(dayOfWeek)) shouldAdd = true;
 
             if (shouldAdd) { createSingleTask(dStr); addedCount++; }
             currDate.setDate(currDate.getDate() + 1);
@@ -201,10 +240,18 @@ function addTask() {
     }
     
     save(); closeModal('modal-task');
+    
     document.getElementById('t-name').value = '';
     document.getElementById('t-time').value = '';
     document.getElementById('t-priority').value = 'Media';
     document.getElementById('t-recurrence').value = 'none';
+    document.getElementById('t-recurrence-end').value = '';
+    document.getElementById('custom-recurrence-options').style.display = 'none';
+    document.querySelectorAll('.custom-day-btn').forEach(btn => {
+        btn.classList.remove('on');
+        btn.style.background = 'var(--bg3)';
+        btn.style.color = 'var(--t1)';
+    });
     
     renderCalendar(); renderTasks(); 
     if(typeof renderHome === 'function') renderHome();
