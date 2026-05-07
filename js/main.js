@@ -14,13 +14,16 @@ function load() {
   try {
     const d = localStorage.getItem('dancab_v1');
     if (d) Object.assign(S, JSON.parse(d));
-    // Protecciones contra datos vacíos
     if (!S.tasks) S.tasks = [];
     if (!S.projects) S.projects = [];
     if (!S.workoutLog) S.workoutLog = [];
     if (!S.fin) S.fin = [];
     if (!S.stocks) S.stocks = [];
     if (!S.recurring) S.recurring = [];
+    if (!S.incomes) S.incomes = [];
+    if (!S.expenses) S.expenses = [];
+    if (!S.savings) S.savings = [];
+    if (!S.investments) S.investments = [];
   } catch(e) { console.error("Error cargando datos"); }
 }
 
@@ -33,7 +36,7 @@ function today() {
 function fmt(n) { return '€' + (+n).toLocaleString('es-ES', {minimumFractionDigits:2}); }
 function getWeek(d) { const dt = new Date(d), day = dt.getDay() || 7; dt.setDate(dt.getDate() + 4 - day); const y = new Date(dt.getFullYear(), 0, 1); return Math.ceil(((dt - y) / 86400000 + 1) / 7); }
 
-// 5. CONTROL DE MODALES (VITAL PARA LOS BOTONES)
+// 5. CONTROL DE MODALES
 function openModal(id) { 
   const m = document.getElementById(id);
   if(m) m.classList.add('on'); 
@@ -47,32 +50,29 @@ function closeModal(id, e) {
 function closeAllModals() { document.querySelectorAll('.overlay').forEach(o => o.classList.remove('on')); }
 function showToast(m, t='success') { const c = document.getElementById('toast-container'); if(!c) return; const tc = document.createElement('div'); tc.className=`toast ${t}`; tc.textContent=m; c.appendChild(tc); setTimeout(()=>tc.classList.add('show'),10); setTimeout(()=>{tc.classList.remove('show');setTimeout(()=>tc.remove(),300)},3000); }
 
-let confirmAction = null;
-function customConfirm(title, message, callback) {
-  const titleEl = document.getElementById('confirm-title');
-  const msgEl = document.getElementById('confirm-message');
-  if (titleEl) titleEl.textContent = title;
-  if (msgEl) msgEl.textContent = message;
-  confirmAction = callback;
-  openModal('modal-confirm');
-}
-function executeConfirm() {
-  if (confirmAction) confirmAction();
-  closeAllModals();
-  confirmAction = null;
-}
-function cancelConfirm(e, force = false) {
-  if (force || !e || (e.target && e.target.classList.contains('overlay'))) {
-    closeAllModals();
-    confirmAction = null;
-  }
+// ==========================================
+// CONFIRMACIÓN DE BORRADO DESDE INICIO
+// ==========================================
+let confirmDeleteActionHome = null;
+
+function showDeleteConfirmHome(title, msg, callback) {
+    const tEl = document.getElementById('confirm-del-title-home');
+    const mEl = document.getElementById('confirm-del-msg-home');
+    if(tEl) tEl.textContent = title;
+    if(mEl) mEl.textContent = msg;
+    confirmDeleteActionHome = callback;
+    openModal('modal-confirm-delete-home');
 }
 
-// 6. DASHBOARD E INICIO
+function executeConfirmDeleteHome() {
+    if (confirmDeleteActionHome) confirmDeleteActionHome();
+    closeModal('modal-confirm-delete-home');
+    confirmDeleteActionHome = null;
+}
+
 // ==========================================
 // LÓGICA DE LA PANTALLA INICIO (HOY)
 // ==========================================
-
 function toggleTaskHome(id) {
     const t = S.tasks.find(x => x.id === id);
     if (t) { t.done = !t.done; save(); renderHome(); }
@@ -84,6 +84,91 @@ function toggleProjectTaskHome(projectId, taskId) {
         const t = p.tasks.find(x => x.id === taskId);
         if (t) { t.done = !t.done; save(); renderHome(); }
     }
+}
+
+function deleteTaskHome(id) {
+    showDeleteConfirmHome("Borrar Evento", "¿Seguro que quieres borrar este evento diario?", () => {
+        S.tasks = S.tasks.filter(x => x.id !== id); 
+        save(); renderHome();
+    });
+}
+
+function delProjectTaskHome(projectId, taskId) {
+    showDeleteConfirmHome("Borrar Tarea", "¿Seguro que quieres borrar esta tarea del proyecto?", () => {
+        const p = S.projects.find(x => x.id === projectId);
+        if(p) {
+            p.tasks = p.tasks.filter(x => x.id !== taskId);
+            save(); renderHome();
+        }
+    });
+}
+
+// EDITAR DESDE INICIO
+function openEditDailyTaskHome(id) {
+    const t = S.tasks.find(x => x.id === id);
+    if(!t) return;
+    document.getElementById('edit-dt-id-home').value = t.id;
+    document.getElementById('edit-dt-name-home').value = t.name || '';
+    document.getElementById('edit-dt-desc-home').value = t.desc || '';
+    document.getElementById('edit-dt-cat-home').value = (t.cat === 'Otro') ? 'Trabajo' : (t.cat || 'Trabajo');
+    document.getElementById('edit-dt-time-home').value = t.time || '';
+    document.getElementById('edit-dt-date-home').value = t.date || '';
+    openModal('modal-edit-dt-home');
+}
+
+function saveEditDailyTaskHome() {
+    const id = document.getElementById('edit-dt-id-home').value;
+    const t = S.tasks.find(x => x.id === id);
+    if(!t) return;
+    const name = document.getElementById('edit-dt-name-home').value.trim();
+    if(!name) return showToast('Escribe un nombre', 'error');
+
+    t.name = name;
+    t.desc = document.getElementById('edit-dt-desc-home').value.trim();
+    t.cat = document.getElementById('edit-dt-cat-home').value;
+    t.time = document.getElementById('edit-dt-time-home').value;
+    t.date = document.getElementById('edit-dt-date-home').value;
+
+    save();
+    closeModal('modal-edit-dt-home');
+    renderHome();
+    showToast('Evento actualizado ✅');
+}
+
+function openEditProjectTaskHome(projectId, taskId) {
+    const p = S.projects.find(x => x.id === projectId);
+    if(!p) return;
+    const t = p.tasks.find(x => x.id === taskId);
+    if(!t) return;
+
+    document.getElementById('edit-pt-pid-home').value = projectId;
+    document.getElementById('edit-pt-tid-home').value = taskId;
+    document.getElementById('edit-pt-name-home').value = t.text || '';
+    document.getElementById('edit-pt-desc-home').value = t.desc || '';
+    document.getElementById('edit-pt-priority-home').value = t.priority || 'nn';
+    document.getElementById('edit-pt-deadline-home').value = t.deadline || '';
+
+    openModal('modal-edit-pt-home');
+}
+
+function saveEditProjectTaskHome() {
+    const projectId = document.getElementById('edit-pt-pid-home').value;
+    const taskId = document.getElementById('edit-pt-tid-home').value;
+    const name = document.getElementById('edit-pt-name-home').value.trim();
+    if (!name) return showToast('Escribe el nombre de la tarea', 'error');
+
+    const p = S.projects.find(x => x.id === projectId);
+    const t = p.tasks.find(x => x.id === taskId);
+
+    t.text = name;
+    t.desc = document.getElementById('edit-pt-desc-home').value.trim();
+    t.priority = document.getElementById('edit-pt-priority-home').value;
+    t.deadline = document.getElementById('edit-pt-deadline-home').value;
+
+    save();
+    closeModal('modal-edit-pt-home');
+    renderHome();
+    showToast('Tarea actualizada ✅');
 }
 
 function renderHome() {
@@ -141,16 +226,15 @@ function renderHome() {
         listEl.innerHTML = combined.map(t => {
             const color = t.isProject ? (prioColor[t.priority] || 'var(--acc)') : 'var(--acc)';
             const title = t.isProject ? t.text : t.name;
-            
-            // Si la tarea tiene hora, la mostramos.
             let timeStr = t.time ? `${t.time} · ` : '';
             const sub = t.isProject ? `${timeStr}Proyecto: ${t.projectName}` : `${timeStr}${t.cat}`;
             
-            // Acciones para marcar el check sin redirigir (se quitó el onclick del wrapper)
             const toggleAction = t.isProject ? `toggleProjectTaskHome('${t.projectId}', '${t.id}')` : `toggleTaskHome('${t.id}')`;
+            const editAction = t.isProject ? `openEditProjectTaskHome('${t.projectId}', '${t.id}')` : `openEditDailyTaskHome('${t.id}')`;
+            const deleteAction = t.isProject ? `delProjectTaskHome('${t.projectId}', '${t.id}')` : `deleteTaskHome('${t.id}')`;
 
             return `
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 4px solid ${color}; opacity: ${t.done ? '0.6' : '1'};">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg3); border-radius:10px; margin-bottom:8px; border-left: 4px solid ${color}; opacity: ${t.done ? '0.6' : '1'}; cursor:pointer;" onclick="${editAction}">
                 <div style="display:flex; align-items:center; gap:12px; flex:1;">
                     <div class="check-circle ${t.done ? 'checked' : ''}" onclick="event.stopPropagation(); ${toggleAction}"></div>
                     <div style="flex:1;">
@@ -158,13 +242,16 @@ function renderHome() {
                         <div style="font-size:11px; color:var(--t3); margin-top:4px;">${sub}</div>
                     </div>
                 </div>
+                <div style="display:flex; align-items:center; gap:4px;">
+                    <button class="btn-danger" style="background:transparent; color:var(--red); padding:4px 8px; border:none; font-size:16px;" onclick="event.stopPropagation(); ${deleteAction}">✕</button>
+                </div>
             </div>`;
         }).join('');
     }
 }
 
 // ==========================================
-// FORMULARIO DE AÑADIR META DESDE INICIO
+// FORMULARIO DE AÑADIR EVENTO DESDE INICIO
 // ==========================================
 function toggleCustomRecurrenceHome() {
     const val = document.getElementById('h-recurrence').value;
@@ -257,6 +344,57 @@ function addTaskHome() {
     showToast('Evento guardado ✅');
 }
 
+// ==========================================
+// SINCRONIZACIÓN DE FINANZAS, CARTERA Y GYM
+// ==========================================
+function syncHomeStats() {
+    // 1. Sincronizar FINANZAS
+    if (document.getElementById('home-fin-avail')) {
+        let inc = 0, exp = 0, sav = 0, inv = 0;
+        if(S.incomes) S.incomes.forEach(e => inc += (parseFloat(e.amount) || 0));
+        if(S.expenses) S.expenses.forEach(e => exp += (parseFloat(e.amount) || 0));
+        if(S.savings) S.savings.forEach(e => sav += (parseFloat(e.amount) || 0));
+        if(S.investments) S.investments.forEach(e => inv += (parseFloat(e.amount) || 0));
+        
+        const avail = inc - exp - sav - inv;
+        
+        document.getElementById('home-fin-avail').textContent = fmt(avail);
+        document.getElementById('home-fin-inc').textContent = fmt(inc);
+        document.getElementById('home-fin-exp').textContent = fmt(exp);
+        document.getElementById('home-fin-sav').textContent = fmt(sav);
+        document.getElementById('home-fin-inv').textContent = fmt(inv);
+    }
+
+    // 2. Sincronizar CARTERA
+    if (document.getElementById('home-port-total')) {
+        let total = 0, invested = 0;
+        if (S.stocks) {
+            S.stocks.forEach(s => {
+                const price = parseFloat(s.price) || 0;
+                const avg = parseFloat(s.avgPrice) || 0;
+                const shares = parseFloat(s.shares) || 0;
+                total += (price * shares);
+                invested += (avg * shares);
+            });
+        }
+        const pnl = total - invested;
+        const pct = invested > 0 ? (pnl / invested) * 100 : 0;
+        const sign = pnl > 0 ? '+' : ''; 
+        const color = pnl >= 0 ? 'var(--grn)' : 'var(--red)';
+
+        document.getElementById('home-port-total').textContent = fmt(total);
+        document.getElementById('home-port-inv').textContent = fmt(invested);
+        
+        const pnlEl = document.getElementById('home-port-pnl');
+        pnlEl.textContent = `${sign}${fmt(pnl)} (${sign}${pct.toFixed(2)}%)`;
+        pnlEl.style.color = color;
+    }
+
+    // 3. Sincronizar GYM
+    if (document.getElementById('home-gym-calendar')) {
+        renderGymCalendar();
+    }
+}
 
 function changeGymMonth(dir) { currGymMonth += dir; if(currGymMonth<0){currGymMonth=11;currGymYear--;} else if(currGymMonth>11){currGymMonth=0;currGymYear++;} renderGymCalendar(); }
 function renderGymCalendar() {
@@ -271,7 +409,7 @@ function renderGymCalendar() {
   for (let i=0; i<startDay; i++) html += `<div></div>`;
   for (let i=1; i<=daysInMonth; i++) {
     const dStr = `${currGymYear}-${String(currGymMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-    const did = S.workoutLog.some(w => w.date === dStr);
+    const did = S.workoutLog && S.workoutLog.some(w => w.date === dStr);
     const isT = dStr === today();
     html += `<div style="display:flex;justify-content:center;"><div style="width:28px;height:28px;border-radius:50%;background:${did?'var(--acc)':'var(--bg4)'};border:${isT?'2px solid #fff':'none'};display:flex;justify-content:center;align-items:center;font-size:11px;font-weight:700;color:${did?'#fff':'var(--t2)'};">${i}</div></div>`;
   }
@@ -286,7 +424,12 @@ function init() {
   const elGreet = document.getElementById('greeting');
   if(elGreet) elGreet.textContent = `${greet} · ${new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})}`;
   
-  if(document.getElementById('home-gym-calendar')) renderHome();
+  // SI ESTAMOS EN LA PANTALLA INICIO, SINCRONIZAMOS TODO:
+  if(document.getElementById('home-pending-count')) {
+      renderHome();
+      syncHomeStats();
+  }
+  
   if(document.getElementById('finChart') && typeof renderFinances === 'function') { setTimeout(initFinChart, 100); renderFinances(); }
   if(document.getElementById('stock-list') && typeof renderStocks === 'function') renderStocks();
 }
