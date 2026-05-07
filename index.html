@@ -9,10 +9,29 @@
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/UI.css">
 <style>
-  /* EL CSS QUE FALTABA PARA LOS CÍRCULOS */
+  /* Estilos Calendario y Widgets */
+  .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+  .cal-day-name { font-size: 11px; font-weight: 700; color: var(--t3); margin-bottom: 8px; }
+  .cal-day { padding: 8px 0; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--t1); cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .cal-day.empty { visibility: hidden; }
+  .cal-day.today { color: var(--acc); font-weight: 800; }
+  .cal-day.selected { background: var(--acc); color: #fff; }
+  
+  .pomo-timer { font-size: 48px; font-weight: 800; text-align: center; letter-spacing: -2px; margin: 10px 0; font-variant-numeric: tabular-nums; }
+  .pomo-tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
+  .pomo-tab { background: var(--bg4); color: var(--t2); border: none; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .pomo-tab.on { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
+  
   .check-circle { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
   .check-circle.checked { background: var(--acc); border-color: var(--acc); }
   .check-circle.checked::after { content: '✓'; color: #fff; font-size: 12px; font-weight: bold; }
+
+  /* Pill Styles Fijos */
+  .ag-pill-container { display: flex; flex-direction: row; align-items: center; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; width: 100%; flex: 0 0 auto; min-height: 45px; }
+  .ag-pill-container::-webkit-scrollbar { display: none; }
+  .ag-pill { background: var(--bg3); color: var(--t2); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; border: none; flex: 0 0 auto; height: 36px; display: inline-flex; align-items: center; justify-content: center; }
+  .ag-pill.on { background: var(--acc); color: #fff; }
 </style>
 </head>
 <body>
@@ -121,7 +140,7 @@
       <div id="confirm-del-msg-home" style="font-size:14px; color:var(--t1); margin-bottom:24px;">¿Estás seguro?</div>
       <div style="display:flex; gap:10px;">
           <button class="btn" style="flex:1; background:var(--bg3); color:var(--t1);" onclick="closeModal('modal-confirm-delete-home')">Cancelar</button>
-          <button class="btn btn-danger" style="flex:1; background:var(--red); color:#fff; border:none;" onclick="executeConfirmDeleteHome()">Sí, borrar</button>
+          <button class="btn btn-danger" style="flex:1; background:var(--red); color:#fff; border:none;" id="confirm-del-btn-home" onclick="executeConfirmDeleteHome()">Sí, borrar</button>
       </div>
     </div>
   </div>
@@ -285,8 +304,8 @@
   <div class="toast-container" id="toast-container"></div>
 </div>
 
-<script src="js/main.js?v=52"></script>
-<script src="js/nube.js?v=52"></script>
+<script src="js/main.js?v=60"></script>
+<script src="js/nube.js?v=60"></script>
 <script>
   function addFinEntryHome() {
     const type = document.getElementById('fin-type-home').value;
@@ -294,21 +313,22 @@
     const desc = document.getElementById('fin-desc-home').value.trim();
     const cat = document.getElementById('fin-cat-home').value;
     const date = document.getElementById('fin-date-home').value || (typeof today === 'function' ? today() : '');
+    
     if(!amount || !desc) return showToast('Rellena importe y descripción', 'error');
+    
     const entry = { id: (typeof uid === 'function' ? uid() : Date.now()), type, amount, desc, cat, date };
-    if(!S.savings) S.savings = []; if(!S.investments) S.investments = [];
-    if(!S.incomes) S.incomes = []; if(!S.expenses) S.expenses = [];
-    if(cat === 'ahorro') S.savings.push(entry);
-    else if(cat === 'inversión') S.investments.push(entry);
-    else (type === 'ingreso' ? S.incomes.push(entry) : S.expenses.push(entry));
-    save(); closeModal('modal-fin-home'); if (typeof init === 'function') init(); 
+    
+    if(!S.fin) S.fin = [];
+    S.fin.push(entry);
+    
+    save(); 
+    closeModal('modal-fin-home'); 
+    
+    // Forzamos que se vuelva a calcular la pantalla de inicio
+    if (typeof syncHomeStats === 'function') syncHomeStats(); 
+    
     showToast('Registro guardado ✅', 'success');
   }
-  document.addEventListener('DOMContentLoaded', () => {
-    if (typeof init === 'function') init();
-    const dateInput = document.getElementById('fin-date-home');
-    if (dateInput && typeof today === 'function') dateInput.value = today();
-  });
 </script>
 </body>
 </html>
