@@ -1,6 +1,7 @@
-// 1. ESTADO GLOBAL ORIGINAL RESTAURADO
+// 1. ESTADO GLOBAL
 const S = {
   tasks: [], fin: [], recurring: [], stocks: [], routines: [], workoutLog: [], prs: {}, projects: [],
+  incomes: [], expenses: [], savings: [], investments: [], // Compatibilidad
   kanban: { todo:[], doing:[], done:[] }, eis: { ui:[], ni:[], un:[], nn:[] },
   pomo: { sessions: 0 }, activePeriod: 'semana', activeRoutine: null
 };
@@ -15,12 +16,9 @@ function load() {
     const d = localStorage.getItem('dancab_v1');
     if (d) Object.assign(S, JSON.parse(d));
     
-    if (!S.tasks) S.tasks = [];
-    if (!S.projects) S.projects = [];
-    if (!S.workoutLog) S.workoutLog = [];
-    if (!S.fin) S.fin = [];
-    if (!S.stocks) S.stocks = [];
-    if (!S.recurring) S.recurring = [];
+    // Asegurarnos de que los arrays siempre existan
+    const keys = ['tasks','projects','workoutLog','fin','stocks','recurring','incomes','expenses','savings','investments'];
+    keys.forEach(k => { if(!S[k]) S[k] = []; });
   } catch(e) { console.error("Error cargando datos"); }
 }
 
@@ -30,6 +28,15 @@ function today() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
+
+// PARSER DE NÚMEROS INTELIGENTE (Convierte comas a puntos y evita NaN)
+function parseNum(val) {
+    if (typeof val === 'number') return val;
+    if (!val) return 0;
+    const cleanVal = String(val).replace(',', '.').replace(/[^0-9.-]/g, '');
+    return parseFloat(cleanVal) || 0;
+}
+
 function fmt(n) { return '€' + (+n).toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2}); }
 function getWeek(d) { const dt = new Date(d), day = dt.getDay() || 7; dt.setDate(dt.getDate() + 4 - day); const y = new Date(dt.getFullYear(), 0, 1); return Math.ceil(((dt - y) / 86400000 + 1) / 7); }
 
@@ -48,27 +55,27 @@ function closeAllModals() { document.querySelectorAll('.overlay').forEach(o => o
 function showToast(m, t='success') { const c = document.getElementById('toast-container'); if(!c) return; const tc = document.createElement('div'); tc.className=`toast ${t}`; tc.textContent=m; c.appendChild(tc); setTimeout(()=>tc.classList.add('show'),10); setTimeout(()=>{tc.classList.remove('show');setTimeout(()=>tc.remove(),300)},3000); }
 
 // ==========================================
-// SISTEMA DE BORRADO DESDE INICIO
+// SISTEMA DE BORRADO UNIVERSAL (RESTAURADO PARA CARTERA/GYM/AGENDA)
 // ==========================================
-let confirmDeleteActionHome = null;
+let confirmAction = null;
 
-function showDeleteConfirmHome(title, msg, callback) {
-    const tEl = document.getElementById('confirm-del-title-home');
-    const mEl = document.getElementById('confirm-del-msg-home');
-    if(tEl) tEl.textContent = title;
-    if(mEl) mEl.textContent = msg;
-    confirmDeleteActionHome = callback;
-    openModal('modal-confirm-delete-home');
+function customConfirm(title, message, callback) {
+  const titleEl = document.getElementById('confirm-title');
+  const msgEl = document.getElementById('confirm-message');
+  if (titleEl) titleEl.textContent = title;
+  if (msgEl) msgEl.textContent = message;
+  confirmAction = callback;
+  openModal('modal-confirm');
 }
 
-function executeConfirmDeleteHome() {
-    if (confirmDeleteActionHome) confirmDeleteActionHome();
-    closeAllModals();
-    confirmDeleteActionHome = null;
+function executeConfirm() {
+  if (confirmAction) confirmAction();
+  closeModal('modal-confirm');
+  confirmAction = null;
 }
 
 // ==========================================
-// LÓGICA DE TAREAS / PROYECTOS (HOY)
+// LÓGICA DE TAREAS / PROYECTOS (HOY - INICIO)
 // ==========================================
 function toggleTaskHome(id) {
     const t = S.tasks.find(x => x.id === id);
@@ -84,14 +91,14 @@ function toggleProjectTaskHome(projectId, taskId) {
 }
 
 function deleteTaskHome(id) {
-    showDeleteConfirmHome("Borrar Evento", "¿Seguro que quieres borrar este evento diario?", () => {
+    customConfirm("Borrar Evento", "¿Seguro que quieres borrar este evento diario?", () => {
         S.tasks = S.tasks.filter(x => x.id !== id); 
         save(); renderHome();
     });
 }
 
 function delProjectTaskHome(projectId, taskId) {
-    showDeleteConfirmHome("Borrar Tarea", "¿Seguro que quieres borrar esta tarea del proyecto?", () => {
+    customConfirm("Borrar Tarea", "¿Seguro que quieres borrar esta tarea del proyecto?", () => {
         const p = S.projects.find(x => x.id === projectId);
         if(p) {
             p.tasks = p.tasks.filter(x => x.id !== taskId);
@@ -281,7 +288,7 @@ function addTaskHome() {
 }
 
 // ==========================================
-// SINCRONIZACIÓN (FINANZAS Y CARTERA)
+// SINCRONIZACIÓN TRADUCTOR (FINANZAS Y CARTERA)
 // ==========================================
 function syncHomeStats() {
     // 1. FINANZAS
@@ -291,7 +298,7 @@ function syncHomeStats() {
         const allFin = [...(S.fin || []), ...(S.incomes || []), ...(S.expenses || []), ...(S.savings || []), ...(S.investments || [])];
         
         allFin.forEach(e => {
-            const amt = parseFloat(e.amount || e.importe || 0);
+            const amt = parseNum(e.amount || e.importe);
             const type = (e.type || e.tipo || '').toLowerCase();
             const cat = (e.cat || e.categoria || '').toLowerCase();
 
@@ -309,31 +316,34 @@ function syncHomeStats() {
         document.getElementById('home-fin-inv').textContent = fmt(inv);
     }
 
-    // 2. CARTERA
+    // 2. CARTERA (LECTURA BLINDADA)
     if (document.getElementById('home-port-total')) {
         let totalVal = 0;
         let totalInv = 0;
 
-        const stocks = S.stocks || S.cartera || [];
+        const stocks = S.stocks || S.cartera || S.posiciones || [];
+        
         stocks.forEach(s => {
-            const qty = parseFloat(s.shares || s.qty || s.cantidad || s.amount || 0);
-            const buy = parseFloat(s.avgPrice || s.avg || s.buyPrice || s.price || s.precio || 0);
-            const current = parseFloat(s.currentPrice || s.precioActual || s.price || buy);
+            const qty = parseNum(s.shares || s.qty || s.cantidad || s.amount);
+            const buy = parseNum(s.avgPrice || s.avg || s.buyPrice || s.precioCompra || s.price || s.precio);
+            const current = parseNum(s.currentPrice || s.precioActual || s.lastPrice || s.price || s.precio || buy);
 
             totalVal += (qty * current);
             totalInv += (qty * buy);
         });
 
-        if (totalVal === 0 && S.totalValue) totalVal = parseFloat(S.totalValue);
-        if (totalInv === 0 && S.totalInvested) totalInv = parseFloat(S.totalInvested);
+        // Fallback: Si el cálculo manual da 0, intentamos leer totales pre-calculados por cartera.js
+        if (totalVal === 0 && S.totalValue) totalVal = parseNum(S.totalValue);
+        if (totalInv === 0 && S.totalInvested) totalInv = parseNum(S.totalInvested);
 
         const pnl = totalVal - totalInv;
         const pct = totalInv > 0 ? (pnl / totalInv) * 100 : 0;
-        const sign = pnl >= 0 ? '+' : '';
+        const sign = pnl > 0 ? '+' : ''; 
         const color = pnl >= 0 ? 'var(--grn)' : 'var(--red)';
 
         document.getElementById('home-port-total').textContent = fmt(totalVal);
         document.getElementById('home-port-inv').textContent = fmt(totalInv);
+        
         const pnlEl = document.getElementById('home-port-pnl');
         if(pnlEl) {
             pnlEl.textContent = `${sign}${fmt(pnl)} (${sign}${pct.toFixed(2)}%)`;
@@ -366,7 +376,7 @@ function renderGymCalendar() {
 }
 
 // ==========================================
-// ARRANQUE PRINCIPAL (CORREGIDO)
+// ARRANQUE PRINCIPAL
 // ==========================================
 function init() {
   load();
@@ -376,22 +386,13 @@ function init() {
   const elGreet = document.getElementById('greeting');
   if(elGreet) elGreet.textContent = `${greet} · ${new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})}`;
   
-  // INICIO
   if(document.getElementById('home-pending-count')) {
       renderHome();
       syncHomeStats();
   }
   
-  // FINANZAS
-  if(document.getElementById('finChart') && typeof renderFinances === 'function') { 
-      setTimeout(initFinChart, 100); 
-      renderFinances(); 
-  }
-  
-  // CARTERA
-  if(document.getElementById('stock-list') && typeof renderStocks === 'function') {
-      renderStocks();
-  }
+  if(document.getElementById('finChart') && typeof renderFinances === 'function') { setTimeout(initFinChart, 100); renderFinances(); }
+  if(document.getElementById('stock-list') && typeof renderStocks === 'function') renderStocks();
 }
 document.addEventListener('DOMContentLoaded', init);
 
