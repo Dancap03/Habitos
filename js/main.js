@@ -14,12 +14,20 @@ function load() {
   try {
     const d = localStorage.getItem('dancab_v1');
     if (d) Object.assign(S, JSON.parse(d));
+    
+    // Inicialización de seguridad para todos los arrays posibles
     if (!S.tasks) S.tasks = [];
     if (!S.projects) S.projects = [];
     if (!S.workoutLog) S.workoutLog = [];
     if (!S.fin) S.fin = [];
     if (!S.stocks) S.stocks = [];
     if (!S.recurring) S.recurring = [];
+    
+    // Arrays antiguos por si acaso
+    if (!S.incomes) S.incomes = [];
+    if (!S.expenses) S.expenses = [];
+    if (!S.savings) S.savings = [];
+    if (!S.investments) S.investments = [];
   } catch(e) { console.error("Error cargando datos"); }
 }
 
@@ -341,26 +349,33 @@ function addTaskHome() {
 }
 
 // ==========================================
-// SINCRONIZACIÓN DE FINANZAS Y CARTERA
+// TRADUCTOR UNIVERSAL: SINCRONIZACIÓN ESTADÍSTICAS
 // ==========================================
 function syncHomeStats() {
-    // 1. FINANZAS
+    
+    // --- 1. FINANZAS ---
     if (document.getElementById('home-fin-avail')) {
         let inc = 0, exp = 0, sav = 0, inv = 0;
 
-        // Buscar en S.fin que es el formato moderno unificado de tu app
+        // Leer datos de listas antiguas (por si están ahí)
+        if (S.incomes) S.incomes.forEach(e => inc += (parseFloat(e.amount || e.importe) || 0));
+        if (S.expenses) S.expenses.forEach(e => exp += (parseFloat(e.amount || e.importe) || 0));
+        if (S.savings) S.savings.forEach(e => sav += (parseFloat(e.amount || e.importe) || 0));
+        if (S.investments) S.investments.forEach(e => inv += (parseFloat(e.amount || e.importe) || 0));
+
+        // Leer datos de lista unificada (nuevo diseño)
         if (S.fin && S.fin.length > 0) {
             S.fin.forEach(e => {
-                const amt = parseFloat(e.amount) || 0;
-                const cat = (e.cat || '').toLowerCase();
-                const type = (e.type || '').toLowerCase();
+                const amt = parseFloat(e.amount || e.importe) || 0;
+                const cat = (e.cat || e.categoria || '').toLowerCase();
+                const type = (e.type || e.tipo || '').toLowerCase();
 
                 if (cat === 'ahorro' || type === 'ahorro') sav += amt;
-                else if (cat === 'inversión' || cat === 'inversion' || type === 'inversion') inv += amt;
+                else if (cat.includes('invers') || type.includes('invers')) inv += amt;
                 else if (type === 'ingreso') inc += amt;
                 else if (type === 'gasto') exp += amt;
             });
-        } 
+        }
 
         const avail = inc - exp - sav - inv;
 
@@ -371,20 +386,30 @@ function syncHomeStats() {
         document.getElementById('home-fin-inv').textContent = fmt(inv);
     }
 
-    // 2. CARTERA
+    // --- 2. CARTERA ---
     if (document.getElementById('home-port-total')) {
         let total = 0, invested = 0;
         
-        if (S.stocks && S.stocks.length > 0) {
-            S.stocks.forEach(s => {
-                const price = parseFloat(s.price || s.currentPrice) || 0;
-                const avg = parseFloat(s.avgPrice || s.avg) || 0;
-                const shares = parseFloat(s.shares || s.qty) || 0;
+        // La información puede estar guardada con distintos nombres según tu código de cartera
+        const portArray = S.stocks || S.cartera || S.portfolio || [];
+        
+        portArray.forEach(s => {
+            const shares = parseFloat(s.shares || s.qty || s.quantity || s.cantidad || s.amount || 0);
+            const avg = parseFloat(s.avgPrice || s.avg || s.buyPrice || s.precioCompra || s.precio || s.price || 0);
+            
+            // Si tu app de cartera no guarda precio actual localmente, no pasará nada porque leerá totales pre-calculados abajo
+            const current = parseFloat(s.currentPrice || s.precioActual || s.lastPrice || s.price || avg);
 
-                total += (price * shares);
-                invested += (avg * shares);
-            });
-        }
+            total += (current * shares);
+            invested += (avg * shares);
+        });
+
+        // SI tu app de Cartera calcula y guarda el total global... (esto sobreescribe lo de arriba)
+        if (S.totalValue && S.totalValue > 0) total = parseFloat(S.totalValue);
+        else if (S.portTotal && S.portTotal > 0) total = parseFloat(S.portTotal);
+        
+        if (S.totalInvested && S.totalInvested > 0) invested = parseFloat(S.totalInvested);
+        else if (S.portInvested && S.portInvested > 0) invested = parseFloat(S.portInvested);
 
         const pnl = total - invested;
         const pct = invested > 0 ? (pnl / invested) * 100 : 0;
@@ -395,11 +420,13 @@ function syncHomeStats() {
         document.getElementById('home-port-inv').textContent = fmt(invested);
         
         const pnlEl = document.getElementById('home-port-pnl');
-        pnlEl.textContent = `${sign}${fmt(pnl)} (${sign}${pct.toFixed(2)}%)`;
-        pnlEl.style.color = color;
+        if(pnlEl) {
+            pnlEl.textContent = `${sign}${fmt(pnl)} (${sign}${pct.toFixed(2)}%)`;
+            pnlEl.style.color = color;
+        }
     }
 
-    // 3. GYM
+    // --- 3. GYM ---
     if (document.getElementById('home-gym-calendar')) {
         renderGymCalendar();
     }
@@ -433,6 +460,7 @@ function init() {
   const elGreet = document.getElementById('greeting');
   if(elGreet) elGreet.textContent = `${greet} · ${new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})}`;
   
+  // SI ESTAMOS EN LA PANTALLA INICIO, SINCRONIZAMOS TODO:
   if(document.getElementById('home-pending-count')) {
       renderHome();
       syncHomeStats();
