@@ -1,7 +1,7 @@
 // 1. ESTADO GLOBAL
 const S = {
   tasks: [], fin: [], recurring: [], stocks: [], routines: [], workoutLog: [], prs: {}, projects: [],
-  incomes: [], expenses: [], savings: [], investments: [], // Compatibilidad
+  incomes: [], expenses: [], savings: [], investments: [],
   kanban: { todo:[], doing:[], done:[] }, eis: { ui:[], ni:[], un:[], nn:[] },
   pomo: { sessions: 0 }, activePeriod: 'semana', activeRoutine: null
 };
@@ -16,7 +16,7 @@ function load() {
     const d = localStorage.getItem('dancab_v1');
     if (d) Object.assign(S, JSON.parse(d));
     
-    // Asegurarnos de que los arrays siempre existan
+    // Proteger arrays vitales
     const keys = ['tasks','projects','workoutLog','fin','stocks','recurring','incomes','expenses','savings','investments'];
     keys.forEach(k => { if(!S[k]) S[k] = []; });
   } catch(e) { console.error("Error cargando datos"); }
@@ -29,16 +29,15 @@ function today() {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
-// PARSER DE NÚMEROS INTELIGENTE (Convierte comas a puntos y evita NaN)
+// PARSER DE NÚMEROS A PRUEBA DE BALAS (Evita el fallo de la cartera)
 function parseNum(val) {
     if (typeof val === 'number') return val;
     if (!val) return 0;
-    const cleanVal = String(val).replace(',', '.').replace(/[^0-9.-]/g, '');
+    const cleanVal = String(val).replace('€', '').replace(/\s/g, '').replace(',', '.').replace(/[^0-9.-]/g, '');
     return parseFloat(cleanVal) || 0;
 }
 
 function fmt(n) { return '€' + (+n).toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2}); }
-function getWeek(d) { const dt = new Date(d), day = dt.getDay() || 7; dt.setDate(dt.getDate() + 4 - day); const y = new Date(dt.getFullYear(), 0, 1); return Math.ceil(((dt - y) / 86400000 + 1) / 7); }
 
 // 5. CONTROL DE MODALES
 function openModal(id) { 
@@ -46,7 +45,7 @@ function openModal(id) {
   if(m) m.classList.add('on'); 
 }
 function closeModal(id, e) { 
-  if (!e || e.target.classList.contains('overlay')) { 
+  if (!e || e.target.classList.contains('overlay') || e.currentTarget.tagName === 'BUTTON') { 
     const m = document.getElementById(id);
     if(m) m.classList.remove('on'); 
   } 
@@ -55,7 +54,7 @@ function closeAllModals() { document.querySelectorAll('.overlay').forEach(o => o
 function showToast(m, t='success') { const c = document.getElementById('toast-container'); if(!c) return; const tc = document.createElement('div'); tc.className=`toast ${t}`; tc.textContent=m; c.appendChild(tc); setTimeout(()=>tc.classList.add('show'),10); setTimeout(()=>{tc.classList.remove('show');setTimeout(()=>tc.remove(),300)},3000); }
 
 // ==========================================
-// SISTEMA DE BORRADO UNIVERSAL (RESTAURADO PARA CARTERA/GYM/AGENDA)
+// SISTEMA DE BORRADO UNIVERSAL (CARTERA, GYM, AGENDA, INICIO)
 // ==========================================
 let confirmAction = null;
 
@@ -75,7 +74,7 @@ function executeConfirm() {
 }
 
 // ==========================================
-// LÓGICA DE TAREAS / PROYECTOS (HOY - INICIO)
+// LÓGICA DE TAREAS / PROYECTOS (PANTALLA INICIO)
 // ==========================================
 function toggleTaskHome(id) {
     const t = S.tasks.find(x => x.id === id);
@@ -288,10 +287,11 @@ function addTaskHome() {
 }
 
 // ==========================================
-// SINCRONIZACIÓN TRADUCTOR (FINANZAS Y CARTERA)
+// SÚPER TRADUCTOR DE SINCRONIZACIÓN (FINANZAS Y CARTERA)
 // ==========================================
 function syncHomeStats() {
-    // 1. FINANZAS
+    
+    // --- 1. FINANZAS ---
     if (document.getElementById('home-fin-avail')) {
         let inc = 0, exp = 0, sav = 0, inv = 0;
         
@@ -316,25 +316,29 @@ function syncHomeStats() {
         document.getElementById('home-fin-inv').textContent = fmt(inv);
     }
 
-    // 2. CARTERA (LECTURA BLINDADA)
+    // --- 2. CARTERA (LECTOR A PRUEBA DE BOMBAS) ---
     if (document.getElementById('home-port-total')) {
-        let totalVal = 0;
-        let totalInv = 0;
-
-        const stocks = S.stocks || S.cartera || S.posiciones || [];
+        let totalVal = 0, totalInv = 0;
         
-        stocks.forEach(s => {
-            const qty = parseNum(s.shares || s.qty || s.cantidad || s.amount);
-            const buy = parseNum(s.avgPrice || s.avg || s.buyPrice || s.precioCompra || s.price || s.precio);
-            const current = parseNum(s.currentPrice || s.precioActual || s.lastPrice || s.price || s.precio || buy);
+        // Busca en cualquier sitio donde Cartera haya podido guardar posiciones
+        const arraysToSearch = ['stocks', 'cartera', 'posiciones', 'activos', 'portfolio', 'assets'];
+        
+        arraysToSearch.forEach(arrName => {
+            if (S[arrName] && Array.isArray(S[arrName])) {
+                S[arrName].forEach(s => {
+                    const qty = parseNum(s.shares || s.qty || s.cantidad || s.amount || s.acciones);
+                    const buy = parseNum(s.avgPrice || s.avg || s.buyPrice || s.precioCompra || s.precio || s.price);
+                    const current = parseNum(s.currentPrice || s.precioActual || s.lastPrice || s.price || s.precio || buy);
 
-            totalVal += (qty * current);
-            totalInv += (qty * buy);
+                    totalVal += (qty * current);
+                    totalInv += (qty * buy);
+                });
+            }
         });
 
-        // Fallback: Si el cálculo manual da 0, intentamos leer totales pre-calculados por cartera.js
-        if (totalVal === 0 && S.totalValue) totalVal = parseNum(S.totalValue);
-        if (totalInv === 0 && S.totalInvested) totalInv = parseNum(S.totalInvested);
+        // Si calcular uno a uno no funciona, busca si la propia página Cartera guardó el total ya sumado
+        if (totalVal === 0) totalVal = parseNum(S.totalValue || S.valorCartera || S.carteraTotal || 0);
+        if (totalInv === 0) totalInv = parseNum(S.totalInvested || S.invertidoCartera || S.carteraInv || 0);
 
         const pnl = totalVal - totalInv;
         const pct = totalInv > 0 ? (pnl / totalInv) * 100 : 0;
@@ -343,7 +347,6 @@ function syncHomeStats() {
 
         document.getElementById('home-port-total').textContent = fmt(totalVal);
         document.getElementById('home-port-inv').textContent = fmt(totalInv);
-        
         const pnlEl = document.getElementById('home-port-pnl');
         if(pnlEl) {
             pnlEl.textContent = `${sign}${fmt(pnl)} (${sign}${pct.toFixed(2)}%)`;
@@ -351,7 +354,7 @@ function syncHomeStats() {
         }
     }
 
-    // 3. GYM
+    // --- 3. GYM ---
     if (document.getElementById('home-gym-calendar')) { renderGymCalendar(); }
 }
 
@@ -376,7 +379,7 @@ function renderGymCalendar() {
 }
 
 // ==========================================
-// ARRANQUE PRINCIPAL
+// ARRANQUE DE LA APP
 // ==========================================
 function init() {
   load();
@@ -396,7 +399,9 @@ function init() {
 }
 document.addEventListener('DOMContentLoaded', init);
 
-// SWIPE DOWN TO CLOSE
+// ==========================================
+// DESLIZAR PARA CERRAR MODALES
+// ==========================================
 function setupSwipeToClose() {
     const modals = document.querySelectorAll('.modal');
     modals.forEach(modal => {
