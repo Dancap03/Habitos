@@ -134,13 +134,13 @@
     <button class="nav-btn" onclick="window.location.href='gym.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 5v14M18 5v14M3 9h18M3 15h18"/></svg><span class="nav-label">Gym</span></button>
   </nav>
 
-  <div class="overlay" id="modal-confirm-delete-home" onclick="closeModal('modal-confirm-delete-home',event)">
+  <div class="overlay" id="modal-confirm" onclick="closeModal('modal-confirm',event)">
     <div class="modal">
-      <div class="modal-title" id="confirm-del-title-home" style="margin-bottom:10px; color:var(--red);">Eliminar</div>
-      <div id="confirm-del-msg-home" style="font-size:14px; color:var(--t1); margin-bottom:24px;">¿Estás seguro?</div>
+      <div class="modal-title" id="confirm-title" style="margin-bottom:10px; color:var(--red);">Eliminar</div>
+      <div id="confirm-message" style="font-size:14px; color:var(--t1); margin-bottom:24px;">¿Estás seguro?</div>
       <div style="display:flex; gap:10px;">
-          <button class="btn" style="flex:1; background:var(--bg3); color:var(--t1);" onclick="closeModal('modal-confirm-delete-home')">Cancelar</button>
-          <button class="btn btn-danger" style="flex:1; background:var(--red); color:#fff; border:none;" id="confirm-del-btn-home" onclick="executeConfirmDeleteHome()">Sí, borrar</button>
+          <button class="btn" style="flex:1; background:var(--bg3); color:var(--t1);" onclick="closeModal('modal-confirm')">Cancelar</button>
+          <button class="btn btn-danger" style="flex:1; background:var(--red); color:#fff; border:none;" onclick="executeConfirm()">Sí, borrar</button>
       </div>
     </div>
   </div>
@@ -304,8 +304,8 @@
   <div class="toast-container" id="toast-container"></div>
 </div>
 
-<script src="js/main.js?v=64"></script>
-<script src="js/nube.js?v=64"></script>
+<script src="js/main.js?v=70"></script>
+<script src="js/nube.js?v=70"></script>
 
 <script>
   // GUARDADO UNIVERSAL DE FINANZAS
@@ -320,9 +320,8 @@
     
     const entry = { id: (typeof uid === 'function' ? uid() : Date.now()), type, amount, desc, cat, date };
     
-    // Guardamos en TODOS los posibles arrays para que Finanzas funcione lo tenga como lo tenga
+    // Guardamos en TODOS los posibles arrays
     if(!S.fin) S.fin = []; S.fin.push(entry);
-    
     if(cat === 'ahorro') { if(!S.savings) S.savings=[]; S.savings.push(entry); }
     else if(cat.includes('invers')) { if(!S.investments) S.investments=[]; S.investments.push(entry); }
     else if(type === 'ingreso') { if(!S.incomes) S.incomes=[]; S.incomes.push(entry); }
@@ -330,8 +329,6 @@
     
     save(); 
     closeModal('modal-fin-home'); 
-    
-    // Forzamos actualización visual al instante
     if (typeof syncHomeStats === 'function') syncHomeStats(); 
     showToast('Registro guardado ✅', 'success');
   }
