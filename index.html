@@ -84,35 +84,35 @@
         
         <div style="text-align: center; margin: 10px 0;">
             <div style="font-size: 11px; color: var(--t3); font-weight: 700; letter-spacing: 0.5px;">DISPONIBLE</div>
-            <div class="big-bal" id="home-fin-avail" style="font-size:42px;">€0</div>
+            <div class="big-bal" id="home-fin-avail" style="font-size:42px;">€0,00</div>
         </div>
 
         <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-top:16px">
           <div style="background:rgba(39,174,96,.07); border-radius:10px; padding:8px; text-align:center;">
             <div style="font-size:8px; color:var(--t3); font-weight:700;">ING.</div>
-            <div style="font-size:11px; font-weight:700; color:var(--grn)" id="home-fin-inc">€0</div>
+            <div style="font-size:11px; font-weight:700; color:var(--grn)" id="home-fin-inc">€0,00</div>
           </div>
           <div style="background:rgba(231,76,60,.07); border-radius:10px; padding:8px; text-align:center;">
             <div style="font-size:8px; color:var(--t3); font-weight:700;">GAS.</div>
-            <div style="font-size:11px; font-weight:700; color:var(--red)" id="home-fin-exp">€0</div>
+            <div style="font-size:11px; font-weight:700; color:var(--red)" id="home-fin-exp">€0,00</div>
           </div>
           <div style="background:rgba(59,130,246,.07); border-radius:10px; padding:8px; text-align:center;">
             <div style="font-size:8px; color:var(--t3); font-weight:700;">AHO.</div>
-            <div style="font-size:11px; font-weight:700; color:var(--blu)" id="home-fin-sav">€0</div>
+            <div style="font-size:11px; font-weight:700; color:var(--blu)" id="home-fin-sav">€0,00</div>
           </div>
           <div style="background:rgba(245,158,11,.07); border-radius:10px; padding:8px; text-align:center;">
             <div style="font-size:8px; color:var(--t3); font-weight:700;">INV.</div>
-            <div style="font-size:11px; font-weight:700; color:var(--yel)" id="home-fin-inv">€0</div>
+            <div style="font-size:11px; font-weight:700; color:var(--yel)" id="home-fin-inv">€0,00</div>
           </div>
         </div>
       </div>
 
       <div class="card card-full" onclick="window.location.href='cartera.html'" style="cursor:pointer">
         <div class="card-title">VALOR CARTERA</div>
-        <div class="big-bal" id="home-port-total" style="font-size:28px;">€0</div>
+        <div class="big-bal" id="home-port-total" style="font-size:28px;">€0,00</div>
         <div style="margin-top:8px;display:flex;gap:10px;align-items:center;">
-           <span style="font-size:13px;color:var(--t2)">Invertido: <span id="home-port-inv" style="color:var(--t1)">€0</span></span>
-           <span id="home-port-pnl" style="font-size:13px;font-weight:700;">+€0 (0%)</span>
+           <span style="font-size:13px;color:var(--t2)">Invertido: <span id="home-port-inv" style="color:var(--t1)">€0,00</span></span>
+           <span id="home-port-pnl" style="font-size:13px;font-weight:700;">+€0,00 (0.00%)</span>
         </div>
       </div>
 
@@ -304,9 +304,11 @@
   <div class="toast-container" id="toast-container"></div>
 </div>
 
-<script src="js/main.js?v=60"></script>
-<script src="js/nube.js?v=60"></script>
+<script src="js/main.js?v=64"></script>
+<script src="js/nube.js?v=64"></script>
+
 <script>
+  // GUARDADO UNIVERSAL DE FINANZAS
   function addFinEntryHome() {
     const type = document.getElementById('fin-type-home').value;
     const amount = parseFloat(document.getElementById('fin-amount-home').value);
@@ -318,17 +320,26 @@
     
     const entry = { id: (typeof uid === 'function' ? uid() : Date.now()), type, amount, desc, cat, date };
     
-    if(!S.fin) S.fin = [];
-    S.fin.push(entry);
+    // Guardamos en TODOS los posibles arrays para que Finanzas funcione lo tenga como lo tenga
+    if(!S.fin) S.fin = []; S.fin.push(entry);
+    
+    if(cat === 'ahorro') { if(!S.savings) S.savings=[]; S.savings.push(entry); }
+    else if(cat.includes('invers')) { if(!S.investments) S.investments=[]; S.investments.push(entry); }
+    else if(type === 'ingreso') { if(!S.incomes) S.incomes=[]; S.incomes.push(entry); }
+    else { if(!S.expenses) S.expenses=[]; S.expenses.push(entry); }
     
     save(); 
     closeModal('modal-fin-home'); 
     
-    // Forzamos que se vuelva a calcular la pantalla de inicio
+    // Forzamos actualización visual al instante
     if (typeof syncHomeStats === 'function') syncHomeStats(); 
-    
     showToast('Registro guardado ✅', 'success');
   }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const dateInput = document.getElementById('fin-date-home');
+    if (dateInput && typeof today === 'function') dateInput.value = today();
+  });
 </script>
 </body>
 </html>
