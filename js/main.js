@@ -20,10 +20,6 @@ function load() {
     if (!S.fin) S.fin = [];
     if (!S.stocks) S.stocks = [];
     if (!S.recurring) S.recurring = [];
-    if (!S.incomes) S.incomes = [];
-    if (!S.expenses) S.expenses = [];
-    if (!S.savings) S.savings = [];
-    if (!S.investments) S.investments = [];
   } catch(e) { console.error("Error cargando datos"); }
 }
 
@@ -345,19 +341,29 @@ function addTaskHome() {
 }
 
 // ==========================================
-// SINCRONIZACIÓN DE FINANZAS, CARTERA Y GYM
+// SINCRONIZACIÓN DE FINANZAS Y CARTERA
 // ==========================================
 function syncHomeStats() {
-    // 1. Sincronizar FINANZAS
+    // 1. FINANZAS
     if (document.getElementById('home-fin-avail')) {
         let inc = 0, exp = 0, sav = 0, inv = 0;
-        if(S.incomes) S.incomes.forEach(e => inc += (parseFloat(e.amount) || 0));
-        if(S.expenses) S.expenses.forEach(e => exp += (parseFloat(e.amount) || 0));
-        if(S.savings) S.savings.forEach(e => sav += (parseFloat(e.amount) || 0));
-        if(S.investments) S.investments.forEach(e => inv += (parseFloat(e.amount) || 0));
-        
+
+        // Buscar en S.fin que es el formato moderno unificado de tu app
+        if (S.fin && S.fin.length > 0) {
+            S.fin.forEach(e => {
+                const amt = parseFloat(e.amount) || 0;
+                const cat = (e.cat || '').toLowerCase();
+                const type = (e.type || '').toLowerCase();
+
+                if (cat === 'ahorro' || type === 'ahorro') sav += amt;
+                else if (cat === 'inversión' || cat === 'inversion' || type === 'inversion') inv += amt;
+                else if (type === 'ingreso') inc += amt;
+                else if (type === 'gasto') exp += amt;
+            });
+        } 
+
         const avail = inc - exp - sav - inv;
-        
+
         document.getElementById('home-fin-avail').textContent = fmt(avail);
         document.getElementById('home-fin-inc').textContent = fmt(inc);
         document.getElementById('home-fin-exp').textContent = fmt(exp);
@@ -365,18 +371,21 @@ function syncHomeStats() {
         document.getElementById('home-fin-inv').textContent = fmt(inv);
     }
 
-    // 2. Sincronizar CARTERA
+    // 2. CARTERA
     if (document.getElementById('home-port-total')) {
         let total = 0, invested = 0;
-        if (S.stocks) {
+        
+        if (S.stocks && S.stocks.length > 0) {
             S.stocks.forEach(s => {
-                const price = parseFloat(s.price) || 0;
-                const avg = parseFloat(s.avgPrice) || 0;
-                const shares = parseFloat(s.shares) || 0;
+                const price = parseFloat(s.price || s.currentPrice) || 0;
+                const avg = parseFloat(s.avgPrice || s.avg) || 0;
+                const shares = parseFloat(s.shares || s.qty) || 0;
+
                 total += (price * shares);
                 invested += (avg * shares);
             });
         }
+
         const pnl = total - invested;
         const pct = invested > 0 ? (pnl / invested) * 100 : 0;
         const sign = pnl > 0 ? '+' : ''; 
@@ -390,7 +399,7 @@ function syncHomeStats() {
         pnlEl.style.color = color;
     }
 
-    // 3. Sincronizar GYM
+    // 3. GYM
     if (document.getElementById('home-gym-calendar')) {
         renderGymCalendar();
     }
@@ -424,7 +433,6 @@ function init() {
   const elGreet = document.getElementById('greeting');
   if(elGreet) elGreet.textContent = `${greet} · ${new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})}`;
   
-  // SI ESTAMOS EN LA PANTALLA INICIO, SINCRONIZAMOS TODO:
   if(document.getElementById('home-pending-count')) {
       renderHome();
       syncHomeStats();
