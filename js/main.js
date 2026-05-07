@@ -1,7 +1,7 @@
-// 1. ESTADO GLOBAL
+// 1. ESTADO GLOBAL ORIGINAL RESTAURADO
 const S = {
   tasks: [], fin: [], recurring: [], stocks: [], routines: [], workoutLog: [], prs: {}, projects: [],
-  incomes: [], expenses: [], savings: [], investments: [], // Compatibilidad con arrays separados
+  kanban: { todo:[], doing:[], done:[] }, eis: { ui:[], ni:[], un:[], nn:[] },
   pomo: { sessions: 0 }, activePeriod: 'semana', activeRoutine: null
 };
 
@@ -15,9 +15,12 @@ function load() {
     const d = localStorage.getItem('dancab_v1');
     if (d) Object.assign(S, JSON.parse(d));
     
-    // Protecciones para que siempre existan los arrays
-    const keys = ['tasks','projects','workoutLog','fin','stocks','recurring','incomes','expenses','savings','investments'];
-    keys.forEach(k => { if(!S[k]) S[k] = []; });
+    if (!S.tasks) S.tasks = [];
+    if (!S.projects) S.projects = [];
+    if (!S.workoutLog) S.workoutLog = [];
+    if (!S.fin) S.fin = [];
+    if (!S.stocks) S.stocks = [];
+    if (!S.recurring) S.recurring = [];
   } catch(e) { console.error("Error cargando datos"); }
 }
 
@@ -28,6 +31,7 @@ function today() {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 function fmt(n) { return '€' + (+n).toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function getWeek(d) { const dt = new Date(d), day = dt.getDay() || 7; dt.setDate(dt.getDate() + 4 - day); const y = new Date(dt.getFullYear(), 0, 1); return Math.ceil(((dt - y) / 86400000 + 1) / 7); }
 
 // 5. CONTROL DE MODALES
 function openModal(id) { 
@@ -277,14 +281,13 @@ function addTaskHome() {
 }
 
 // ==========================================
-// SINCRONIZACIÓN TRADUCTOR (FINANZAS Y CARTERA)
+// SINCRONIZACIÓN (FINANZAS Y CARTERA)
 // ==========================================
 function syncHomeStats() {
-    // 1. FINANZAS (BUSCAR EN TODO EL OBJETO S)
+    // 1. FINANZAS
     if (document.getElementById('home-fin-avail')) {
         let inc = 0, exp = 0, sav = 0, inv = 0;
         
-        // Sumamos de todas las fuentes posibles (compatibilidad total)
         const allFin = [...(S.fin || []), ...(S.incomes || []), ...(S.expenses || []), ...(S.savings || []), ...(S.investments || [])];
         
         allFin.forEach(e => {
@@ -306,12 +309,11 @@ function syncHomeStats() {
         document.getElementById('home-fin-inv').textContent = fmt(inv);
     }
 
-    // 2. CARTERA (BUSCAR ACTIVOS Y CALCULAR VALOR)
+    // 2. CARTERA
     if (document.getElementById('home-port-total')) {
         let totalVal = 0;
         let totalInv = 0;
 
-        // Buscamos en S.stocks o S.cartera
         const stocks = S.stocks || S.cartera || [];
         stocks.forEach(s => {
             const qty = parseFloat(s.shares || s.qty || s.cantidad || s.amount || 0);
@@ -322,9 +324,8 @@ function syncHomeStats() {
             totalInv += (qty * buy);
         });
 
-        // Fallback: si el cálculo de arriba da 0 pero la página de Cartera guardó el total calculado
         if (totalVal === 0 && S.totalValue) totalVal = parseFloat(S.totalValue);
-        if (totalInv === 0 && S.totalInvertido) totalInv = parseFloat(S.totalInvertido);
+        if (totalInv === 0 && S.totalInvested) totalInv = parseFloat(S.totalInvested);
 
         const pnl = totalVal - totalInv;
         const pct = totalInv > 0 ? (pnl / totalInv) * 100 : 0;
@@ -364,6 +365,9 @@ function renderGymCalendar() {
   calEl.innerHTML = html;
 }
 
+// ==========================================
+// ARRANQUE PRINCIPAL (CORREGIDO)
+// ==========================================
 function init() {
   load();
   setupSwipeToClose();
@@ -372,9 +376,21 @@ function init() {
   const elGreet = document.getElementById('greeting');
   if(elGreet) elGreet.textContent = `${greet} · ${new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})}`;
   
+  // INICIO
   if(document.getElementById('home-pending-count')) {
       renderHome();
       syncHomeStats();
+  }
+  
+  // FINANZAS
+  if(document.getElementById('finChart') && typeof renderFinances === 'function') { 
+      setTimeout(initFinChart, 100); 
+      renderFinances(); 
+  }
+  
+  // CARTERA
+  if(document.getElementById('stock-list') && typeof renderStocks === 'function') {
+      renderStocks();
   }
 }
 document.addEventListener('DOMContentLoaded', init);
