@@ -4,12 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#080808">
-<title>Dancab - Inicio</title>
+<title>Dancab - Agenda</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/UI.css">
 <style>
-  /* Estilos Calendario y Widgets */
   .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
   .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
   .cal-day-name { font-size: 11px; font-weight: 700; color: var(--t3); margin-bottom: 8px; }
@@ -27,7 +26,6 @@
   .check-circle.checked { background: var(--acc); border-color: var(--acc); }
   .check-circle.checked::after { content: '✓'; color: #fff; font-size: 12px; font-weight: bold; }
 
-  /* Pill Styles Fijos */
   .ag-pill-container { display: flex; flex-direction: row; align-items: center; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; width: 100%; flex: 0 0 auto; min-height: 45px; }
   .ag-pill-container::-webkit-scrollbar { display: none; }
   .ag-pill { background: var(--bg3); color: var(--t2); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; border: none; flex: 0 0 auto; height: 36px; display: inline-flex; align-items: center; justify-content: center; }
@@ -39,96 +37,80 @@
 
   <div class="screen on">
     <div class="topbar">
-      <div style="font-weight:800;font-size:26px;color:var(--acc);letter-spacing:-0.5px;">Dancab</div>
-       <div style="text-align:right">
-        <div id="greeting" style="font-size:11px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px"></div>
-        <div id="top-date" style="font-size:13px;color:var(--t2);font-weight:600"></div>
-      </div>
+      <div style="font-weight:800;font-size:26px;color:var(--acc);letter-spacing:-0.5px;">Productividad</div>
     </div>
 
     <div class="scroll" style="padding-bottom: 90px;">
-      <div style="margin-bottom: 16px;">
-        <div class="card card-full" style="text-align: center; padding: 24px;">
-            <div id="home-pending-count" style="font-size: 48px; font-weight: 800; margin-bottom: 8px; color: var(--t1);">0</div>
-            <div style="font-size: 12px; color: var(--t3); font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Eventos Pendientes para Hoy</div>
-        </div>
+
+      <div class="ag-pill-container" id="s-tareas">
+        <button class="ag-pill on" onclick="switchTaskView('agenda', this)">Agenda Diaria</button>
+        <button class="ag-pill" onclick="switchTaskView('resources', this)">Recursos</button>
       </div>
 
-      <div class="card card-full" onclick="window.location.href='gym.html'" style="cursor:pointer">
-        <div class="card-header" style="margin-bottom: 12px;">
-            <span class="card-title" style="margin-bottom:0">CALENDARIO GYM</span>
-            <div style="display:flex;gap:10px;align-items:center;">
-               <button class="btn btn-sm" onclick="event.stopPropagation(); changeGymMonth(-1)">◀</button>
-               <span id="gym-cal-month" style="font-size:12px;font-weight:700;min-width:90px;text-align:center;color:var(--t1)">-</span>
-               <button class="btn btn-sm" onclick="event.stopPropagation(); changeGymMonth(1)">▶</button>
+      <div id="tv-agenda">
+          <div class="card card-full">
+            <div class="cal-header">
+                <button class="btn btn-sm" style="background:var(--bg3); color:var(--t1);" onclick="changeMonth(-1)">◀</button>
+                <div id="cal-month-year" style="font-weight:800; font-size:16px; text-transform:capitalize;">Mes Año</div>
+                <button class="btn btn-sm" style="background:var(--bg3); color:var(--t1);" onclick="changeMonth(1)">▶</button>
             </div>
-        </div>
-        <div id="home-gym-calendar" style="display:grid; grid-template-columns:repeat(7, 1fr); gap:8px 4px; text-align:center;"></div>
-      </div>
-
-      <div class="card card-full" style="margin-top: 16px;">
-        <div class="card-header" style="margin-bottom: 12px;">
-            <span class="card-title" style="margin-bottom:0;">TAREAS DEL DÍA</span>
-            <button class="btn btn-sm" style="background:var(--acc); color:#fff; font-weight:700; border:none;" onclick="openModal('modal-task-home')">+ Evento</button>
-        </div>
-        <div style="font-size:12px; color:var(--t3); margin-bottom:16px;">Aquí verás tus metas del día y las tareas de proyectos con fecha límite hoy.</div>
-        <div id="home-tasks-list">
+            <div class="cal-grid">
+                <div class="cal-day-name">L</div><div class="cal-day-name">M</div><div class="cal-day-name">X</div><div class="cal-day-name">J</div><div class="cal-day-name">V</div><div class="cal-day-name">S</div><div class="cal-day-name">D</div>
             </div>
+            <div class="cal-grid" id="cal-days"></div>
+          </div>
+
+          <div style="margin: 20px 0 10px 4px; font-weight:800; font-size:18px; color:var(--t1);" id="selected-date-label">Hoy</div>
+
+          <div class="card card-full" style="background: linear-gradient(145deg, rgba(30,30,35,1) 0%, rgba(20,20,25,1) 100%); border: 1px solid rgba(139, 92, 246, 0.3);">
+            <div class="card-title" style="color: #8b5cf6;" id="pomo-label">FOCUS-TIME BLOCKING</div>
+            <div class="pomo-tabs" id="tv-pomo">
+                <button class="pomo-tab on" onclick="setPomoMode('focus', this)">Pomodoro</button>
+                <button class="pomo-tab" onclick="setPomoMode('short', this)">Corto</button>
+                <button class="pomo-tab" onclick="setPomoMode('long', this)">Largo</button>
+            </div>
+            <div class="pomo-timer" id="pomo-display">25:00</div>
+            <div style="text-align:center; font-size:12px; color:var(--t3); margin-bottom:16px;">Sesiones Completadas: <span id="pomo-sessions" style="color:var(--t1); font-weight:bold;">0</span></div>
+            <div style="display:flex; justify-content:center; gap:12px;">
+                <button class="btn" style="background:#8b5cf6; color:#fff; font-weight:700; padding:10px 24px; border-radius:20px;" id="pomo-play" onclick="togglePomo()">▶ Empezar</button>
+                <button class="btn" style="background:var(--bg4); color:var(--t1); font-weight:700; padding:10px 16px; border-radius:20px;" onclick="resetPomo()">↻</button>
+            </div>
+          </div>
+
+          <div class="card card-full">
+            <div class="card-header" style="margin-bottom:12px;">
+                <span class="card-title" style="margin-bottom:0;">TAREAS DEL DÍA</span>
+                <button class="btn btn-sm" style="background:var(--bg3); color:var(--t1);" onclick="openModal('modal-task')">+ Meta</button>
+            </div>
+            <div style="font-size:12px; color:var(--t3); margin-bottom:16px;">Aquí verás tus metas del día y las tareas de proyectos con fecha límite hoy.</div>
+            <div id="tasks-list"></div>
+          </div>
+
+          <div class="card card-full">
+              <div class="card-header" style="margin-bottom:12px;">
+                  <span class="card-title" style="margin-bottom:0;">PROYECTOS</span>
+              </div>
+              <div style="font-size:12px; color:var(--t3); margin-bottom:16px;">Crea una Meta con categoría "Otro" para añadir un proyecto aquí.</div>
+              <div id="projects-container"></div>
+          </div>
       </div>
 
-      <div class="card card-full" onclick="window.location.href='finanzas.html'" style="cursor:pointer">
-        <div class="card-header" style="margin-bottom: 4px;">
-            <span class="card-title" style="margin-bottom: 0;">FINANZAS</span>
-            <button class="btn btn-sm" style="background:var(--acc); color:#fff; font-weight:800;" onclick="event.stopPropagation(); openModal('modal-fin-home')">+ Añadir</button>
-        </div>
-        
-        <div style="text-align: center; margin: 10px 0;">
-            <div style="font-size: 11px; color: var(--t3); font-weight: 700; letter-spacing: 0.5px;">DISPONIBLE</div>
-            <div class="big-bal" id="home-fin-avail" style="font-size:42px;">€0,00</div>
-        </div>
-
-        <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-top:16px">
-          <div style="background:rgba(39,174,96,.07); border-radius:10px; padding:8px; text-align:center;">
-            <div style="font-size:8px; color:var(--t3); font-weight:700;">ING.</div>
-            <div style="font-size:11px; font-weight:700; color:var(--grn)" id="home-fin-inc">€0,00</div>
-          </div>
-          <div style="background:rgba(231,76,60,.07); border-radius:10px; padding:8px; text-align:center;">
-            <div style="font-size:8px; color:var(--t3); font-weight:700;">GAS.</div>
-            <div style="font-size:11px; font-weight:700; color:var(--red)" id="home-fin-exp">€0,00</div>
-          </div>
-          <div style="background:rgba(59,130,246,.07); border-radius:10px; padding:8px; text-align:center;">
-            <div style="font-size:8px; color:var(--t3); font-weight:700;">AHO.</div>
-            <div style="font-size:11px; font-weight:700; color:var(--blu)" id="home-fin-sav">€0,00</div>
-          </div>
-          <div style="background:rgba(245,158,11,.07); border-radius:10px; padding:8px; text-align:center;">
-            <div style="font-size:8px; color:var(--t3); font-weight:700;">INV.</div>
-            <div style="font-size:11px; font-weight:700; color:var(--yel)" id="home-fin-inv">€0,00</div>
-          </div>
+      <div id="tv-resources" style="display:none;">
+        <div class="card card-full">
+            <div class="card-header" style="margin-bottom:16px;">
+                <span class="card-title" style="margin-bottom:0;">WORKSPACE & RESOURCES</span>
+                <button class="btn btn-sm" style="background:var(--acc); color:#fff;" onclick="openModal('modal-resource')">+ Recurso</button>
+            </div>
+            <div id="resources-list"></div>
         </div>
       </div>
 
-      <div class="card card-full" onclick="window.location.href='cartera.html'" style="cursor:pointer">
-        <div class="card-title">VALOR CARTERA</div>
-        <div class="big-bal" id="home-port-total" style="font-size:28px;">€0,00</div>
-        <div style="margin-top:8px;display:flex;gap:10px;align-items:center;">
-           <span style="font-size:13px;color:var(--t2)">Invertido: <span id="home-port-inv" style="color:var(--t1)">€0,00</span></span>
-           <span id="home-port-pnl" style="font-size:13px;font-weight:700;">+€0,00 (0.00%)</span>
-        </div>
-      </div>
-
-      <div class="card card-full">
-        <div class="card-title">SINCRONIZACIÓN EN LA NUBE ☁️</div>
-        <div style="display:flex;gap:10px;margin-top:10px">
-           <button class="btn" style="flex:1; background:var(--bg3); font-weight:700;" onclick="cloudSync('up', event)">⬆️ Subir</button>
-           <button class="btn" style="flex:1; background:var(--bg3); font-weight:700;" onclick="cloudSync('down', event)">⬇️ Bajar</button>
-        </div>
-      </div>
     </div>
   </div>
 
   <nav class="nav">
-    <button class="nav-btn on" onclick="window.location.href='index.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="nav-label">Inicio</span></button>
-    <button class="nav-btn" onclick="window.location.href='calendario.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span class="nav-label">Agenda</span></button>
+    <button class="nav-btn" onclick="window.location.href='index.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="nav-label">Inicio</span></button>
+    <button class="nav-btn on" onclick="window.location.href='calendario.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span class="nav-label">Agenda</span></button>
     <button class="nav-btn" onclick="window.location.href='finanzas.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg><span class="nav-label">Finanzas</span></button>
     <button class="nav-btn" onclick="window.location.href='cartera.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Cartera</span></button>
     <button class="nav-btn" onclick="window.location.href='gym.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 5v14M18 5v14M3 9h18M3 15h18"/></svg><span class="nav-label">Gym</span></button>
@@ -145,198 +127,119 @@
     </div>
   </div>
 
-  <div class="overlay" id="modal-task-home" onclick="closeModal('modal-task-home',event)">
+  <div class="overlay" id="modal-task" onclick="closeModal('modal-task',event)">
     <div class="modal">
       <div class="modal-handle"></div>
-      <div class="modal-title" style="margin-bottom:20px;">Nuevo Evento</div>
-      
+      <div class="modal-title" style="margin-bottom:20px;">Nueva Meta</div>
       <label class="form-label">¿Qué quieres lograr?</label>
-      <input type="text" id="h-name" class="form-input" placeholder="...">
-      
+      <input type="text" id="t-name" class="form-input" placeholder="...">
       <label class="form-label">Descripción (Opcional)</label>
-      <textarea id="h-desc" class="form-input" style="min-height:60px;resize:none;" placeholder="Detalles del evento o proyecto..."></textarea>
-      
+      <textarea id="t-desc" class="form-input" style="min-height:60px;resize:none;" placeholder="..."></textarea>
       <div style="display:flex; gap:10px;">
           <div style="flex:1;">
               <label class="form-label">Categoría</label>
-              <select id="h-cat" class="form-input">
-                  <option value="Trabajo">Trabajo</option>
-                  <option value="Personal">Personal</option>
-                  <option value="Estudio">Estudio</option>
-                  <option value="Otro">Otro (Proyecto)</option>
-              </select>
+              <select id="t-cat" class="form-input"><option value="Trabajo">Trabajo</option><option value="Personal">Personal</option><option value="Estudio">Estudio</option><option value="Otro">Otro (Proyecto)</option></select>
           </div>
           <div style="flex:1;">
               <label class="form-label">Hora (Opcional)</label>
-              <input type="time" id="h-time" class="form-input">
+              <input type="time" id="t-time" class="form-input">
           </div>
       </div>
-
       <div style="display:flex; gap:10px;">
           <div style="flex:1;">
               <label class="form-label">Fecha de inicio</label>
-              <input type="date" id="h-start-date" class="form-input">
+              <input type="date" id="t-start-date" class="form-input">
           </div>
           <div style="flex:1;">
               <label class="form-label">Repetir</label>
-              <select id="h-recurrence" class="form-input" onchange="toggleCustomRecurrenceHome()">
-                  <option value="none">Solo este día</option>
-                  <option value="weekdays">Lunes a Viernes</option>
-                  <option value="daily">Todos los días</option>
-                  <option value="weekly">Semanalmente</option>
-                  <option value="custom">Personalizado...</option>
-              </select>
+              <select id="t-recurrence" class="form-input" onchange="toggleCustomRecurrence()"><option value="none">Solo este día</option><option value="weekdays">Lunes a Viernes</option><option value="daily">Todos los días</option><option value="weekly">Semanalmente</option><option value="custom">Personalizado...</option></select>
           </div>
       </div>
-
-      <div id="home-custom-recurrence-options" style="display:none; background:var(--bg2); padding:16px; border-radius:12px; margin-bottom:16px; border:1px solid var(--line);">
+      <div id="custom-recurrence-options" style="display:none; background:var(--bg2); padding:16px; border-radius:12px; margin-bottom:16px; border:1px solid var(--line);">
           <label class="form-label" style="font-size:11px; margin-top:0;">Días de la semana</label>
           <div style="display:flex; gap:4px; margin-bottom:16px; justify-content:space-between;">
-              <button class="btn btn-sm custom-day-btn" data-day="1" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">L</button>
-              <button class="btn btn-sm custom-day-btn" data-day="2" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">M</button>
-              <button class="btn btn-sm custom-day-btn" data-day="3" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">X</button>
-              <button class="btn btn-sm custom-day-btn" data-day="4" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">J</button>
-              <button class="btn btn-sm custom-day-btn" data-day="5" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">V</button>
-              <button class="btn btn-sm custom-day-btn" data-day="6" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">S</button>
-              <button class="btn btn-sm custom-day-btn" data-day="0" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDayHome(this)">D</button>
+              <button class="btn btn-sm custom-day-btn" data-day="1" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDay(this)">L</button>
+              <button class="btn btn-sm custom-day-btn" data-day="2" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDay(this)">M</button>
+              <button class="btn btn-sm custom-day-btn" data-day="3" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDay(this)">X</button>
+              <button class="btn btn-sm custom-day-btn" data-day="4" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDay(this)">J</button>
+              <button class="btn btn-sm custom-day-btn" data-day="5" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDay(this)">V</button>
+              <button class="btn btn-sm custom-day-btn" data-day="6" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDay(this)">S</button>
+              <button class="btn btn-sm custom-day-btn" data-day="0" style="background:var(--bg3); color:var(--t1); flex:1; padding:8px 0; font-size: 10px;" onclick="toggleCustomDay(this)">D</button>
           </div>
           <label class="form-label" style="font-size:11px;">Fecha de fin</label>
-          <input type="date" id="h-recurrence-end" class="form-input" style="margin-bottom:0;">
+          <input type="date" id="t-recurrence-end" class="form-input" style="margin-bottom:0;">
       </div>
-
-      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="addTaskHome()">Guardar Evento / Proyecto</button>
+      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="addTask()">Guardar Meta / Proyecto</button>
     </div>
   </div>
 
-  <div class="overlay" id="modal-edit-dt-home" onclick="closeModal('modal-edit-dt-home',event)">
+  <div class="overlay" id="modal-edit-daily-task" onclick="closeModal('modal-edit-daily-task',event)">
     <div class="modal">
       <div class="modal-handle"></div>
       <div class="modal-title" style="margin-bottom:20px;">Editar Meta</div>
-      <input type="hidden" id="edit-dt-id-home">
-      
+      <input type="hidden" id="edit-dt-id">
       <label class="form-label">¿Qué quieres lograr?</label>
-      <input type="text" id="edit-dt-name-home" class="form-input">
-      
+      <input type="text" id="edit-dt-name" class="form-input">
       <label class="form-label">Descripción</label>
-      <textarea id="edit-dt-desc-home" class="form-input" style="min-height:60px;resize:none;" placeholder="..."></textarea>
-
+      <textarea id="edit-dt-desc" class="form-input" style="min-height:60px;resize:none;" placeholder="..."></textarea>
       <div style="display:flex; gap:10px;">
           <div style="flex:1;">
               <label class="form-label">Categoría</label>
-              <select id="edit-dt-cat-home" class="form-input">
-                  <option value="Trabajo">Trabajo</option>
-                  <option value="Personal">Personal</option>
-                  <option value="Estudio">Estudio</option>
-              </select>
+              <select id="edit-dt-cat" class="form-input"><option value="Trabajo">Trabajo</option><option value="Personal">Personal</option><option value="Estudio">Estudio</option></select>
           </div>
           <div style="flex:1;">
               <label class="form-label">Hora</label>
-              <input type="time" id="edit-dt-time-home" class="form-input">
+              <input type="time" id="edit-dt-time" class="form-input">
           </div>
       </div>
       <label class="form-label">Fecha</label>
-      <input type="date" id="edit-dt-date-home" class="form-input">
-      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="saveEditDailyTaskHome()">Guardar Cambios</button>
+      <input type="date" id="edit-dt-date" class="form-input">
+      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="saveEditDailyTask()">Guardar Cambios</button>
     </div>
   </div>
 
-  <div class="overlay" id="modal-edit-pt-home" onclick="closeModal('modal-edit-pt-home',event)">
+  <div class="overlay" id="modal-edit-project-task" onclick="closeModal('modal-edit-project-task',event)">
     <div class="modal">
       <div class="modal-handle"></div>
       <div class="modal-title" style="margin-bottom:20px;">Editar Tarea de Proyecto</div>
-      <input type="hidden" id="edit-pt-pid-home">
-      <input type="hidden" id="edit-pt-tid-home">
-
+      <input type="hidden" id="edit-pt-pid">
+      <input type="hidden" id="edit-pt-tid">
       <label class="form-label">Nombre de la tarea</label>
-      <input type="text" id="edit-pt-name-home" class="form-input" placeholder="...">
-
+      <input type="text" id="edit-pt-name" class="form-input" placeholder="...">
       <label class="form-label">Descripción</label>
-      <textarea id="edit-pt-desc-home" class="form-input" style="min-height:60px;resize:none;" placeholder="..."></textarea>
-
+      <textarea id="edit-pt-desc" class="form-input" style="min-height:60px;resize:none;" placeholder="..."></textarea>
       <div style="display:flex; gap:10px;">
           <div style="flex:1;">
               <label class="form-label">Prioridad</label>
-              <select id="edit-pt-priority-home" class="form-input">
-                  <option value="ui">Urgente + Imp 🔴</option>
-                  <option value="ni">No Urg + Imp 🔵</option>
-                  <option value="un">Urg + No Imp 🟡</option>
-                  <option value="nn">No Urg + No Imp ⚪</option>
-              </select>
+              <select id="edit-pt-priority" class="form-input"><option value="ui">Urgente + Imp 🔴</option><option value="ni">No Urg + Imp 🔵</option><option value="un">Urg + No Imp 🟡</option><option value="nn">No Urg + No Imp ⚪</option></select>
           </div>
           <div style="flex:1;">
               <label class="form-label">Fecha Límite</label>
-              <input type="date" id="edit-pt-deadline-home" class="form-input">
+              <input type="date" id="edit-pt-deadline" class="form-input">
           </div>
       </div>
-      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="saveEditProjectTaskHome()">Guardar Cambios</button>
+      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="saveEditProjectTask()">Guardar Cambios</button>
     </div>
   </div>
 
-  <div class="overlay" id="modal-fin-home" onclick="closeModal('modal-fin-home',event)">
+  <div class="overlay" id="modal-resource" onclick="closeModal('modal-resource',event)">
     <div class="modal">
       <div class="modal-handle"></div>
-      <div class="modal-title" style="margin-bottom:20px;">Añadir registro</div>
-      <label class="form-label">Tipo</label>
-      <select id="fin-type-home" class="form-input"><option value="ingreso">Ingreso</option><option value="gasto">Gasto</option></select>
-      <label class="form-label">Importe (€)</label>
-      <input type="number" id="fin-amount-home" class="form-input" placeholder="0.00" step="0.01">
-      <label class="form-label">Descripción</label>
-      <input type="text" id="fin-desc-home" class="form-input" placeholder="...">
-      <label class="form-label">Categoría</label>
-      <select id="fin-cat-home" class="form-input">
-        <option value="nómina">Nómina</option><option value="ahorro">Ahorro</option><option value="inversión">Inversión</option><option value="otro">Otro</option>
-      </select>
-      <label class="form-label">Fecha</label>
-      <input type="date" id="fin-date-home" class="form-input">
-      <button class="btn btn-primary" style="margin-top:16px; width:100%;" onclick="addFinEntryHome()">Guardar</button>
-    </div>
-  </div>
-
-  <div class="overlay" id="modal-pin" onclick="closeModal('modal-pin',event)">
-    <div class="modal">
-      <div class="modal-handle"></div>
-      <div class="modal-title">Introduce tu PIN</div>
-      <input type="password" id="cloud-pin-input" class="form-input" placeholder="****" inputmode="numeric">
-      <button class="btn btn-primary" style="width:100%" onclick="submitPin()">Confirmar</button>
+      <div class="modal-title" style="margin-bottom:20px;">Nuevo Recurso</div>
+      <label class="form-label">Título</label>
+      <input type="text" id="res-title" class="form-input" placeholder="...">
+      <label class="form-label">URL</label>
+      <input type="url" id="res-url" class="form-input" placeholder="https://...">
+      <label class="form-label">Etiqueta</label>
+      <input type="text" id="res-cat" class="form-input" placeholder="Ej: Trabajo, Guías...">
+      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="addResource()">Guardar Recurso</button>
     </div>
   </div>
 
   <div class="toast-container" id="toast-container"></div>
 </div>
 
-<script src="js/main.js?v=70"></script>
-<script src="js/nube.js?v=70"></script>
-
-<script>
-  // GUARDADO UNIVERSAL DE FINANZAS
-  function addFinEntryHome() {
-    const type = document.getElementById('fin-type-home').value;
-    const amount = parseFloat(document.getElementById('fin-amount-home').value);
-    const desc = document.getElementById('fin-desc-home').value.trim();
-    const cat = document.getElementById('fin-cat-home').value;
-    const date = document.getElementById('fin-date-home').value || (typeof today === 'function' ? today() : '');
-    
-    if(!amount || !desc) return showToast('Rellena importe y descripción', 'error');
-    
-    const entry = { id: (typeof uid === 'function' ? uid() : Date.now()), type, amount, desc, cat, date };
-    
-    // Guardamos en TODOS los posibles arrays
-    if(!S.fin) S.fin = []; S.fin.push(entry);
-    if(cat === 'ahorro') { if(!S.savings) S.savings=[]; S.savings.push(entry); }
-    else if(cat.includes('invers')) { if(!S.investments) S.investments=[]; S.investments.push(entry); }
-    else if(type === 'ingreso') { if(!S.incomes) S.incomes=[]; S.incomes.push(entry); }
-    else { if(!S.expenses) S.expenses=[]; S.expenses.push(entry); }
-    
-    save(); 
-    closeModal('modal-fin-home'); 
-    if (typeof syncHomeStats === 'function') syncHomeStats(); 
-    showToast('Registro guardado ✅', 'success');
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const dateInput = document.getElementById('fin-date-home');
-    if (dateInput && typeof today === 'function') dateInput.value = today();
-  });
-</script>
+<script src="js/main.js?v=80"></script>
+<script src="js/calendario.js?v=80"></script>
 </body>
 </html>
