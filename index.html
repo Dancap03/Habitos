@@ -8,12 +8,17 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/UI.css">
+<style>
+  /* EL CSS QUE FALTABA PARA LOS CÍRCULOS */
+  .check-circle { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+  .check-circle.checked { background: var(--acc); border-color: var(--acc); }
+  .check-circle.checked::after { content: '✓'; color: #fff; font-size: 12px; font-weight: bold; }
+</style>
 </head>
 <body>
 <div class="app">
 
   <div class="screen on">
-    <!-- TOPBAR -->
     <div class="topbar">
       <div style="font-weight:800;font-size:26px;color:var(--acc);letter-spacing:-0.5px;">Dancab</div>
        <div style="text-align:right">
@@ -22,8 +27,7 @@
       </div>
     </div>
 
-    <div class="scroll">
-      <!-- 1. RECUADRO ÚNICO EXTENDIDO -->
+    <div class="scroll" style="padding-bottom: 90px;">
       <div style="margin-bottom: 16px;">
         <div class="card card-full" style="text-align: center; padding: 24px;">
             <div id="home-pending-count" style="font-size: 48px; font-weight: 800; margin-bottom: 8px; color: var(--t1);">0</div>
@@ -31,7 +35,6 @@
         </div>
       </div>
 
-      <!-- CALENDARIO GYM -->
       <div class="card card-full" onclick="window.location.href='gym.html'" style="cursor:pointer">
         <div class="card-header" style="margin-bottom: 12px;">
             <span class="card-title" style="margin-bottom:0">CALENDARIO GYM</span>
@@ -44,20 +47,16 @@
         <div id="home-gym-calendar" style="display:grid; grid-template-columns:repeat(7, 1fr); gap:8px 4px; text-align:center;"></div>
       </div>
 
-      <!-- 2. LISTA DE TAREAS DE HOY SINCRONIZADA -->
       <div class="card card-full" style="margin-top: 16px;">
         <div class="card-header" style="margin-bottom: 12px;">
             <span class="card-title" style="margin-bottom:0;">TAREAS DEL DÍA</span>
-            <!-- Botón con color principal estilo Finanzas -->
             <button class="btn btn-sm" style="background:var(--acc); color:#fff; font-weight:700; border:none;" onclick="openModal('modal-task-home')">+ Evento</button>
         </div>
         <div style="font-size:12px; color:var(--t3); margin-bottom:16px;">Aquí verás tus metas del día y las tareas de proyectos con fecha límite hoy.</div>
         <div id="home-tasks-list">
-            <!-- Se inyectan las tareas desde JS -->
-        </div>
+            </div>
       </div>
 
-      <!-- FINANZAS (DISEÑO ORIGINAL + BOTÓN AÑADIR) -->
       <div class="card card-full" onclick="window.location.href='finanzas.html'" style="cursor:pointer">
         <div class="card-header" style="margin-bottom: 4px;">
             <span class="card-title" style="margin-bottom: 0;">FINANZAS</span>
@@ -89,7 +88,6 @@
         </div>
       </div>
 
-      <!-- CARTERA -->
       <div class="card card-full" onclick="window.location.href='cartera.html'" style="cursor:pointer">
         <div class="card-title">VALOR CARTERA</div>
         <div class="big-bal" id="home-port-total" style="font-size:28px;">€0</div>
@@ -99,7 +97,6 @@
         </div>
       </div>
 
-      <!-- SINCRONIZACIÓN (DISEÑO ORIGINAL DE BOTONES ANCHOS) -->
       <div class="card card-full">
         <div class="card-title">SINCRONIZACIÓN EN LA NUBE ☁️</div>
         <div style="display:flex;gap:10px;margin-top:10px">
@@ -110,20 +107,25 @@
     </div>
   </div>
 
-  <!-- NAVEGACIÓN -->
   <nav class="nav">
     <button class="nav-btn on" onclick="window.location.href='index.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="nav-label">Inicio</span></button>
-    <button class="nav-btn" onclick="window.location.href='calendario.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span class="nav-label">Calendario</span></button>
+    <button class="nav-btn" onclick="window.location.href='calendario.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span class="nav-label">Agenda</span></button>
     <button class="nav-btn" onclick="window.location.href='finanzas.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg><span class="nav-label">Finanzas</span></button>
     <button class="nav-btn" onclick="window.location.href='cartera.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Cartera</span></button>
     <button class="nav-btn" onclick="window.location.href='gym.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 5v14M18 5v14M3 9h18M3 15h18"/></svg><span class="nav-label">Gym</span></button>
   </nav>
 
-  <!-- ============================================== -->
-  <!-- MODALES (FUERA DEL SCROLL PARA QUE NO SE ROMPAN) -->
-  <!-- ============================================== -->
+  <div class="overlay" id="modal-confirm-delete-home" onclick="closeModal('modal-confirm-delete-home',event)">
+    <div class="modal">
+      <div class="modal-title" id="confirm-del-title-home" style="margin-bottom:10px; color:var(--red);">Eliminar</div>
+      <div id="confirm-del-msg-home" style="font-size:14px; color:var(--t1); margin-bottom:24px;">¿Estás seguro?</div>
+      <div style="display:flex; gap:10px;">
+          <button class="btn" style="flex:1; background:var(--bg3); color:var(--t1);" onclick="closeModal('modal-confirm-delete-home')">Cancelar</button>
+          <button class="btn btn-danger" style="flex:1; background:var(--red); color:#fff; border:none;" onclick="executeConfirmDeleteHome()">Sí, borrar</button>
+      </div>
+    </div>
+  </div>
 
-  <!-- MODAL: AÑADIR EVENTO DESDE INICIO -->
   <div class="overlay" id="modal-task-home" onclick="closeModal('modal-task-home',event)">
     <div class="modal">
       <div class="modal-handle"></div>
@@ -187,7 +189,70 @@
     </div>
   </div>
 
-  <!-- MODAL FINANZAS -->
+  <div class="overlay" id="modal-edit-dt-home" onclick="closeModal('modal-edit-dt-home',event)">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title" style="margin-bottom:20px;">Editar Meta</div>
+      <input type="hidden" id="edit-dt-id-home">
+      
+      <label class="form-label">¿Qué quieres lograr?</label>
+      <input type="text" id="edit-dt-name-home" class="form-input">
+      
+      <label class="form-label">Descripción</label>
+      <textarea id="edit-dt-desc-home" class="form-input" style="min-height:60px;resize:none;" placeholder="..."></textarea>
+
+      <div style="display:flex; gap:10px;">
+          <div style="flex:1;">
+              <label class="form-label">Categoría</label>
+              <select id="edit-dt-cat-home" class="form-input">
+                  <option value="Trabajo">Trabajo</option>
+                  <option value="Personal">Personal</option>
+                  <option value="Estudio">Estudio</option>
+              </select>
+          </div>
+          <div style="flex:1;">
+              <label class="form-label">Hora</label>
+              <input type="time" id="edit-dt-time-home" class="form-input">
+          </div>
+      </div>
+      <label class="form-label">Fecha</label>
+      <input type="date" id="edit-dt-date-home" class="form-input">
+      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="saveEditDailyTaskHome()">Guardar Cambios</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="modal-edit-pt-home" onclick="closeModal('modal-edit-pt-home',event)">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title" style="margin-bottom:20px;">Editar Tarea de Proyecto</div>
+      <input type="hidden" id="edit-pt-pid-home">
+      <input type="hidden" id="edit-pt-tid-home">
+
+      <label class="form-label">Nombre de la tarea</label>
+      <input type="text" id="edit-pt-name-home" class="form-input" placeholder="...">
+
+      <label class="form-label">Descripción</label>
+      <textarea id="edit-pt-desc-home" class="form-input" style="min-height:60px;resize:none;" placeholder="..."></textarea>
+
+      <div style="display:flex; gap:10px;">
+          <div style="flex:1;">
+              <label class="form-label">Prioridad</label>
+              <select id="edit-pt-priority-home" class="form-input">
+                  <option value="ui">Urgente + Imp 🔴</option>
+                  <option value="ni">No Urg + Imp 🔵</option>
+                  <option value="un">Urg + No Imp 🟡</option>
+                  <option value="nn">No Urg + No Imp ⚪</option>
+              </select>
+          </div>
+          <div style="flex:1;">
+              <label class="form-label">Fecha Límite</label>
+              <input type="date" id="edit-pt-deadline-home" class="form-input">
+          </div>
+      </div>
+      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="saveEditProjectTaskHome()">Guardar Cambios</button>
+    </div>
+  </div>
+
   <div class="overlay" id="modal-fin-home" onclick="closeModal('modal-fin-home',event)">
     <div class="modal">
       <div class="modal-handle"></div>
@@ -208,7 +273,6 @@
     </div>
   </div>
 
-  <!-- MODAL PIN NUBE -->
   <div class="overlay" id="modal-pin" onclick="closeModal('modal-pin',event)">
     <div class="modal">
       <div class="modal-handle"></div>
@@ -221,8 +285,8 @@
   <div class="toast-container" id="toast-container"></div>
 </div>
 
-<script src="js/main.js?v=48"></script>
-<script src="js/nube.js?v=48"></script>
+<script src="js/main.js?v=52"></script>
+<script src="js/nube.js?v=52"></script>
 <script>
   function addFinEntryHome() {
     const type = document.getElementById('fin-type-home').value;
